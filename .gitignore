@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+.env.*
+!.env.example
+data/private/*
+!data/private/.gitkeep
+artifacts/runs/*
+!artifacts/runs/.gitkeep
+*.pyc
+.tools/

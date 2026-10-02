@@ -1,0 +1,11 @@
+services:
+  hermes-api:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      HERMES_ENV: development
+      AI_BASE_URL: http://host.docker.internal:20128/v1
+    volumes:
+      - ./artifacts:/app/artifacts
+    restart: unless-stopped

@@ -1,0 +1,2 @@
+{"evidence_id":"EV-SYNTH-001","source":"synthetic","event_type":"auth","severity_hint":"high","message":"Synthetic fixture for review routing","attributes":{"fixture":true},"redaction_status":"synthetic","schema_version":"1.0"}
+{"evidence_id":"EV-SYNTH-002","source":"synthetic","event_type":"process","severity_hint":"low","message":"Synthetic benign fixture","attributes":{"fixture":true},"redaction_status":"synthetic","schema_version":"1.0"}

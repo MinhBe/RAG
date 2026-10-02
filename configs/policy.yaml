@@ -1,0 +1,11 @@
+risk_classes:
+  read: auto
+  analyze: auto
+  generate_draft: auto
+  write_file: approval_by_path
+  send: approval_required
+  delete: approval_required
+  change_security_control: admin_approval_required
+  production_remediation: manual_only
+agent_shell_tool: disabled
+public_data: synthetic_or_redacted_only
