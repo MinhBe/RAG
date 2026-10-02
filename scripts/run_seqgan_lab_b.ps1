@@ -1,5 +1,6 @@
 param(
     [switch]$ProvisionBase,
+    [switch]$FullSeqGANProjected,
     [int]$Limit = 16
 )
 
@@ -27,7 +28,11 @@ if ($ProvisionBase) {
 Step 'Prepare SeqGAN V3 corpus' 'uv run python scripts/prepare_seqgan_corpus_v3.py --archive training/seqgan/data/raw/SQLGAN_PostgreSQL_Boolean_Attack_Structure_Corpus_V3.zip'
 Step 'Provision PostgreSQL sandbox' 'uv run --with paramiko python scripts/provision_lab_postgres.py'
 Step 'Provision WAF/CRS' 'uv run --with paramiko python scripts/provision_lab_waf.py'
-Step 'Generate SeqGAN mini candidates' "uv run python scripts/run_seqgan_mini_generate_v3.py --count $Limit"
+if ($FullSeqGANProjected) {
+    Step 'Run full PyTorch SeqGAN projected loop' "uv run --with torch --with pandas --with numpy --with tqdm python scripts/run_seqgan_full_projected_loop.py --count $Limit --device cpu"
+} else {
+    Step 'Generate SeqGAN mini candidates' "uv run python scripts/run_seqgan_mini_generate_v3.py --count $Limit"
+}
 Step 'Run generated PostgreSQL probe' "uv run --with paramiko python scripts/run_generated_postgres_probe.py --limit $Limit"
 Step 'Run generated WAF probe' "uv run --with paramiko python scripts/run_generated_waf_probe.py --limit $Limit"
 Step 'Run Atomic smoke' 'uv run --with paramiko python scripts/run_atomic_smoke.py'
