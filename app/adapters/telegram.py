@@ -1,4 +1,5 @@
-﻿import json
+import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -15,32 +16,47 @@ def _aliases() -> set[str]:
     return {item.strip().lower().lstrip("@") for item in raw.split(",") if item.strip()}
 
 
+def _sorted_aliases() -> list[str]:
+    return sorted(_aliases(), key=len, reverse=True)
+
+
+def _strip_addressed_mention(normalized: str) -> str | None:
+    for alias in _sorted_aliases():
+        prefix = re.compile(rf"^@{re.escape(alias)}(?=$|\s|[:,])[:,]?\s*", re.IGNORECASE)
+        match = prefix.match(normalized)
+        if match:
+            return normalized[match.end() :].strip() or "/help"
+    for alias in _sorted_aliases():
+        inline = re.compile(rf"@{re.escape(alias)}(?=$|\s|[:,])", re.IGNORECASE)
+        if inline.search(normalized):
+            return " ".join(inline.sub("", normalized, count=1).split()) or "/help"
+    return None
+
+
 def extract_directed_text(text: str) -> str | None:
     normalized = text.strip()
     if not normalized:
         return None
-    aliases = _aliases()
+    aliases = set(_sorted_aliases())
     parts = normalized.split()
-    first = parts[0].lower()
-    if first.startswith("/") and "@" in first:
-        command, target = first.split("@", 1)
+    first = parts[0]
+    first_lower = first.lower()
+    if first_lower.startswith("/") and "@" in first_lower:
+        command, target = first_lower.split("@", 1)
         if target in aliases:
             return " ".join([command, *parts[1:]]).strip()
         return None
-    for alias in aliases:
-        mention = f"@{alias}"
-        lowered = normalized.lower()
-        if mention in lowered:
-            cleaned = normalized
-            cleaned = cleaned.replace(f"@{alias}", "")
-            cleaned = cleaned.replace(f"@{alias.capitalize()}", "")
-            return " ".join(cleaned.split()).strip() or "/help"
-    if first.rstrip(":,") in aliases:
-        return " ".join(parts[1:]).strip() or "/help"
-    if first.startswith("/"):
+    mentioned = _strip_addressed_mention(normalized)
+    if mentioned is not None:
+        return mentioned
+    for alias in _sorted_aliases():
+        prefix = re.compile(rf"^{re.escape(alias)}\s*[:,]\s*", re.IGNORECASE)
+        match = prefix.match(normalized)
+        if match:
+            return normalized[match.end() :].strip() or "/help"
+    if first_lower.startswith("/"):
         return normalized
     return None
-
 
 def _load_latest_case_report(case_id: str) -> dict[str, Any] | None:
     report_path = Path("artifacts/hermes_a") / f"{case_id}_report.json"

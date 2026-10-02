@@ -32,3 +32,9 @@ def test_natural_language_goes_through_hermes_core(monkeypatch):
 
     monkeypatch.setattr("app.adapters.telegram.run_chat_turn", fake_run_chat_turn)
     assert handle_telegram_message("@Swain hello") == "core response"
+
+
+def test_actual_bot_username_mention_is_not_partially_stripped():
+    assert extract_directed_text("/demo_a@Swain_SubAgent_bot") == "/demo_a"
+    assert extract_directed_text("@Swain_SubAgent_bot ê bro") == "ê bro"
+    assert extract_directed_text("@Swain ê bro") == "ê bro"
