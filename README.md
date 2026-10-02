@@ -54,3 +54,9 @@ powershell -ExecutionPolicy Bypass -File scripts/run_demo_b.ps1
 It validates prompt/indirect-injection evidence handling, evidence-reference
 integrity, human review boundaries, Supabase readback, and the existing end-to-end
 triage path. Details: `docs/DEMO_B_SECURITY.md`.
+
+The one-command runner also renders a browser-viewable report at:
+
+```text
+artifacts/demo_b/security_demo_b_report.html
+```

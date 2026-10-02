@@ -4,24 +4,24 @@
       "approval_status": "pending_human_review",
       "case_id": "DEMO-B-001",
       "findings": 1,
-      "run_suffix": "ed27ed3738",
-      "run_uuid": "d0203b32-cdee-451c-8a36-c800990faf1c",
+      "run_suffix": "1c3ea169e9",
+      "run_uuid": "770ce9a1-d5e4-4574-9e5b-37d0bc693600",
       "storage_status": "stored"
     },
     {
       "approval_status": "pending_human_review",
       "case_id": "DEMO-B-002",
       "findings": 1,
-      "run_suffix": "bf30b99f25",
-      "run_uuid": "b34cc3e7-148e-4f78-a80f-f03c39e32dd3",
+      "run_suffix": "d57b70f48e",
+      "run_uuid": "e8a3c153-e76d-47dd-b3da-097ac669c05a",
       "storage_status": "stored"
     },
     {
       "approval_status": "not_required",
       "case_id": "DEMO-B-003",
       "findings": 0,
-      "run_suffix": "0593900b86",
-      "run_uuid": "493df3a8-72d8-4f2b-94e5-8e0604f34e2b",
+      "run_suffix": "7310c19f50",
+      "run_uuid": "8b0bf724-bc3b-4754-b79b-769f679899f6",
       "storage_status": "stored"
     }
   ],

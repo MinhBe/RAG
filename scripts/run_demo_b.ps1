@@ -46,7 +46,6 @@ function Ensure-DockerDesktop {
     }
     throw "Docker daemon did not become ready. Open Docker Desktop manually and rerun this script."
 }
-
 function Ensure-9Router {
     if (Test-Http "http://127.0.0.1:20128/v1/models" 5) {
         Write-Host "9Router already reachable."
@@ -69,7 +68,6 @@ function Ensure-9Router {
     }
     throw "9Router did not become reachable on http://127.0.0.1:20128/v1/models."
 }
-
 function Ensure-HermesApi {
     docker compose up -d --build --force-recreate | Out-Host
     if ($LASTEXITCODE -ne 0) {
@@ -91,11 +89,18 @@ Write-Host "Repo: $(Get-Location)"
 Ensure-DockerDesktop
 Ensure-9Router
 Ensure-HermesApi
-
 Invoke-Checked "compileall" { uv run python -m compileall app scripts tests training | Out-Host }
 Invoke-Checked "ruff" { uv run ruff check app tests scripts training | Out-Host }
 Invoke-Checked "pytest" { uv run pytest -q | Out-Host }
 Invoke-Checked "Demo B security" { uv run python scripts/demo_security_b.py | Out-Host }
+Invoke-Checked "Render visible HTML report" { uv run python scripts/render_demo_b_report.py | Out-Host }
 Invoke-Checked "Supabase readback demo" { uv run python scripts/demo_end_to_end.py | Out-Host }
 
+$reportPath = Resolve-Path "artifacts\demo_b\security_demo_b_report.html"
 Write-Host "`nPASS Hermes Demo B Security end-to-end" -ForegroundColor Green
+Write-Host "Visible report: $reportPath" -ForegroundColor Green
+try {
+    Start-Process $reportPath | Out-Null
+} catch {
+    Write-Host "Could not auto-open report. Open it manually at: $reportPath" -ForegroundColor Yellow
+}

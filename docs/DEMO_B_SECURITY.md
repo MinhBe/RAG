@@ -38,3 +38,14 @@ The fixture file is `data/public/security_demo_b.jsonl`.
 
 Demo B does not exploit systems, scan targets, evade controls, or perform
 autonomous remediation. It uses synthetic evidence only.
+
+## Visible report
+
+After a successful run, open:
+
+```text
+artifacts/demo_b/security_demo_b_report.html
+```
+
+The HTML report summarizes health, AI gateway reachability, Supabase status,
+case outcomes, run UUIDs, and recruiter talking points.
