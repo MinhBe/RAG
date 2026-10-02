@@ -16,7 +16,16 @@ def test_health():
 
 def test_triage_schema(monkeypatch):
     monkeypatch.setattr("app.core.pipeline.supabase_is_configured", lambda: False)
-    payload = {"evidence": [{"source": "synthetic", "event_type": "auth", "severity_hint": "high", "message": "fixture"}]}
+    payload = {
+        "evidence": [
+            {
+                "source": "synthetic",
+                "event_type": "auth",
+                "severity_hint": "high",
+                "message": "fixture",
+            }
+        ]
+    }
     response = client.post("/v1/triage", json=payload)
     assert response.status_code == 200
     body = response.json()
@@ -25,7 +34,16 @@ def test_triage_schema(monkeypatch):
 
 
 def test_unredacted_evidence_is_rejected():
-    payload = {"evidence": [{"source": "host", "event_type": "auth", "message": "fixture", "redaction_status": "private"}]}
+    payload = {
+        "evidence": [
+            {
+                "source": "host",
+                "event_type": "auth",
+                "message": "fixture",
+                "redaction_status": "private",
+            }
+        ]
+    }
     response = client.post("/v1/triage", json=payload)
     assert response.status_code == 422
 

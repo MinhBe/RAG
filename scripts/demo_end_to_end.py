@@ -32,7 +32,10 @@ def main() -> None:
         providers = client.get(f"{BASE_URL}/health/providers")
         print("providers", providers.status_code, providers.json())
         require(providers.status_code == 200, "Provider health failed")
-        require(providers.json().get("supabase_configured") is True, "Supabase is not configured")
+        require(
+            providers.json().get("supabase_configured") is True,
+            "Supabase is not configured",
+        )
 
         payload = {
             "evidence": [
@@ -47,7 +50,12 @@ def main() -> None:
         }
         triage = client.post(f"{BASE_URL}/v1/triage", json=payload)
         body = triage.json()
-        print("triage", triage.status_code, body.get("approval_status"), body.get("storage_status"))
+        print(
+            "triage",
+            triage.status_code,
+            body.get("approval_status"),
+            body.get("storage_status"),
+        )
         require(triage.status_code == 200, "Triage request failed")
         require(body.get("storage_status") == "stored", "Triage result was not stored")
         run_uuid = body["run_uuid"]

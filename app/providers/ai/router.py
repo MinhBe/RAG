@@ -13,7 +13,9 @@ class RouterProvider:
         if settings.ai_api_key:
             headers["Authorization"] = f"Bearer {settings.ai_api_key}"
         try:
-            async with httpx.AsyncClient(timeout=3.0, transport=self.transport) as client:
+            async with httpx.AsyncClient(
+                timeout=3.0, transport=self.transport
+            ) as client:
                 response = await client.get(f"{self.base_url}/models", headers=headers)
             return {
                 "reachable": True,

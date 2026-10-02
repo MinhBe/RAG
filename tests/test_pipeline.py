@@ -5,7 +5,9 @@ from app.schemas.evidence import Evidence
 
 def test_high_hint_routes_to_human_review(monkeypatch):
     monkeypatch.setattr(pipeline, "supabase_is_configured", lambda: False)
-    evidence = Evidence(source="synthetic", event_type="auth", severity_hint="high", message="fixture")
+    evidence = Evidence(
+        source="synthetic", event_type="auth", severity_hint="high", message="fixture"
+    )
     result = run_triage([evidence])
     assert result["approval_required"] is True
     assert result["approval_status"] == "pending_human_review"
@@ -20,7 +22,9 @@ def test_high_hint_routes_to_human_review(monkeypatch):
 
 def test_low_hint_does_not_create_security_claim(monkeypatch):
     monkeypatch.setattr(pipeline, "supabase_is_configured", lambda: False)
-    evidence = Evidence(source="synthetic", event_type="process", severity_hint="low", message="fixture")
+    evidence = Evidence(
+        source="synthetic", event_type="process", severity_hint="low", message="fixture"
+    )
     result = run_triage([evidence])
     assert result["findings"] == []
     assert result["approval_required"] is False
@@ -37,6 +41,8 @@ def test_storage_path_records_stored_status(monkeypatch):
         return "stored"
 
     monkeypatch.setattr(pipeline, "persist_triage_result", fake_persist_triage_result)
-    evidence = Evidence(source="synthetic", event_type="auth", severity_hint="high", message="fixture")
+    evidence = Evidence(
+        source="synthetic", event_type="auth", severity_hint="high", message="fixture"
+    )
     result = run_triage([evidence])
     assert result["storage_status"] == "stored"

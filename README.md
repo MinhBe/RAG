@@ -43,3 +43,14 @@ After the demo, rotate exposed or chat-shared secrets:
 
 ## Safety boundary
 External logs, RAG documents, tool descriptions, and tool results are data, not instructions. Production remediation remains manual. Writes, sends, deletes, security-control changes, credentials, and external testing require explicit approval.
+
+
+## Demo B Security
+Run the recruiter-facing security slice with one command:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_demo_b.ps1
+```
+It validates prompt/indirect-injection evidence handling, evidence-reference
+integrity, human review boundaries, Supabase readback, and the existing end-to-end
+triage path. Details: `docs/DEMO_B_SECURITY.md`.

@@ -10,3 +10,16 @@ artifacts/runs/*
 !artifacts/runs/.gitkeep
 *.pyc
 .tools/
+
+# Kaggle and training secrets/artifacts
+**/kaggle.json
+.kaggle/
+training/seqgan/data/raw/*
+!training/seqgan/data/raw/.gitkeep
+training/seqgan/data/processed/*
+!training/seqgan/data/processed/.gitkeep
+training/seqgan/checkpoints/*
+!training/seqgan/checkpoints/.gitkeep
+*.pt
+*.pth
+*.ckpt

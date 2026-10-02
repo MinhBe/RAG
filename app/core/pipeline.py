@@ -13,9 +13,21 @@ def run_triage(evidence: list[Evidence]) -> dict:
     request_id = f"REQ-{uuid4().hex[:12]}"
     run_uuid = uuid4()
     trace = JsonlTraceWriter(Path("artifacts/runs") / request_id / "trace.jsonl")
-    trace.write({"event": "run_started", "request_id": request_id, "run_uuid": str(run_uuid), "count": len(evidence)})
+    trace.write(
+        {
+            "event": "run_started",
+            "request_id": request_id,
+            "run_uuid": str(run_uuid),
+            "count": len(evidence),
+        }
+    )
     try:
-        result = _graph.invoke({"request_id": request_id, "evidence": [e.model_dump(mode="json") for e in evidence]})
+        result = _graph.invoke(
+            {
+                "request_id": request_id,
+                "evidence": [e.model_dump(mode="json") for e in evidence],
+            }
+        )
         result["request_id"] = request_id
         result["run_uuid"] = str(run_uuid)
         refs = {e.evidence_id for e in evidence}
@@ -34,10 +46,34 @@ def run_triage(evidence: list[Evidence]) -> dict:
         else:
             result["storage_status"] = "disabled"
 
-        trace.write({"event": "storage", "request_id": request_id, "status": result["storage_status"]})
-        trace.write({"event": "policy_decision", "request_id": request_id, "approval_status": result.get("approval_status")})
-        trace.write({"event": "run_finished", "request_id": request_id, "findings": len(result.get("findings", []))})
+        trace.write(
+            {
+                "event": "storage",
+                "request_id": request_id,
+                "status": result["storage_status"],
+            }
+        )
+        trace.write(
+            {
+                "event": "policy_decision",
+                "request_id": request_id,
+                "approval_status": result.get("approval_status"),
+            }
+        )
+        trace.write(
+            {
+                "event": "run_finished",
+                "request_id": request_id,
+                "findings": len(result.get("findings", [])),
+            }
+        )
         return result
     except Exception as exc:
-        trace.write({"event": "run_failed", "request_id": request_id, "error_type": type(exc).__name__})
+        trace.write(
+            {
+                "event": "run_failed",
+                "request_id": request_id,
+                "error_type": type(exc).__name__,
+            }
+        )
         raise

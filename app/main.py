@@ -29,7 +29,9 @@ def health() -> dict:
 async def provider_health() -> dict:
     return {
         "ai_gateway": await RouterProvider().status(),
-        "supabase_configured": bool(settings.supabase_url and settings.supabase_secret_key),
+        "supabase_configured": bool(
+            settings.supabase_url and settings.supabase_secret_key
+        ),
     }
 
 
@@ -41,7 +43,9 @@ def triage(request: TriageRequest) -> dict:
 @app.get("/v1/runs/latest")
 def latest_run() -> dict:
     if not supabase_is_configured():
-        raise HTTPException(status_code=503, detail="Supabase storage is not configured")
+        raise HTTPException(
+            status_code=503, detail="Supabase storage is not configured"
+        )
     audit = get_latest_run_audit_trail()
     if audit is None:
         raise HTTPException(status_code=404, detail="No persisted runs found")
@@ -51,7 +55,9 @@ def latest_run() -> dict:
 @app.get("/v1/runs/{run_uuid}")
 def run_by_uuid(run_uuid: UUID) -> dict:
     if not supabase_is_configured():
-        raise HTTPException(status_code=503, detail="Supabase storage is not configured")
+        raise HTTPException(
+            status_code=503, detail="Supabase storage is not configured"
+        )
     audit = get_run_audit_trail(run_uuid)
     if audit is None:
         raise HTTPException(status_code=404, detail="Run not found")

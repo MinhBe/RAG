@@ -7,7 +7,10 @@ from app.schemas.evidence import Evidence
 
 
 def validate_node(state: HermesState) -> dict:
-    evidence = [Evidence.model_validate(item).model_dump(mode="json") for item in state["evidence"]]
+    evidence = [
+        Evidence.model_validate(item).model_dump(mode="json")
+        for item in state["evidence"]
+    ]
     return {"evidence": evidence, "errors": []}
 
 
