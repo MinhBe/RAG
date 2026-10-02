@@ -1,0 +1,139 @@
+{
+  "evidence": [
+    {
+      "attributes": {
+        "lab_profile": "ubuntu2004_vm_postgres16_apache_modsecurity_crs",
+        "modules": [
+          "Y1_basic_boolean"
+        ],
+        "postgres_truth_oracle_matched": 16,
+        "runtime_claim_scope": "isolated_lab_only",
+        "sample_count": 16,
+        "waf_access_logged": 16,
+        "waf_audit_logged": 16
+      },
+      "event_type": "seqgan_v3_lab_regression_summary",
+      "evidence_id": "EV-478c58bf5132",
+      "message": "Synthetic SeqGAN V3 validation slice produced PostgreSQL truth-oracle matches and WAF/CRS audit telemetry in the isolated Hermes lab. This is lab evidence only; it does not assert production exploitation.",
+      "observed_at": "2026-10-02T11:04:05.315036Z",
+      "redaction_status": "synthetic",
+      "schema_version": "1.0",
+      "severity_hint": "high",
+      "source": "hermes_lab_seqgan_v3"
+    },
+    {
+      "attributes": {
+        "failed": 0,
+        "matched": 16,
+        "payload_exported": false,
+        "sample_count": 16
+      },
+      "event_type": "postgres_truth_oracle_probe",
+      "evidence_id": "EV-328a7d0f67d5",
+      "message": "PostgreSQL sandbox evaluated the selected synthetic validation samples and returned truth-oracle metadata.",
+      "observed_at": "2026-10-02T11:04:05.315036Z",
+      "redaction_status": "synthetic",
+      "schema_version": "1.0",
+      "severity_hint": "medium",
+      "source": "hermes_lab_postgres"
+    },
+    {
+      "attributes": {
+        "http_ok": 16,
+        "payload_exported": false,
+        "sample_count": 16,
+        "waf_access_logged": 16,
+        "waf_audit_logged": 16,
+        "waf_mode": "apache_modsecurity_crs_detection_only_audit_on"
+      },
+      "event_type": "modsecurity_crs_probe",
+      "evidence_id": "EV-d13578d8f420",
+      "message": "Apache ModSecurity with OWASP CRS recorded access and audit telemetry for the selected synthetic validation samples.",
+      "observed_at": "2026-10-02T11:04:05.315036Z",
+      "redaction_status": "synthetic",
+      "schema_version": "1.0",
+      "severity_hint": "medium",
+      "source": "hermes_lab_waf_crs"
+    }
+  ],
+  "triage_result": {
+    "approval_required": true,
+    "approval_status": "pending_human_review",
+    "errors": [],
+    "evidence": [
+      {
+        "attributes": {
+          "lab_profile": "ubuntu2004_vm_postgres16_apache_modsecurity_crs",
+          "modules": [
+            "Y1_basic_boolean"
+          ],
+          "postgres_truth_oracle_matched": 16,
+          "runtime_claim_scope": "isolated_lab_only",
+          "sample_count": 16,
+          "waf_access_logged": 16,
+          "waf_audit_logged": 16
+        },
+        "event_type": "seqgan_v3_lab_regression_summary",
+        "evidence_id": "EV-478c58bf5132",
+        "message": "Synthetic SeqGAN V3 validation slice produced PostgreSQL truth-oracle matches and WAF/CRS audit telemetry in the isolated Hermes lab. This is lab evidence only; it does not assert production exploitation.",
+        "observed_at": "2026-10-02T11:04:05.315036Z",
+        "redaction_status": "synthetic",
+        "schema_version": "1.0",
+        "severity_hint": "high",
+        "source": "hermes_lab_seqgan_v3"
+      },
+      {
+        "attributes": {
+          "failed": 0,
+          "matched": 16,
+          "payload_exported": false,
+          "sample_count": 16
+        },
+        "event_type": "postgres_truth_oracle_probe",
+        "evidence_id": "EV-328a7d0f67d5",
+        "message": "PostgreSQL sandbox evaluated the selected synthetic validation samples and returned truth-oracle metadata.",
+        "observed_at": "2026-10-02T11:04:05.315036Z",
+        "redaction_status": "synthetic",
+        "schema_version": "1.0",
+        "severity_hint": "medium",
+        "source": "hermes_lab_postgres"
+      },
+      {
+        "attributes": {
+          "http_ok": 16,
+          "payload_exported": false,
+          "sample_count": 16,
+          "waf_access_logged": 16,
+          "waf_audit_logged": 16,
+          "waf_mode": "apache_modsecurity_crs_detection_only_audit_on"
+        },
+        "event_type": "modsecurity_crs_probe",
+        "evidence_id": "EV-d13578d8f420",
+        "message": "Apache ModSecurity with OWASP CRS recorded access and audit telemetry for the selected synthetic validation samples.",
+        "observed_at": "2026-10-02T11:04:05.315036Z",
+        "redaction_status": "synthetic",
+        "schema_version": "1.0",
+        "severity_hint": "medium",
+        "source": "hermes_lab_waf_crs"
+      }
+    ],
+    "findings": [
+      {
+        "created_at": "2026-10-02T11:04:05.326089Z",
+        "detector": "severity_hint_review_router_v1",
+        "disposition": "escalate",
+        "evidence_refs": [
+          "EV-478c58bf5132"
+        ],
+        "finding_id": "F-a40bd2339c28",
+        "rationale": "Routing rule only; it does not assert that a threat is confirmed.",
+        "severity": "high",
+        "title": "High-severity source hint requires analyst review",
+        "validation_status": "validated"
+      }
+    ],
+    "request_id": "REQ-a904653497a2",
+    "run_uuid": "5be0a273-9d9c-4bd2-8490-bae1a2e9faa0",
+    "storage_status": "stored"
+  }
+}
