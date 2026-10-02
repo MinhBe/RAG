@@ -13,9 +13,9 @@
         "waf_audit_logged": 16
       },
       "event_type": "seqgan_v3_lab_regression_summary",
-      "evidence_id": "EV-478c58bf5132",
+      "evidence_id": "EV-a8aaad7a7675",
       "message": "Synthetic SeqGAN V3 validation slice produced PostgreSQL truth-oracle matches and WAF/CRS audit telemetry in the isolated Hermes lab. This is lab evidence only; it does not assert production exploitation.",
-      "observed_at": "2026-10-02T11:04:05.315036Z",
+      "observed_at": "2026-10-02T11:12:07.372834Z",
       "redaction_status": "synthetic",
       "schema_version": "1.0",
       "severity_hint": "high",
@@ -29,9 +29,9 @@
         "sample_count": 16
       },
       "event_type": "postgres_truth_oracle_probe",
-      "evidence_id": "EV-328a7d0f67d5",
+      "evidence_id": "EV-40c9f5720adb",
       "message": "PostgreSQL sandbox evaluated the selected synthetic validation samples and returned truth-oracle metadata.",
-      "observed_at": "2026-10-02T11:04:05.315036Z",
+      "observed_at": "2026-10-02T11:12:07.372834Z",
       "redaction_status": "synthetic",
       "schema_version": "1.0",
       "severity_hint": "medium",
@@ -47,9 +47,9 @@
         "waf_mode": "apache_modsecurity_crs_detection_only_audit_on"
       },
       "event_type": "modsecurity_crs_probe",
-      "evidence_id": "EV-d13578d8f420",
+      "evidence_id": "EV-aac381d79718",
       "message": "Apache ModSecurity with OWASP CRS recorded access and audit telemetry for the selected synthetic validation samples.",
-      "observed_at": "2026-10-02T11:04:05.315036Z",
+      "observed_at": "2026-10-02T11:12:07.372834Z",
       "redaction_status": "synthetic",
       "schema_version": "1.0",
       "severity_hint": "medium",
@@ -74,9 +74,9 @@
           "waf_audit_logged": 16
         },
         "event_type": "seqgan_v3_lab_regression_summary",
-        "evidence_id": "EV-478c58bf5132",
+        "evidence_id": "EV-a8aaad7a7675",
         "message": "Synthetic SeqGAN V3 validation slice produced PostgreSQL truth-oracle matches and WAF/CRS audit telemetry in the isolated Hermes lab. This is lab evidence only; it does not assert production exploitation.",
-        "observed_at": "2026-10-02T11:04:05.315036Z",
+        "observed_at": "2026-10-02T11:12:07.372834Z",
         "redaction_status": "synthetic",
         "schema_version": "1.0",
         "severity_hint": "high",
@@ -90,9 +90,9 @@
           "sample_count": 16
         },
         "event_type": "postgres_truth_oracle_probe",
-        "evidence_id": "EV-328a7d0f67d5",
+        "evidence_id": "EV-40c9f5720adb",
         "message": "PostgreSQL sandbox evaluated the selected synthetic validation samples and returned truth-oracle metadata.",
-        "observed_at": "2026-10-02T11:04:05.315036Z",
+        "observed_at": "2026-10-02T11:12:07.372834Z",
         "redaction_status": "synthetic",
         "schema_version": "1.0",
         "severity_hint": "medium",
@@ -108,9 +108,9 @@
           "waf_mode": "apache_modsecurity_crs_detection_only_audit_on"
         },
         "event_type": "modsecurity_crs_probe",
-        "evidence_id": "EV-d13578d8f420",
+        "evidence_id": "EV-aac381d79718",
         "message": "Apache ModSecurity with OWASP CRS recorded access and audit telemetry for the selected synthetic validation samples.",
-        "observed_at": "2026-10-02T11:04:05.315036Z",
+        "observed_at": "2026-10-02T11:12:07.372834Z",
         "redaction_status": "synthetic",
         "schema_version": "1.0",
         "severity_hint": "medium",
@@ -119,21 +119,21 @@
     ],
     "findings": [
       {
-        "created_at": "2026-10-02T11:04:05.326089Z",
+        "created_at": "2026-10-02T11:12:07.381837Z",
         "detector": "severity_hint_review_router_v1",
         "disposition": "escalate",
         "evidence_refs": [
-          "EV-478c58bf5132"
+          "EV-a8aaad7a7675"
         ],
-        "finding_id": "F-a40bd2339c28",
+        "finding_id": "F-14837d171d55",
         "rationale": "Routing rule only; it does not assert that a threat is confirmed.",
         "severity": "high",
         "title": "High-severity source hint requires analyst review",
         "validation_status": "validated"
       }
     ],
-    "request_id": "REQ-a904653497a2",
-    "run_uuid": "5be0a273-9d9c-4bd2-8490-bae1a2e9faa0",
+    "request_id": "REQ-04073d97f9e7",
+    "run_uuid": "66bc2ecb-7c3a-499a-8e46-d75f30498938",
     "storage_status": "stored"
   }
 }
