@@ -89,15 +89,21 @@ def main() -> None:
     with httpx.Client(timeout=35.0) as client:
         while True:
             for bot in bots:
-                response = client.get(
-                    _api_url(bot.token, "getUpdates"),
-                    params={
-                        "timeout": 1,
-                        "offset": offsets[bot.username],
-                        "allowed_updates": ["message"],
-                    },
-                )
-                response.raise_for_status()
+                try:
+                    response = client.get(
+                        _api_url(bot.token, "getUpdates"),
+                        params={
+                            "timeout": 1,
+                            "offset": offsets[bot.username],
+                            "allowed_updates": ["message"],
+                        },
+                    )
+                    response.raise_for_status()
+                except httpx.HTTPStatusError as exc:
+                    status = exc.response.status_code
+                    print(f"Telegram polling error for @{bot.username}: HTTP {status}")
+                    time.sleep(2.0)
+                    continue
                 updates: list[dict[str, Any]] = response.json().get("result", [])
                 for update in updates:
                     offsets[bot.username] = max(
