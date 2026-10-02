@@ -7,6 +7,8 @@ def test_high_hint_routes_to_human_review():
     result = run_triage([evidence])
     assert result["approval_required"] is True
     assert result["approval_status"] == "pending_human_review"
+    assert result["storage_status"] == "disabled"
+    assert result["request_id"].startswith("REQ-")
     assert len(result["findings"]) == 1
     finding = result["findings"][0]
     assert finding["disposition"] == "escalate"
@@ -20,3 +22,4 @@ def test_low_hint_does_not_create_security_claim():
     assert result["findings"] == []
     assert result["approval_required"] is False
     assert result["approval_status"] == "not_required"
+    assert result["storage_status"] == "disabled"
