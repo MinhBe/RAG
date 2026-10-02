@@ -25,3 +25,5 @@ training/seqgan/checkpoints/*
 *.ckpt
 artifacts/hermes_a/*
 !artifacts/hermes_a/.gitkeep
+
+artifacts/telegram_bot.*.log
