@@ -1,4 +1,4 @@
-﻿import json
+import json
 from datetime import UTC, datetime
 from html import escape
 from pathlib import Path
@@ -8,6 +8,7 @@ from uuid import uuid4
 from app.analyzers.rules import route_for_review
 from app.core.policy import review_policy
 from app.observability.jsonl import JsonlTraceWriter
+from app.providers.ai.analyst import CaseAnalystProvider
 from app.schemas.case import AnalystDraft, CaseRecord
 from app.schemas.evidence import Evidence
 
@@ -89,6 +90,7 @@ def _render_html_report(report: dict[str, Any]) -> str:
 <h1>Hermes A case report — {escape(report['case_id'])}</h1>
 <p><strong>Status:</strong> {escape(report['case_status'])}</p>
 <p><strong>Approval:</strong> {escape(report['approval_status'])}</p>
+<p><strong>Draft source:</strong> {escape(report.get('llm_metadata', {}).get('draft_source', 'unknown'))}</p>
 <p><strong>Remediation executed:</strong> {report['remediation_executed']}</p>
 <h2>Analyst draft</h2>
 <p>{escape(report['analyst_draft']['summary'])}</p>
@@ -107,6 +109,7 @@ not authorize remediation.</p>
 def run_case_pipeline(
     case: CaseRecord,
     artifacts_root: Path | str = Path("artifacts/hermes_a"),
+    analyst_provider: CaseAnalystProvider | None = None,
 ) -> dict[str, Any]:
     request_id = f"REQ-A-{uuid4().hex[:12]}"
     run_uuid = uuid4()
@@ -137,8 +140,17 @@ def run_case_pipeline(
         }
     )
     policy = review_policy(findings)
-    draft = _build_analyst_draft(case, findings)
-    trace.write({"event": "analyst_draft_created", "request_id": request_id})
+    deterministic_draft = _build_analyst_draft(case, findings)
+    provider = analyst_provider or CaseAnalystProvider()
+    draft, llm_metadata = provider.draft(case, findings, deterministic_draft)
+    trace.write(
+        {
+            "event": "analyst_draft_created",
+            "request_id": request_id,
+            "draft_source": llm_metadata["draft_source"],
+            "llm_enabled": llm_metadata["llm_enabled"],
+        }
+    )
     trace.write(
         {
             "event": "policy_gate",
@@ -164,6 +176,7 @@ def run_case_pipeline(
         "remediation_executed": False,
         "generated_at": datetime.now(UTC).isoformat(),
         "analyst_draft": draft.model_dump(mode="json"),
+        "llm_metadata": llm_metadata,
         "findings": findings,
         "trace_path": str(trace_path),
         "schema_version": "1.0",

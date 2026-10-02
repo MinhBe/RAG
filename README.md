@@ -37,6 +37,16 @@ POST /v1/cases/process
 
 Details: `docs/HERMES_A.md`.
 
+## Telegram adapter for Hermes A
+Telegram is a thin chat client over the Hermes A workflow, not the agent core.
+Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_CHAT_ID` in local `.env`, then run:
+
+```powershell
+uv run python scripts/run_telegram_bot.py
+```
+
+Supported commands: `/demo_a`, `/case CASE-A-001`, `/health`, `/help`.
+
 ## Docker run and demo
 1. Start Docker Desktop.
 2. `docker compose up -d --build --force-recreate`
