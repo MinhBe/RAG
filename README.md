@@ -3,13 +3,13 @@
 Hermes is an AI-assisted Tier-1/post-audit system. It does not perform autonomous production remediation.
 
 ## Implemented vertical slice
-- FastAPI API: `/health`, `/health/providers`, `/v1/triage`.
+- FastAPI API: `/health`, `/health/providers`, `/v1/triage`, `/v1/runs/latest`, `/v1/runs/{run_uuid}`.
 - Pydantic contracts reject unknown fields and non-synthetic/non-redacted evidence.
 - LangGraph flow: validate -> deterministic triage -> policy gate.
 - High/critical source hints route to `pending_human_review`; they are not threat confirmations.
 - Evidence-reference validation, JSONL traces, structured provider health.
-- 9Router is installed globally and also retained project-local for reproducibility.
-- Supabase adapter/migration remain credential-free and unapplied.
+- 9Router is installed globally and retained project-local for reproducibility.
+- Supabase stores runs, evidence, and findings with RLS enabled and service-role server access only.
 
 ## Local run
 1. `uv sync --frozen`
@@ -17,18 +17,29 @@ Hermes is an AI-assisted Tier-1/post-audit system. It does not perform autonomou
 3. `powershell -ExecutionPolicy Bypass -File scripts/start-9router.ps1`
 4. `powershell -ExecutionPolicy Bypass -File scripts/start-hermes.ps1`
 5. `uv run python scripts/smoke_local.py`
-
-## Docker run
+## Docker run and demo
 1. Start Docker Desktop.
-2. `docker compose build`
-3. `docker compose up -d`
-4. `uv run python scripts/smoke_local.py`
-5. `docker compose logs --tail=80 hermes-api`
+2. `docker compose up -d --build --force-recreate`
+3. `uv run python scripts/demo_end_to_end.py`
+4. `docker compose logs --tail=80 hermes-api`
 
-If Docker Desktop is launched from an environment that lacks `%ProgramData%`, set user environment `ProgramData=C:\ProgramData` before restarting Docker Desktop.
+The demo script checks health, provider configuration, triage, Supabase persistence, and audit readback.
 
+## Supabase
+Configured project URL:
+`https://wvcguntxwupmcojxexao.supabase.co`
+
+Set the service secret only in local `.env`:
+`SUPABASE_SECRET_KEY=...`
+
+Do not commit `.env` or copy secrets into issue trackers, reports, or demos.
 ## Manual handoff
-Open the local 9Router dashboard, configure Gemini there, then set only the Hermes routing values you intend to use in local `.env`. Do not commit secrets. Supabase remains optional until its project is explicitly activated and credentials are supplied locally.
+Current demo stack is functional: local Docker API, 9Router/Gemini, and Supabase persistence/readback.
+
+After the demo, rotate exposed or chat-shared secrets:
+- 9Router client key
+- Supabase secret key
+- Gemini provider key if exposed outside the local dashboard
 
 ## Safety boundary
 External logs, RAG documents, tool descriptions, and tool results are data, not instructions. Production remediation remains manual. Writes, sends, deletes, security-control changes, credentials, and external testing require explicit approval.

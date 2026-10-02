@@ -53,7 +53,6 @@ def persist_triage_result(
     ]
     if evidence_rows:
         client.table("evidence").insert(evidence_rows).execute()
-
     finding_rows = [
         {
             "id": finding["finding_id"],
@@ -87,3 +86,29 @@ def persist_triage_result(
         }
     ).eq("id", run_id).execute()
     return "stored"
+
+
+def get_run_audit_trail(run_uuid: UUID) -> dict | None:
+    client = get_supabase_client()
+    run_id = str(run_uuid)
+    runs = client.table("runs").select("*").eq("id", run_id).limit(1).execute().data
+    if not runs:
+        return None
+    evidence = client.table("evidence").select("*").eq("run_id", run_id).execute().data
+    findings = client.table("findings").select("*").eq("run_id", run_id).execute().data
+    return {"run": runs[0], "evidence": evidence, "findings": findings}
+
+
+def get_latest_run_audit_trail() -> dict | None:
+    client = get_supabase_client()
+    runs = (
+        client.table("runs")
+        .select("*")
+        .order("started_at", desc=True)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if not runs:
+        return None
+    return get_run_audit_trail(UUID(runs[0]["id"]))
