@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -72,3 +72,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

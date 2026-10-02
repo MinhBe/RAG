@@ -1,11 +1,45 @@
-import json
+﻿import json
 from pathlib import Path
 from typing import Any
 
 from app.core.case_pipeline import run_case_pipeline
+from app.core.settings import settings
+from app.providers.ai.general import GeneralAssistantProvider
 from app.schemas.case import CaseRecord
 
 SAMPLE_CASE_PATH = Path("data/public/hermes_a_sample_case.json")
+
+
+def _aliases() -> set[str]:
+    raw = settings.telegram_bot_mentions or "Swain,Swain_SubAgent_bot"
+    return {item.strip().lower().lstrip("@") for item in raw.split(",") if item.strip()}
+
+
+def extract_directed_text(text: str) -> str | None:
+    normalized = text.strip()
+    if not normalized:
+        return None
+    aliases = _aliases()
+    parts = normalized.split()
+    first = parts[0].lower()
+    if first.startswith("/") and "@" in first:
+        command, target = first.split("@", 1)
+        if target in aliases:
+            return " ".join([command, *parts[1:]]).strip()
+        return None
+    for alias in aliases:
+        mention = f"@{alias}"
+        lowered = normalized.lower()
+        if mention in lowered:
+            cleaned = normalized
+            cleaned = cleaned.replace(f"@{alias}", "")
+            cleaned = cleaned.replace(f"@{alias.capitalize()}", "")
+            return " ".join(cleaned.split()).strip() or "/help"
+    if first.rstrip(":,") in aliases:
+        return " ".join(parts[1:]).strip() or "/help"
+    if first.startswith("/"):
+        return normalized
+    return None
 
 
 def _load_latest_case_report(case_id: str) -> dict[str, Any] | None:
@@ -34,15 +68,19 @@ def format_case_report(report: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def handle_telegram_message(text: str) -> str:
-    normalized = text.strip()
+def handle_telegram_message(text: str) -> str | None:
+    directed = extract_directed_text(text)
+    if directed is None:
+        return None
+    normalized = directed.strip()
     lowered = normalized.lower()
     if lowered in {"/start", "start", "help", "/help"}:
         return (
-            "Hermes A Telegram adapter ready. Commands:\n"
+            "Swain/Hermes A ready. Call me with @Swain or commands:\n"
             "/demo_a - run the sample post-audit case\n"
             "/case CASE-A-001 - show latest local case report\n"
-            "/health - adapter health"
+            "/health - adapter health\n"
+            "Natural-language questions route through 9router when configured."
         )
     if lowered == "/health":
         return "Hermes A Telegram adapter: ok"
@@ -60,7 +98,4 @@ def handle_telegram_message(text: str) -> str:
         if report is None:
             return f"No local report found for {case_id}. Run /demo_a first."
         return format_case_report(report)
-    return (
-        "Unknown command. Use /demo_a, /case CASE-A-001, /health, or /help. "
-        "Natural-language chat will be wired after persistence/readback is stable."
-    )
+    return GeneralAssistantProvider().answer(normalized)

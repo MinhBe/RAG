@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     supabase_secret_key: str | None = None
     telegram_bot_token: str | None = None
     telegram_allowed_chat_id: str | None = None
+    telegram_bot_mentions: str = "Swain,Swain_SubAgent_bot"
 
 
 settings = Settings()
