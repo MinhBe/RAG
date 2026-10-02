@@ -4,8 +4,12 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     environment:
-      HERMES_ENV: development
+      HERMES_ENV: ${HERMES_ENV:-development}
       AI_BASE_URL: http://host.docker.internal:20128/v1
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
     volumes:
       - ./artifacts:/app/artifacts
     restart: unless-stopped
