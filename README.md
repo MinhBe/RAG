@@ -43,6 +43,15 @@ Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_CHAT_ID` in local `.env`, then ru
 
 ```powershell
 uv run python scripts/run_telegram_bot.py
+
+Telegram multi-bot word-chain demo:
+
+```bash
+uv run python scripts/run_telegram_bot.py
+```
+
+Use full mentions only, for example `@Swain_SubAgent_bot /chain apple`. See `docs/TELEGRAM_WORD_CHAIN.md` for the four-bot token layout and game rules.
+
 ```
 
 Supported commands: `/demo_a`, `/case CASE-A-001`, `/health`, `/help`.
