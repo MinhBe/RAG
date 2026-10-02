@@ -32,3 +32,29 @@ Use public datasets only when their license permits defensive research. Keep raw
 - payload tokenizer
 - SeqGAN generator/discriminator scaffold
 - synthetic payload export into `evals/golden/`
+
+## V3 corpus preparation
+
+Local source archive expected path:
+
+```text
+training/seqgan/data/raw/SQLGAN_PostgreSQL_Boolean_Attack_Structure_Corpus_V3.zip
+```
+
+Prepare metadata-only frozen splits:
+
+```powershell
+uv run python scripts/prepare_seqgan_corpus_v3.py --archive training\seqgan\data\raw\SQLGAN_PostgreSQL_Boolean_Attack_Structure_Corpus_V3.zip
+```
+
+Outputs under `training/seqgan/data/processed/v3/` are local and gitignored. Split artifacts contain sample metadata and lineage only; raw payloads remain in the local archive.
+
+## PostgreSQL sandbox probe
+
+After the Ubuntu lab PostgreSQL container is running, execute a limited runtime/oracle probe:
+
+```powershell
+uv run --with paramiko python scripts/run_seqgan_postgres_probe.py --limit 16
+```
+
+The probe writes runtime status metadata only. It does not promote the full corpus to runtime-confirmed status; full promotion requires controlled lab validation, telemetry, and review.
