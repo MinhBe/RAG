@@ -3,9 +3,16 @@
     {
       "attributes": {
         "atomic_smoke_completed": 2,
+        "generated_candidate_count": 128,
+        "generator_kinds": [
+          "seqgan_small_smoke_statistical_policy"
+        ],
+        "generator_run_ids": [
+          "SEQGAN-SMOKE-20261002T114542Z-73"
+        ],
         "lab_profile": "ubuntu2004_vm_postgres16_apache_modsecurity_crs",
         "modules": [
-          "Y1_basic_boolean"
+          "Y1_seqgan_generated"
         ],
         "postgres_truth_oracle_matched": 128,
         "runtime_claim_scope": "isolated_lab_only",
@@ -14,9 +21,9 @@
         "waf_audit_logged": 128
       },
       "event_type": "seqgan_v3_lab_regression_summary",
-      "evidence_id": "EV-afd89b3ae320",
-      "message": "Synthetic SeqGAN V3 validation slice produced PostgreSQL truth-oracle matches and WAF/CRS audit telemetry in the isolated Hermes lab. This is lab evidence only; it does not assert production exploitation.",
-      "observed_at": "2026-10-02T11:24:56.645368Z",
+      "evidence_id": "EV-6725c275bf5d",
+      "message": "Synthetic SeqGAN V3 generated/validation slice produced PostgreSQL truth-oracle matches and WAF/CRS audit telemetry in the isolated Hermes lab. This is lab evidence only; it does not assert production exploitation.",
+      "observed_at": "2026-10-02T11:46:27.234975Z",
       "redaction_status": "synthetic",
       "schema_version": "1.0",
       "severity_hint": "high",
@@ -30,9 +37,9 @@
         "sample_count": 128
       },
       "event_type": "postgres_truth_oracle_probe",
-      "evidence_id": "EV-2d9110767f81",
+      "evidence_id": "EV-b11320c3c13b",
       "message": "PostgreSQL sandbox evaluated the selected synthetic validation samples and returned truth-oracle metadata.",
-      "observed_at": "2026-10-02T11:24:56.645368Z",
+      "observed_at": "2026-10-02T11:46:27.234975Z",
       "redaction_status": "synthetic",
       "schema_version": "1.0",
       "severity_hint": "medium",
@@ -48,9 +55,9 @@
         "waf_mode": "apache_modsecurity_crs_detection_only_audit_on"
       },
       "event_type": "modsecurity_crs_probe",
-      "evidence_id": "EV-df3ceff88e00",
+      "evidence_id": "EV-443f88fad2e3",
       "message": "Apache ModSecurity with OWASP CRS recorded access and audit telemetry for the selected synthetic validation samples.",
-      "observed_at": "2026-10-02T11:24:56.645368Z",
+      "observed_at": "2026-10-02T11:46:27.235976Z",
       "redaction_status": "synthetic",
       "schema_version": "1.0",
       "severity_hint": "medium",
@@ -68,9 +75,9 @@
         "tests": 2
       },
       "event_type": "atomic_red_team_smoke",
-      "evidence_id": "EV-7e98939dbc36",
+      "evidence_id": "EV-6f25f655e082",
       "message": "A minimal Atomic Red Team smoke slice executed in the local Ubuntu lab and stored metadata only.",
-      "observed_at": "2026-10-02T11:24:56.645368Z",
+      "observed_at": "2026-10-02T11:46:27.235976Z",
       "redaction_status": "synthetic",
       "schema_version": "1.0",
       "severity_hint": "medium",
@@ -85,9 +92,16 @@
       {
         "attributes": {
           "atomic_smoke_completed": 2,
+          "generated_candidate_count": 128,
+          "generator_kinds": [
+            "seqgan_small_smoke_statistical_policy"
+          ],
+          "generator_run_ids": [
+            "SEQGAN-SMOKE-20261002T114542Z-73"
+          ],
           "lab_profile": "ubuntu2004_vm_postgres16_apache_modsecurity_crs",
           "modules": [
-            "Y1_basic_boolean"
+            "Y1_seqgan_generated"
           ],
           "postgres_truth_oracle_matched": 128,
           "runtime_claim_scope": "isolated_lab_only",
@@ -96,9 +110,9 @@
           "waf_audit_logged": 128
         },
         "event_type": "seqgan_v3_lab_regression_summary",
-        "evidence_id": "EV-afd89b3ae320",
-        "message": "Synthetic SeqGAN V3 validation slice produced PostgreSQL truth-oracle matches and WAF/CRS audit telemetry in the isolated Hermes lab. This is lab evidence only; it does not assert production exploitation.",
-        "observed_at": "2026-10-02T11:24:56.645368Z",
+        "evidence_id": "EV-6725c275bf5d",
+        "message": "Synthetic SeqGAN V3 generated/validation slice produced PostgreSQL truth-oracle matches and WAF/CRS audit telemetry in the isolated Hermes lab. This is lab evidence only; it does not assert production exploitation.",
+        "observed_at": "2026-10-02T11:46:27.234975Z",
         "redaction_status": "synthetic",
         "schema_version": "1.0",
         "severity_hint": "high",
@@ -112,9 +126,9 @@
           "sample_count": 128
         },
         "event_type": "postgres_truth_oracle_probe",
-        "evidence_id": "EV-2d9110767f81",
+        "evidence_id": "EV-b11320c3c13b",
         "message": "PostgreSQL sandbox evaluated the selected synthetic validation samples and returned truth-oracle metadata.",
-        "observed_at": "2026-10-02T11:24:56.645368Z",
+        "observed_at": "2026-10-02T11:46:27.234975Z",
         "redaction_status": "synthetic",
         "schema_version": "1.0",
         "severity_hint": "medium",
@@ -130,9 +144,9 @@
           "waf_mode": "apache_modsecurity_crs_detection_only_audit_on"
         },
         "event_type": "modsecurity_crs_probe",
-        "evidence_id": "EV-df3ceff88e00",
+        "evidence_id": "EV-443f88fad2e3",
         "message": "Apache ModSecurity with OWASP CRS recorded access and audit telemetry for the selected synthetic validation samples.",
-        "observed_at": "2026-10-02T11:24:56.645368Z",
+        "observed_at": "2026-10-02T11:46:27.235976Z",
         "redaction_status": "synthetic",
         "schema_version": "1.0",
         "severity_hint": "medium",
@@ -150,9 +164,9 @@
           "tests": 2
         },
         "event_type": "atomic_red_team_smoke",
-        "evidence_id": "EV-7e98939dbc36",
+        "evidence_id": "EV-6f25f655e082",
         "message": "A minimal Atomic Red Team smoke slice executed in the local Ubuntu lab and stored metadata only.",
-        "observed_at": "2026-10-02T11:24:56.645368Z",
+        "observed_at": "2026-10-02T11:46:27.235976Z",
         "redaction_status": "synthetic",
         "schema_version": "1.0",
         "severity_hint": "medium",
@@ -161,21 +175,21 @@
     ],
     "findings": [
       {
-        "created_at": "2026-10-02T11:24:56.673422Z",
+        "created_at": "2026-10-02T11:46:27.240985Z",
         "detector": "severity_hint_review_router_v1",
         "disposition": "escalate",
         "evidence_refs": [
-          "EV-afd89b3ae320"
+          "EV-6725c275bf5d"
         ],
-        "finding_id": "F-f922980b97f6",
+        "finding_id": "F-a411c4a5c743",
         "rationale": "Routing rule only; it does not assert that a threat is confirmed.",
         "severity": "high",
         "title": "High-severity source hint requires analyst review",
         "validation_status": "validated"
       }
     ],
-    "request_id": "REQ-7da217c8702f",
-    "run_uuid": "f5298ee7-f79c-48c7-9cc6-90288fb62a15",
+    "request_id": "REQ-2e960837b696",
+    "run_uuid": "a29fb118-567c-43d5-98a5-7c8e405e731c",
     "storage_status": "stored"
   }
 }

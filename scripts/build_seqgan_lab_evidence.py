@@ -45,13 +45,15 @@ def build_evidence(postgres_rows: list[dict[str, Any]], waf_rows: list[dict[str,
     waf_access = sum(1 for sample_id in common if waf_by_sample[sample_id].get("waf_access_logged"))
     waf_audit = sum(1 for sample_id in common if waf_by_sample[sample_id].get("waf_audit_logged"))
     modules = sorted({str(pg_by_sample[sample_id].get("module_id")) for sample_id in common})
+    generator_run_ids = sorted({str(pg_by_sample[sample_id].get("generator_run_id")) for sample_id in common if pg_by_sample[sample_id].get("generator_run_id")})
+    generator_kinds = sorted({str(pg_by_sample[sample_id].get("generator_kind")) for sample_id in common if pg_by_sample[sample_id].get("generator_kind")})
 
     aggregate = Evidence(
         source="hermes_lab_seqgan_v3",
         event_type="seqgan_v3_lab_regression_summary",
         severity_hint="high",
         message=(
-            "Synthetic SeqGAN V3 validation slice produced PostgreSQL truth-oracle matches "
+            "Synthetic SeqGAN V3 generated/validation slice produced PostgreSQL truth-oracle matches "
             "and WAF/CRS audit telemetry in the isolated Hermes lab. This is lab evidence only; "
             "it does not assert production exploitation."
         ),
@@ -64,6 +66,9 @@ def build_evidence(postgres_rows: list[dict[str, Any]], waf_rows: list[dict[str,
             "lab_profile": "ubuntu2004_vm_postgres16_apache_modsecurity_crs",
             "runtime_claim_scope": "isolated_lab_only",
             "atomic_smoke_completed": sum(1 for row in (atomic_rows or []) if row.get("execution_status") == "completed"),
+            "generator_run_ids": generator_run_ids,
+            "generator_kinds": generator_kinds,
+            "generated_candidate_count": len(common) if generator_run_ids else 0,
         },
     )
     postgres = Evidence(

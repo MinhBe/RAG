@@ -1,4 +1,4 @@
-﻿param(
+param(
     [switch]$ProvisionBase,
     [int]$Limit = 16
 )
@@ -27,13 +27,15 @@ if ($ProvisionBase) {
 Step 'Prepare SeqGAN V3 corpus' 'uv run python scripts/prepare_seqgan_corpus_v3.py --archive training/seqgan/data/raw/SQLGAN_PostgreSQL_Boolean_Attack_Structure_Corpus_V3.zip'
 Step 'Provision PostgreSQL sandbox' 'uv run --with paramiko python scripts/provision_lab_postgres.py'
 Step 'Provision WAF/CRS' 'uv run --with paramiko python scripts/provision_lab_waf.py'
-Step 'Run PostgreSQL probe' "uv run --with paramiko python scripts/run_seqgan_postgres_probe.py --limit $Limit"
-Step 'Run WAF probe' "uv run --with paramiko python scripts/run_seqgan_waf_probe.py --limit $Limit"
+Step 'Generate SeqGAN mini candidates' "uv run python scripts/run_seqgan_mini_generate_v3.py --count $Limit"
+Step 'Run generated PostgreSQL probe' "uv run --with paramiko python scripts/run_generated_postgres_probe.py --limit $Limit"
+Step 'Run generated WAF probe' "uv run --with paramiko python scripts/run_generated_waf_probe.py --limit $Limit"
 Step 'Run Atomic smoke' 'uv run --with paramiko python scripts/run_atomic_smoke.py'
-Step 'Build Hermes evidence' 'uv run python scripts/build_seqgan_lab_evidence.py'
+Step 'Build Hermes evidence' 'uv run python scripts/build_seqgan_lab_evidence.py --postgres training/seqgan/data/processed/v3/runtime/generated_postgres_probe.jsonl --waf training/seqgan/data/processed/v3/runtime/generated_waf_probe.jsonl'
 Step 'Tests' 'uv run pytest -q'
 
 Write-Host "`n=== SeqGAN Lab B complete ==="
-Get-Content training/seqgan/data/processed/v3/runtime/postgres_probe_sample.summary.json
-Get-Content training/seqgan/data/processed/v3/runtime/waf_probe_sample.summary.json
+Get-Content training/seqgan/data/processed/v3/generated/latest/generator_manifest.json
+Get-Content training/seqgan/data/processed/v3/runtime/generated_postgres_probe.summary.json
+Get-Content training/seqgan/data/processed/v3/runtime/generated_waf_probe.summary.json
 Get-Content artifacts/demo_b/seqgan_lab_triage_result.json -TotalCount 20
