@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 import csv
@@ -60,7 +60,7 @@ def run_remote_python(client: paramiko.SSHClient, code: str) -> tuple[int, str, 
 def probe_one(client: paramiko.SSHClient, sample_id: str, payload: str) -> dict[str, Any]:
     encoded = urllib.parse.quote(payload, safe="")
     code = f"""
-import json, os, urllib.request, urllib.error
+import json, os, time, urllib.request, urllib.error
 sample_id = {sample_id!r}
 encoded = {encoded!r}
 access_log = '/var/log/apache2/hermes_lab_access.log'
@@ -70,13 +70,21 @@ def size(path):
         return os.path.getsize(path)
     except OSError:
         return 0
+def count_token(path, token):
+    try:
+        needle = token.encode('utf-8')
+        with open(path, 'rb') as handle:
+            return sum(1 for line in handle if needle in line)
+    except OSError:
+        return 0
 def lines(path):
     try:
         with open(path, 'rb') as handle:
             return sum(1 for _ in handle)
     except OSError:
         return 0
-before_access = lines(access_log)
+before_access = count_token(access_log, sample_id)
+before_access_lines = lines(access_log)
 before_audit = size(audit_log)
 status_code = 0
 error = ''
@@ -91,13 +99,16 @@ except urllib.error.HTTPError as exc:
     error = str(exc)[:300]
 except Exception as exc:
     error = str(exc)[:300]
-after_access = lines(access_log)
+time.sleep(0.05)
+after_access = count_token(access_log, sample_id)
+after_access_lines = lines(access_log)
 after_audit = size(audit_log)
 print(json.dumps({{
     'sample_id': sample_id,
     'http_status': status_code,
     'waf_access_logged': after_access > before_access,
-    'waf_access_delta_lines': max(0, after_access - before_access),
+    'waf_access_delta_lines': max(0, after_access_lines - before_access_lines),
+    'waf_access_sample_hits_delta': max(0, after_access - before_access),
     'waf_audit_logged': after_audit > before_audit,
     'waf_audit_delta_bytes': max(0, after_audit - before_audit),
     'waf_mode': 'apache_modsecurity_crs_detection_only_audit_on',

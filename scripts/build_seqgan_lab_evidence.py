@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 import json
@@ -15,6 +15,7 @@ from app.schemas.evidence import Evidence
 
 DEFAULT_POSTGRES = Path("training/seqgan/data/processed/v3/runtime/postgres_probe_sample.jsonl")
 DEFAULT_WAF = Path("training/seqgan/data/processed/v3/runtime/waf_probe_sample.jsonl")
+DEFAULT_ATOMIC = Path("training/seqgan/data/processed/v3/runtime/atomic_smoke.jsonl")
 DEFAULT_OUTPUT = Path("artifacts/demo_b/seqgan_lab_triage_result.json")
 
 
@@ -33,7 +34,7 @@ def index_by_sample(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {str(row["sample_id"]): row for row in rows}
 
 
-def build_evidence(postgres_rows: list[dict[str, Any]], waf_rows: list[dict[str, Any]]) -> list[Evidence]:
+def build_evidence(postgres_rows: list[dict[str, Any]], waf_rows: list[dict[str, Any]], atomic_rows: list[dict[str, Any]] | None = None) -> list[Evidence]:
     pg_by_sample = index_by_sample(postgres_rows)
     waf_by_sample = index_by_sample(waf_rows)
     common = sorted(set(pg_by_sample) & set(waf_by_sample))
@@ -62,6 +63,7 @@ def build_evidence(postgres_rows: list[dict[str, Any]], waf_rows: list[dict[str,
             "modules": modules,
             "lab_profile": "ubuntu2004_vm_postgres16_apache_modsecurity_crs",
             "runtime_claim_scope": "isolated_lab_only",
+            "atomic_smoke_completed": sum(1 for row in (atomic_rows or []) if row.get("execution_status") == "completed"),
         },
     )
     postgres = Evidence(
@@ -90,20 +92,39 @@ def build_evidence(postgres_rows: list[dict[str, Any]], waf_rows: list[dict[str,
             "payload_exported": False,
         },
     )
-    return [aggregate, postgres, waf]
+    evidence = [aggregate, postgres, waf]
+    if atomic_rows:
+        evidence.append(
+            Evidence(
+                source="hermes_lab_atomic",
+                event_type="atomic_red_team_smoke",
+                severity_hint="medium",
+                message="A minimal Atomic Red Team smoke slice executed in the local Ubuntu lab and stored metadata only.",
+                attributes={
+                    "tests": len(atomic_rows),
+                    "completed": sum(1 for row in atomic_rows if row.get("execution_status") == "completed"),
+                    "techniques": sorted({str(row.get("technique_id")) for row in atomic_rows}),
+                    "raw_output_stored": False,
+                    "lab_scope": "local_vm_only",
+                },
+            )
+        )
+    return evidence
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Normalize SeqGAN lab probe outputs into Hermes Evidence and run triage.")
     parser.add_argument("--postgres", default=DEFAULT_POSTGRES, type=Path)
     parser.add_argument("--waf", default=DEFAULT_WAF, type=Path)
+    parser.add_argument("--atomic", default=DEFAULT_ATOMIC, type=Path)
     parser.add_argument("--output", default=DEFAULT_OUTPUT, type=Path)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    evidence = build_evidence(load_jsonl(args.postgres), load_jsonl(args.waf))
+    atomic_rows = load_jsonl(args.atomic) if args.atomic.exists() else None
+    evidence = build_evidence(load_jsonl(args.postgres), load_jsonl(args.waf), atomic_rows)
     result = run_triage(evidence)
     output = {
         "evidence": [item.model_dump(mode="json") for item in evidence],

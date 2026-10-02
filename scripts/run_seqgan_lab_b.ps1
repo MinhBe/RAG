@@ -29,6 +29,7 @@ Step 'Provision PostgreSQL sandbox' 'uv run --with paramiko python scripts/provi
 Step 'Provision WAF/CRS' 'uv run --with paramiko python scripts/provision_lab_waf.py'
 Step 'Run PostgreSQL probe' "uv run --with paramiko python scripts/run_seqgan_postgres_probe.py --limit $Limit"
 Step 'Run WAF probe' "uv run --with paramiko python scripts/run_seqgan_waf_probe.py --limit $Limit"
+Step 'Run Atomic smoke' 'uv run --with paramiko python scripts/run_atomic_smoke.py'
 Step 'Build Hermes evidence' 'uv run python scripts/build_seqgan_lab_evidence.py'
 Step 'Tests' 'uv run pytest -q'
 
