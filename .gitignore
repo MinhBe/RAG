@@ -23,3 +23,5 @@ training/seqgan/checkpoints/*
 *.pt
 *.pth
 *.ckpt
+artifacts/hermes_a/*
+!artifacts/hermes_a/.gitkeep

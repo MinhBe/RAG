@@ -1,8 +1,9 @@
-from uuid import UUID
+﻿from uuid import UUID
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from app.core.case_pipeline import run_case_pipeline
 from app.core.pipeline import run_triage
 from app.core.settings import settings
 from app.providers.ai.router import RouterProvider
@@ -11,13 +12,18 @@ from app.providers.storage.supabase import (
     get_run_audit_trail,
     supabase_is_configured,
 )
+from app.schemas.case import CaseRecord
 from app.schemas.evidence import Evidence
 
-app = FastAPI(title="Hermes SOC Post-Audit", version="0.3.0")
+app = FastAPI(title="Hermes SOC Post-Audit", version="0.4.0")
 
 
 class TriageRequest(BaseModel):
     evidence: list[Evidence]
+
+
+class CaseProcessRequest(BaseModel):
+    case: CaseRecord
 
 
 @app.get("/health")
@@ -38,6 +44,11 @@ async def provider_health() -> dict:
 @app.post("/v1/triage")
 def triage(request: TriageRequest) -> dict:
     return run_triage(request.evidence)
+
+
+@app.post("/v1/cases/process")
+def process_case(request: CaseProcessRequest) -> dict:
+    return run_case_pipeline(request.case)
 
 
 @app.get("/v1/runs/latest")

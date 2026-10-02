@@ -3,7 +3,7 @@
 Hermes is an AI-assisted Tier-1/post-audit system. It does not perform autonomous production remediation.
 
 ## Implemented vertical slice
-- FastAPI API: `/health`, `/health/providers`, `/v1/triage`, `/v1/runs/latest`, `/v1/runs/{run_uuid}`.
+- FastAPI API: `/health`, `/health/providers`, `/v1/triage`, `/v1/cases/process`, `/v1/runs/latest`, `/v1/runs/{run_uuid}`.
 - Pydantic contracts reject unknown fields and non-synthetic/non-redacted evidence.
 - LangGraph flow: validate -> deterministic triage -> policy gate.
 - High/critical source hints route to `pending_human_review`; they are not threat confirmations.
@@ -17,6 +17,26 @@ Hermes is an AI-assisted Tier-1/post-audit system. It does not perform autonomou
 3. `powershell -ExecutionPolicy Bypass -File scripts/start-9router.ps1`
 4. `powershell -ExecutionPolicy Bypass -File scripts/start-hermes.ps1`
 5. `uv run python scripts/smoke_local.py`
+
+## Hermes A core post-audit demo
+Run the core case-processing lane without touching the Security Demo B lab:
+
+```powershell
+uv run python scripts/run_hermes_a_demo.py
+```
+
+It validates `data/public/hermes_a_sample_case.json`, runs deterministic triage,
+creates an analyst draft, applies the policy/HITL gate, and writes local
+JSON/HTML reports plus a JSONL trace under `artifacts/hermes_a/`.
+
+API endpoint:
+
+```text
+POST /v1/cases/process
+```
+
+Details: `docs/HERMES_A.md`.
+
 ## Docker run and demo
 1. Start Docker Desktop.
 2. `docker compose up -d --build --force-recreate`
