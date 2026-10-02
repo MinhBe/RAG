@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Any
 
 from app.core.case_pipeline import run_case_pipeline
+from app.core.chat_pipeline import run_chat_turn
 from app.core.settings import settings
-from app.providers.ai.general import GeneralAssistantProvider
 from app.schemas.case import CaseRecord
 
 SAMPLE_CASE_PATH = Path("data/public/hermes_a_sample_case.json")
@@ -80,7 +80,7 @@ def handle_telegram_message(text: str) -> str | None:
             "/demo_a - run the sample post-audit case\n"
             "/case CASE-A-001 - show latest local case report\n"
             "/health - adapter health\n"
-            "Natural-language questions route through 9router when configured."
+            "Natural-language questions route through Hermes; 9router is only a provider."
         )
     if lowered == "/health":
         return "Hermes A Telegram adapter: ok"
@@ -98,4 +98,6 @@ def handle_telegram_message(text: str) -> str | None:
         if report is None:
             return f"No local report found for {case_id}. Run /demo_a first."
         return format_case_report(report)
-    return GeneralAssistantProvider().answer(normalized)
+    return run_chat_turn(normalized).response_text
+
+
