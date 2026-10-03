@@ -29,6 +29,7 @@ Usage:
   hermes telegram-bg
   hermes up
   hermes full-up
+  hermes vaccine-full-gate
   hermes stop
 
 Alias typo kept intentionally: hermers <command>
@@ -214,6 +215,8 @@ switch ($Command.ToLowerInvariant()) {
   "api-bg" { Start-ApiBackground; break }
   "telegram" { uv run python scripts/run_telegram_bot.py; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; break }
   "telegram-bg" { Start-TelegramBackground; break }
+  "vaccine-gate" { uv run python scripts/run_vaccine_gate.py; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; break }
+  "vaccine-full-gate" { uv run python scripts/run_vaccine_full_release_gate.py --strict-git-clean; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; break }
   "up" { Start-RouterBackground; Start-ApiBackground; Start-TelegramBackground; Start-Sleep -Seconds 2; Show-Status; break }
   "full-up" { Start-RouterBackground; Start-ApiBackground; Start-TelegramBackground; Start-Sleep -Seconds 2; Show-Status; break }
   "stop" { Stop-HermesRuntime; break }
