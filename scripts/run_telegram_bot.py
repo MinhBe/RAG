@@ -1,4 +1,6 @@
-﻿import sys
+import os
+import re
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,14 +23,39 @@ class BotConfig:
     token: str
 
 
+def _local_env_values() -> dict[str, str]:
+    values = dict(os.environ)
+    env_path = REPO_ROOT / ".env"
+    if env_path.exists():
+        for raw in env_path.read_text(encoding="utf-8-sig").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip("'\"")
+            values.setdefault(key, value)
+    return values
+
+
+def _token_key_for_username(username: str) -> str:
+    short = username.strip().lstrip("@").split("_", 1)[0]
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", short).upper().strip("_")
+    return f"TELEGRAM_{slug}_BOT_TOKEN"
+
+
 def _configured_bots() -> list[BotConfig]:
-    candidates = [
-        ("Swain_SubAgent_bot", settings.telegram_swain_bot_token or settings.telegram_bot_token),
-        ("Shen_SubAgent_bot", settings.telegram_shen_bot_token),
-        ("Garen_SubAgent_bot", settings.telegram_garen_bot_token),
-        ("Kayn_SubAgent_bot", settings.telegram_kayn_bot_token),
-    ]
-    return [BotConfig(username=name, token=token) for name, token in candidates if token]
+    env_values = _local_env_values()
+    raw_names = env_values.get("TELEGRAM_BOT_USERNAMES") or settings.telegram_bot_usernames
+    usernames = [item.strip().lstrip("@") for item in raw_names.split(",") if item.strip()]
+    bots: list[BotConfig] = []
+    for username in dict.fromkeys(usernames):
+        token = env_values.get(_token_key_for_username(username))
+        if username.lower() == "swain_subagent_bot":
+            token = token or env_values.get("TELEGRAM_BOT_TOKEN")
+        if token:
+            bots.append(BotConfig(username=username, token=token))
+    return bots
 
 
 def _require_config() -> tuple[list[BotConfig], int]:
@@ -85,7 +112,10 @@ def main() -> None:
     bots_by_username = {bot.username.lower(): bot for bot in bots}
     offsets = {bot.username: 0 for bot in bots}
     configured_names = ", ".join(bot.username for bot in bots)
-    print(f"Hermes Telegram multi-bot adapter started: {configured_names}. Tokens hidden.")
+    print(
+        f"Hermes Telegram multi-bot adapter started: {configured_names}. Tokens hidden.",
+        flush=True,
+    )
     with httpx.Client(timeout=35.0) as client:
         while True:
             for bot in bots:
@@ -95,13 +125,20 @@ def main() -> None:
                         params={
                             "timeout": 1,
                             "offset": offsets[bot.username],
-                            "allowed_updates": ["message"],
+                            "allowed_updates": '["message"]',
                         },
                     )
                     response.raise_for_status()
                 except httpx.HTTPStatusError as exc:
                     status = exc.response.status_code
-                    print(f"Telegram polling error for @{bot.username}: HTTP {status}")
+                    print(f"Telegram polling error for @{bot.username}: HTTP {status}", flush=True)
+                    time.sleep(2.0)
+                    continue
+                except httpx.HTTPError as exc:
+                    print(
+                        f"Telegram polling error for @{bot.username}: {type(exc).__name__}",
+                        flush=True,
+                    )
                     time.sleep(2.0)
                     continue
                 updates: list[dict[str, Any]] = response.json().get("result", [])
@@ -114,6 +151,7 @@ def main() -> None:
                         continue
                     chat = message.get("chat") or {}
                     chat_id = int(chat.get("id", 0))
+                    chat_type = str(chat.get("type") or "")
                     text = message.get("text") or ""
                     if chat_id != allowed_chat_id:
                         if chat_id:
@@ -133,6 +171,11 @@ def main() -> None:
                                 text=f"Hermes error: {type(exc).__name__}. Check local logs.",
                             )
                         ]
+                    print(
+                        f"Telegram update for @{bot.username}: chat_type={chat_type} "
+                        f"text_len={len(text)} replies={len(replies)}",
+                        flush=True,
+                    )
                     if replies:
                         _send_replies(client, bots_by_username, bot, chat_id, replies)
             time.sleep(0.2)

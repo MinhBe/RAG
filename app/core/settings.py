@@ -1,4 +1,4 @@
-﻿from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     telegram_kayn_bot_token: str | None = None
     telegram_allowed_chat_id: str | None = None
     telegram_bot_usernames: str = (
-        "Swain_SubAgent_bot,Shen_SubAgent_bot,Garen_SubAgent_bot,Kayn_SubAgent_bot"
+        "Swain_SubAgent_bot,Shen_SubAgent_bot,Garen_SubAgent_bot,Kayn_SubAgent_bot,Taric_SubAgent_bot,Xinzhao_SubAgent_bot"
     )
 
 
