@@ -43,9 +43,14 @@ def test_natural_language_goes_through_hermes_core(monkeypatch):
     class FakeResult:
         response_text = "core response"
 
-    def fake_run_chat_turn(message: str, assistant_name: str = "Swain") -> FakeResult:
+    def fake_run_chat_turn(
+        message: str,
+        assistant_name: str = "Swain",
+        peer_names: tuple[str, ...] = (),
+    ) -> FakeResult:
         assert message == "hello"
         assert assistant_name == "Swain"
+        assert peer_names == ()
         return FakeResult()
 
     monkeypatch.setattr("app.adapters.telegram.run_chat_turn", fake_run_chat_turn)
@@ -69,3 +74,33 @@ def test_word_chain_event_returns_fifty_turns_and_all_four_bots():
         previous_word = previous.text.splitlines()[0].split()[0]
         current_word = current.text.splitlines()[0].split()[0]
         assert current_word[0].lower() == previous_word[-1].lower()
+
+
+def test_multi_tag_passes_only_current_persona_and_strips_mentions(monkeypatch):
+    calls: list[tuple[str, str, tuple[str, ...]]] = []
+
+    class FakeResult:
+        response_text = "persona response"
+
+    def fake_run_chat_turn(
+        message: str,
+        assistant_name: str = "Swain",
+        peer_names: tuple[str, ...] = (),
+    ) -> FakeResult:
+        calls.append((message, assistant_name, peer_names))
+        return FakeResult()
+
+    monkeypatch.setattr("app.adapters.telegram.run_chat_turn", fake_run_chat_turn)
+    text = "@Taric_SubAgent_bot @Swain_SubAgent_bot 2 người tìm Aura battle, trả về chỉ 20 chữ"
+
+    swain_reply = handle_telegram_message(text, receiver_username="Swain_SubAgent_bot")
+    taric_reply = handle_telegram_message(text, receiver_username="Taric_SubAgent_bot")
+    sylas_reply = handle_telegram_message(text, receiver_username="Sylas_SubAgent_bot")
+
+    assert swain_reply == "persona response"
+    assert taric_reply == "persona response"
+    assert sylas_reply is None
+    assert calls == [
+        ("2 người tìm Aura battle, trả về chỉ 20 chữ", "Swain", ("Taric",)),
+        ("2 người tìm Aura battle, trả về chỉ 20 chữ", "Taric", ("Swain",)),
+    ]

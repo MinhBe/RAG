@@ -100,6 +100,24 @@ def extract_directed_text(text: str, receiver_username: str | None = None) -> st
     return None
 
 
+def addressed_bot_usernames(text: str) -> list[str]:
+    normalized = text.strip()
+    found: list[tuple[int, str]] = []
+    for username in configured_bot_usernames():
+        pattern = re.compile(rf"@{re.escape(username)}(?=$|\s|[:,])", re.IGNORECASE)
+        match = pattern.search(normalized)
+        if match:
+            found.append((match.start(), username))
+    return [username for _, username in sorted(found, key=lambda item: item[0])]
+
+
+def strip_all_bot_mentions(text: str) -> str:
+    cleaned = text
+    for username in configured_bot_usernames():
+        cleaned = re.sub(rf"@{re.escape(username)}(?=$|\s|[:,])[:,]?\s*", "", cleaned, flags=re.IGNORECASE)
+    return " ".join(cleaned.split()).strip()
+
+
 def _load_latest_case_report(case_id: str) -> dict[str, Any] | None:
     report_path = Path("artifacts/hermes_a") / f"{case_id}_report.json"
     if not report_path.exists():
@@ -201,7 +219,23 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
         )
         return [_render_chain_turn(turn) for turn in turns]
     assistant_name = short_bot_name(sender or configured_bot_usernames()[0])
-    return [TelegramReply(sender, run_chat_turn(normalized, assistant_name=assistant_name).response_text)]
+    addressed = addressed_bot_usernames(text)
+    peer_names = tuple(
+        short_bot_name(username)
+        for username in addressed
+        if sender is None or username.lower() != sender.lower()
+    )
+    llm_prompt = strip_all_bot_mentions(normalized) or normalized
+    return [
+        TelegramReply(
+            sender,
+            run_chat_turn(
+                llm_prompt,
+                assistant_name=assistant_name,
+                peer_names=peer_names,
+            ).response_text,
+        )
+    ]
 
 
 def handle_telegram_message(text: str, receiver_username: str | None = None) -> str | None:
