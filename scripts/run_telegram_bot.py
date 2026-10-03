@@ -1,4 +1,5 @@
-import os
+﻿import os
+import random
 import re
 import sys
 import time
@@ -21,6 +22,11 @@ from app.core.settings import settings
 class BotConfig:
     username: str
     token: str
+
+
+CHAT_ACTION_DELAY_MIN_SECONDS = 0.45
+CHAT_ACTION_DELAY_MAX_SECONDS = 0.95
+POST_SEND_DELAY_SECONDS = 0.35
 
 
 def _local_env_values() -> dict[str, str]:
@@ -71,13 +77,34 @@ def _api_url(token: str, method: str) -> str:
     return f"https://api.telegram.org/bot{token}/{method}"
 
 
+def _show_processing_action(client: httpx.Client, bot: BotConfig, chat_id: int) -> None:
+    try:
+        client.post(
+            _api_url(bot.token, "sendChatAction"),
+            json={"chat_id": chat_id, "action": "typing"},
+            timeout=10.0,
+        ).raise_for_status()
+    except httpx.HTTPError as exc:
+        print(
+            f"Telegram chat action error for @{bot.username}: {type(exc).__name__}",
+            flush=True,
+        )
+
+
+def _response_delay_seconds(text: str) -> float:
+    length_factor = min(len(text) / 220.0, 0.55)
+    base = random.uniform(CHAT_ACTION_DELAY_MIN_SECONDS, CHAT_ACTION_DELAY_MAX_SECONDS)
+    return min(base + length_factor, 1.45)
+
+
 def _send_message(client: httpx.Client, bot: BotConfig, chat_id: int, text: str) -> None:
+    _show_processing_action(client, bot, chat_id)
+    time.sleep(_response_delay_seconds(text))
     client.post(
         _api_url(bot.token, "sendMessage"),
         json={"chat_id": chat_id, "text": text[:3900]},
         timeout=20.0,
     ).raise_for_status()
-
 
 def _send_replies(
     client: httpx.Client,
@@ -96,10 +123,10 @@ def _send_replies(
                 chat_id,
                 f"Missing local token for @{sender}; cannot send this turn.",
             )
-            time.sleep(0.45)
+            time.sleep(POST_SEND_DELAY_SECONDS)
             continue
         _send_message(client, bot, chat_id, reply.text)
-        time.sleep(0.45)
+        time.sleep(POST_SEND_DELAY_SECONDS)
 
 
 def _is_from_bot(message: dict[str, Any]) -> bool:
@@ -183,3 +210,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
