@@ -17,10 +17,10 @@ class GeneralAssistantProvider:
     def is_configured(self) -> bool:
         return bool(self.base_url and self.model)
 
-    def answer(self, question: str) -> str:
+    def answer(self, question: str, assistant_name: str = "Swain") -> str:
         if not self.is_configured():
             return (
-                "Swain chưa có AI_MODEL/AI_BASE_URL để trả lời natural-language. "
+                f"{assistant_name} chưa có AI_MODEL/AI_BASE_URL để trả lời natural-language. "
                 "Các command hiện có: /demo_a, /case CASE-A-001, /health."
             )
         headers = {"Content-Type": "application/json"}
@@ -33,7 +33,7 @@ class GeneralAssistantProvider:
                 {
                     "role": "system",
                     "content": (
-                        "You are Swain, the Hermes Telegram assistant. Be direct. "
+                        f"You are {assistant_name}, a Hermes Telegram sub-agent. Be direct. "
                         "For current facts, rankings, prices, news, or wealth lists, say when live web/search sources are required. "
                         "Do not fabricate citations or pretend to have browsed. "
                         "Do not infer protected attributes such as race or ethnicity from names, faces, or nationality. "
@@ -50,6 +50,6 @@ class GeneralAssistantProvider:
             content = extract_chat_content(response)
             if isinstance(content, str) and content.strip():
                 return content.strip()[:3900]
-            return "Swain nhận được phản hồi rỗng từ model."
+            return f"{assistant_name} nhận được phản hồi rỗng từ model."
         except (httpx.HTTPError, KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
-            return f"Swain AI route lỗi: {type(exc).__name__}. Core Hermes A vẫn chạy qua /demo_a."
+            return f"{assistant_name} AI route lỗi: {type(exc).__name__}. Core Hermes A vẫn chạy qua /demo_a."

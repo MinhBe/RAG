@@ -1,4 +1,4 @@
-﻿from dataclasses import dataclass
+from dataclasses import dataclass
 from typing import Literal
 
 from app.providers.ai.general import GeneralAssistantProvider
@@ -12,7 +12,7 @@ class ChatTurnResult:
     policy_notes: tuple[str, ...] = ()
 
 
-def run_chat_turn(message: str) -> ChatTurnResult:
+def run_chat_turn(message: str, assistant_name: str = "Swain") -> ChatTurnResult:
     """Hermes chat entrypoint for UI/chat transports.
 
     Transport adapters must call this instead of invoking model providers
@@ -26,7 +26,7 @@ def run_chat_turn(message: str) -> ChatTurnResult:
             provider=None,
             policy_notes=("empty_input",),
         )
-    answer = GeneralAssistantProvider().answer(normalized)
+    answer = GeneralAssistantProvider().answer(normalized, assistant_name=assistant_name)
     return ChatTurnResult(
         response_text=answer,
         route="general_llm",

@@ -43,8 +43,9 @@ def test_natural_language_goes_through_hermes_core(monkeypatch):
     class FakeResult:
         response_text = "core response"
 
-    def fake_run_chat_turn(message: str) -> FakeResult:
+    def fake_run_chat_turn(message: str, assistant_name: str = "Swain") -> FakeResult:
         assert message == "hello"
+        assert assistant_name == "Swain"
         return FakeResult()
 
     monkeypatch.setattr("app.adapters.telegram.run_chat_turn", fake_run_chat_turn)

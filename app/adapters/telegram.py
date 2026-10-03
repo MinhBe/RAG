@@ -200,7 +200,8 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
             target_length=50,
         )
         return [_render_chain_turn(turn) for turn in turns]
-    return [TelegramReply(sender, run_chat_turn(normalized).response_text)]
+    assistant_name = short_bot_name(sender or configured_bot_usernames()[0])
+    return [TelegramReply(sender, run_chat_turn(normalized, assistant_name=assistant_name).response_text)]
 
 
 def handle_telegram_message(text: str, receiver_username: str | None = None) -> str | None:

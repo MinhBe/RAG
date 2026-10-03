@@ -15,7 +15,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from app.adapters.telegram import TelegramReply, handle_telegram_event
+from app.adapters.telegram import (
+    TelegramReply,
+    extract_directed_text,
+    handle_telegram_event,
+)
 from app.core.settings import settings
 
 
@@ -219,16 +223,19 @@ def main() -> None:
                                 "Unauthorized chat_id for this Hermes demo.",
                             )
                         continue
-                    try:
-                        with ProcessingIndicator(client, bot, chat_id):
-                            replies = handle_telegram_event(text, receiver_username=bot.username)
-                    except (OSError, ValueError, ValidationError) as exc:
-                        replies = [
-                            TelegramReply(
-                                sender_username=bot.username,
-                                text=f"Hermes error: {type(exc).__name__}. Check local logs.",
-                            )
-                        ]
+                    if extract_directed_text(text, receiver_username=bot.username) is None:
+                        replies = []
+                    else:
+                        try:
+                            with ProcessingIndicator(client, bot, chat_id):
+                                replies = handle_telegram_event(text, receiver_username=bot.username)
+                        except (OSError, ValueError, ValidationError) as exc:
+                            replies = [
+                                TelegramReply(
+                                    sender_username=bot.username,
+                                    text=f"Hermes error: {type(exc).__name__}. Check local logs.",
+                                )
+                            ]
                     print(
                         f"Telegram update for @{bot.username}: chat_type={chat_type} "
                         f"text_len={len(text)} replies={len(replies)}",
