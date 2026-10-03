@@ -26,6 +26,7 @@ WORD_POOL = {
     "s": ["silver", "shadow", "storm", "signal"],
     "t": ["tiger", "tower", "thread", "tunnel"],
     "w": ["window", "winter", "wizard", "water"],
+    "x": ["xenon", "xylem", "xavier", "xeric"],
     "y": ["yellow", "youth", "year", "yonder"],
 }
 DEFAULT_START_WORDS = ["apple", "ocean", "river", "garden", "silver"]

@@ -27,3 +27,4 @@ artifacts/hermes_a/*
 !artifacts/hermes_a/.gitkeep
 
 artifacts/telegram_bot.*.log
+artifacts/hermes_api.log
