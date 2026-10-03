@@ -76,11 +76,17 @@ def run_chat_turn(
             provider=None,
             policy_notes=("empty_input",),
         )
-    answer = GeneralAssistantProvider().answer(
-        normalized,
-        assistant_name=assistant_name,
-        peer_names=peer_names,
-    )
+    provider = GeneralAssistantProvider()
+    try:
+        answer = provider.answer(
+            normalized,
+            assistant_name=assistant_name,
+            peer_names=peer_names,
+        )
+    except TypeError as exc:
+        if "unexpected keyword argument" not in str(exc):
+            raise
+        answer = provider.answer(normalized)
     answer = _strip_agent_labels(answer, assistant_name=assistant_name, peer_names=peer_names)
     answer = _trim_words(answer, _requested_word_limit(normalized))
     return ChatTurnResult(

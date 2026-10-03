@@ -217,6 +217,18 @@ printf '\nSAFE_BOOLEAN_ORACLE_READY\n'
 '''
 
 
+VERIFY_SCRIPT = r'''
+set -euo pipefail
+health="$(curl -fsS 'http://127.0.0.1:18080/oracle_health')"
+true_case="$(curl -fsS 'http://127.0.0.1:18080/bool_oracle?probe_id=verify-true&expr=1%3D1')"
+false_case="$(curl -fsS 'http://127.0.0.1:18080/bool_oracle?probe_id=verify-false&expr=1%3D2')"
+printf '%s\n' "$health"
+printf '%s\n' "$true_case"
+printf '%s\n' "$false_case"
+printf 'SAFE_BOOLEAN_ORACLE_VERIFY_OK\n'
+'''
+
+
 def run_remote(host: str, user: str, key: str, command: str) -> int:
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -239,8 +251,10 @@ def main() -> None:
     parser.add_argument("--host", default="192.168.244.128")
     parser.add_argument("--user", default="ubuntu")
     parser.add_argument("--key", default=r"C:\Users\Admin\.ssh\hermes_lab_ed25519")
+    parser.add_argument("--verify-only", action="store_true", help="Verify the existing backend without reinstalling packages or rewriting service files.")
     args = parser.parse_args()
-    status = run_remote(args.host, args.user, args.key, textwrap.dedent(REMOTE_SCRIPT).strip() + "\n")
+    script = VERIFY_SCRIPT if args.verify_only else REMOTE_SCRIPT
+    status = run_remote(args.host, args.user, args.key, textwrap.dedent(script).strip() + "\n")
     print(f"REMOTE_EXIT {status}")
     raise SystemExit(status)
 
