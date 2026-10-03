@@ -1,4 +1,4 @@
-﻿import json
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,26 +30,49 @@ def configured_bot_usernames() -> list[str]:
     return [item.strip().lstrip("@") for item in raw.split(",") if item.strip()]
 
 
-def _aliases(receiver_username: str | None = None) -> set[str]:
+def short_bot_name(username: str) -> str:
+    return username.strip().lstrip("@").split("_", 1)[0]
+
+
+def _full_aliases(receiver_username: str | None = None) -> set[str]:
     if receiver_username:
         return {receiver_username.lower().lstrip("@")}
     return {item.lower() for item in configured_bot_usernames()}
 
 
-def _sorted_aliases(receiver_username: str | None = None) -> list[str]:
-    return sorted(_aliases(receiver_username), key=len, reverse=True)
+def _short_aliases(receiver_username: str | None = None) -> set[str]:
+    if receiver_username:
+        return {short_bot_name(receiver_username).lower()}
+    return {short_bot_name(item).lower() for item in configured_bot_usernames()}
+
+
+def _sorted_full_aliases(receiver_username: str | None = None) -> list[str]:
+    return sorted(_full_aliases(receiver_username), key=len, reverse=True)
+
+
+def _sorted_short_aliases(receiver_username: str | None = None) -> list[str]:
+    return sorted(_short_aliases(receiver_username), key=len, reverse=True)
 
 
 def _strip_addressed_mention(normalized: str, receiver_username: str | None = None) -> str | None:
-    for alias in _sorted_aliases(receiver_username):
+    for alias in _sorted_full_aliases(receiver_username):
         prefix = re.compile(rf"^@{re.escape(alias)}(?=$|\s|[:,])[:,]?\s*", re.IGNORECASE)
         match = prefix.match(normalized)
         if match:
             return normalized[match.end() :].strip() or "/help"
-    for alias in _sorted_aliases(receiver_username):
+    for alias in _sorted_full_aliases(receiver_username):
         inline = re.compile(rf"@{re.escape(alias)}(?=$|\s|[:,])", re.IGNORECASE)
         if inline.search(normalized):
             return " ".join(inline.sub("", normalized, count=1).split()) or "/help"
+    return None
+
+
+def _strip_addressed_short_name(normalized: str, receiver_username: str | None = None) -> str | None:
+    for alias in _sorted_short_aliases(receiver_username):
+        prefix = re.compile(rf"^{re.escape(alias)}(?=$|\s|[:,])[:,]?\s*", re.IGNORECASE)
+        match = prefix.match(normalized)
+        if match:
+            return normalized[match.end() :].strip() or "/help"
     return None
 
 
@@ -57,7 +80,7 @@ def extract_directed_text(text: str, receiver_username: str | None = None) -> st
     normalized = text.strip()
     if not normalized:
         return None
-    aliases = set(_sorted_aliases(receiver_username))
+    aliases = set(_sorted_full_aliases(receiver_username))
     parts = normalized.split()
     first = parts[0]
     first_lower = first.lower()
@@ -69,6 +92,9 @@ def extract_directed_text(text: str, receiver_username: str | None = None) -> st
     mentioned = _strip_addressed_mention(normalized, receiver_username)
     if mentioned is not None:
         return mentioned
+    short_named = _strip_addressed_short_name(normalized, receiver_username)
+    if short_named is not None:
+        return short_named
     if first_lower.startswith("/") and receiver_username is None:
         return normalized
     return None
@@ -101,17 +127,20 @@ def format_case_report(report: dict[str, Any]) -> str:
 
 
 def _help_text() -> str:
-    mentions = ", ".join(f"@{name}" for name in configured_bot_usernames())
-    return (
-        "Hermes Telegram adapter ready. Use full bot usernames only:\n"
-        f"{mentions}\n"
-        "Commands:\n"
-        "/demo_a - run the sample post-audit case\n"
-        "/case CASE-A-001 - show latest local case report\n"
-        "/chain apple - run a 10-turn English word chain across all four bots\n"
-        "/health - adapter health\n"
-        "Natural-language questions route through Hermes; 9router is only a provider."
+    lines = ["Hermes Telegram adapter ready. Address a bot with short name or full username:"]
+    for name in configured_bot_usernames():
+        lines.append(f"- {short_bot_name(name)} or @{name}")
+    lines.extend(
+        [
+            "Commands:",
+            "/demo_a - run the sample post-audit case",
+            "/case CASE-A-001 - show latest local case report",
+            "/chain eye - run a 50-turn English word chain across all four bots",
+            "/health - adapter health",
+            "Natural-language questions route through Hermes; 9router is only a provider.",
+        ]
     )
+    return "\n".join(lines)
 
 
 def _extract_chain_start_word(normalized: str) -> str | None:
@@ -168,7 +197,7 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
             start_bot_username=start_bot,
             bot_usernames=configured_bot_usernames(),
             start_word=start_word,
-            target_length=10,
+            target_length=50,
         )
         return [_render_chain_turn(turn) for turn in turns]
     return [TelegramReply(sender, run_chat_turn(normalized).response_text)]

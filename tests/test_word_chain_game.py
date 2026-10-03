@@ -10,10 +10,10 @@ def test_word_chain_has_target_length_and_uses_all_bots():
         "Garen_SubAgent_bot",
         "Kayn_SubAgent_bot",
     ]
-    turns = build_word_chain("Swain_SubAgent_bot", bots, start_word="apple", target_length=10)
-    assert len(turns) == 10
+    turns = build_word_chain("Swain_SubAgent_bot", bots, start_word="eye", target_length=50)
+    assert len(turns) == 50
     assert {turn.bot_username for turn in turns} == set(bots)
-    assert turns[0].word == "apple"
+    assert turns[0].word == "eye"
     for previous, current in pairwise(turns):
         assert current.word[0] == previous.word[-1]
     assert turns[-1].is_final is True
@@ -22,7 +22,7 @@ def test_word_chain_has_target_length_and_uses_all_bots():
 
 def test_word_chain_rejects_unsupported_start_word():
     try:
-        build_word_chain("Swain_SubAgent_bot", ["Swain_SubAgent_bot"], start_word="quiz", target_length=10)
+        build_word_chain("Swain_SubAgent_bot", ["Swain_SubAgent_bot"], start_word="quiz", target_length=50)
     except ValueError as exc:
         assert "No local word pool" in str(exc)
     else:

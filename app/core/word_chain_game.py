@@ -43,13 +43,9 @@ class WordChainTurn:
     is_final: bool
 
     def render(self) -> str:
-        if self.previous_word is None:
-            body = f"{self.index}/10: {self.word}"
-        else:
-            body = f"{self.index}/10: {self.previous_word} -> {self.word}"
         if self.is_final:
-            return f"{body}\nChain complete."
-        return f"{body}\nNext: @{self.next_bot_username}"
+            return f"{self.word}\nChain complete: {self.index} turns."
+        return f"{self.word} @{self.next_bot_username}"
 
 
 def _last_letter(word: str) -> str:
