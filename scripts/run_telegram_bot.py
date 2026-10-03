@@ -1,11 +1,12 @@
-﻿import os
+import os
 import random
 import re
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import httpx
 from pydantic import ValidationError
@@ -27,6 +28,7 @@ class BotConfig:
 CHAT_ACTION_DELAY_MIN_SECONDS = 0.45
 CHAT_ACTION_DELAY_MAX_SECONDS = 0.95
 POST_SEND_DELAY_SECONDS = 0.35
+PROCESSING_HEARTBEAT_SECONDS = 3.0
 
 
 def _local_env_values() -> dict[str, str]:
@@ -95,6 +97,34 @@ def _response_delay_seconds(text: str) -> float:
     length_factor = min(len(text) / 220.0, 0.55)
     base = random.uniform(CHAT_ACTION_DELAY_MIN_SECONDS, CHAT_ACTION_DELAY_MAX_SECONDS)
     return min(base + length_factor, 1.45)
+
+
+class ProcessingIndicator:
+    def __init__(self, client: httpx.Client, bot: BotConfig, chat_id: int) -> None:
+        self.client = client
+        self.bot = bot
+        self.chat_id = chat_id
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def _run(self) -> None:
+        while not self._stop.is_set():
+            _show_processing_action(self.client, self.bot, self.chat_id)
+            self._stop.wait(PROCESSING_HEARTBEAT_SECONDS)
+
+    def __enter__(self) -> Self:
+        self._thread = threading.Thread(
+            target=self._run,
+            name=f"telegram-typing-{self.bot.username}",
+            daemon=True,
+        )
+        self._thread.start()
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=0.5)
 
 
 def _send_message(client: httpx.Client, bot: BotConfig, chat_id: int, text: str) -> None:
@@ -190,7 +220,8 @@ def main() -> None:
                             )
                         continue
                     try:
-                        replies = handle_telegram_event(text, receiver_username=bot.username)
+                        with ProcessingIndicator(client, bot, chat_id):
+                            replies = handle_telegram_event(text, receiver_username=bot.username)
                     except (OSError, ValueError, ValidationError) as exc:
                         replies = [
                             TelegramReply(
