@@ -30,3 +30,5 @@ artifacts/telegram_bot.*.log
 artifacts/hermes_api.log
 
 artifacts/vaccine_regression/
+
+artifacts/boolean_vaccine/
