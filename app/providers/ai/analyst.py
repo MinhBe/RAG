@@ -1,10 +1,11 @@
-﻿import json
+import json
 from typing import Any
 
 import httpx
 from pydantic import ValidationError
 
 from app.core.settings import settings
+from app.providers.ai.openai_compatible import extract_chat_content
 from app.schemas.case import AnalystDraft, CaseRecord
 
 
@@ -122,8 +123,7 @@ class CaseAnalystProvider:
                     json=payload,
                 )
             response.raise_for_status()
-            body = response.json()
-            content = body["choices"][0]["message"]["content"]
+            content = extract_chat_content(response)
             parsed = _parse_json_object(content)
             candidate = AnalystDraft.model_validate(parsed)
             submitted_refs = {item.evidence_id for item in case.evidence}
@@ -149,4 +149,3 @@ class CaseAnalystProvider:
                 "model": self.model,
                 "error_type": type(exc).__name__,
             }
-

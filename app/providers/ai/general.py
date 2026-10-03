@@ -3,6 +3,7 @@ import json
 import httpx
 
 from app.core.settings import settings
+from app.providers.ai.openai_compatible import extract_chat_content
 
 
 class GeneralAssistantProvider:
@@ -46,8 +47,7 @@ class GeneralAssistantProvider:
             with httpx.Client(timeout=self.timeout_seconds, transport=self.transport) as client:
                 response = client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
             response.raise_for_status()
-            body = response.json()
-            content = body["choices"][0]["message"]["content"]
+            content = extract_chat_content(response)
             if isinstance(content, str) and content.strip():
                 return content.strip()[:3900]
             return "Swain nhận được phản hồi rỗng từ model."
