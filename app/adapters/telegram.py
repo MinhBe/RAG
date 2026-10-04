@@ -6,6 +6,7 @@ from typing import Any
 
 from app.core.case_pipeline import run_case_pipeline
 from app.core.chat_pipeline import run_chat_turn
+from app.core.omh_registry import omh_status_text
 from app.core.settings import settings
 from app.core.word_chain_game import WordChainTurn, build_word_chain
 from app.schemas.case import CaseRecord
@@ -155,6 +156,7 @@ def _help_text() -> str:
             "/case CASE-A-001 - show latest local case report",
             "/chain eye - run a 50-turn English word chain across all four bots",
             "/health - adapter health",
+            "/omh - Oh My Hermes deployment status",
             "Natural-language questions route through Hermes; 9router is only a provider.",
         ]
     )
@@ -194,6 +196,8 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
         return [TelegramReply(sender, _help_text())]
     if lowered == "/health":
         return [TelegramReply(sender, "Hermes Telegram adapter: ok")]
+    if lowered in {"/omh", "omh", "oh my hermes"}:
+        return [TelegramReply(sender, omh_status_text())]
     if lowered in {"/demo_a", "demo_a", "demo a"}:
         payload = json.loads(SAMPLE_CASE_PATH.read_text(encoding="utf-8-sig"))
         case = CaseRecord.model_validate(payload["case"])

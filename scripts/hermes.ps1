@@ -23,6 +23,7 @@ Usage:
   hermes router-bg
   hermes demo-a
   hermes gate
+  hermes omh-status
   hermes api
   hermes api-bg
   hermes telegram
@@ -199,6 +200,7 @@ switch ($Command.ToLowerInvariant()) {
   "router" { powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-9router.ps1; break }
   "router-bg" { Start-RouterBackground; break }
   "demo-a" { uv run python scripts/run_hermes_a_demo.py; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; break }
+  "omh-status" { uv run python scripts/show_omh_status.py; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; break }
   "gate" {
     uv run python -m compileall -q app scripts tests training
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
