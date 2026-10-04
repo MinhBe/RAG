@@ -1,0 +1,214 @@
+{
+  "artifact_handoff": [
+    {
+      "copied": true,
+      "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\boolean_vaccine",
+      "exists": true,
+      "file_count": 18,
+      "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\boolean_vaccine"
+    },
+    {
+      "copied": true,
+      "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_sprints_2_3_4",
+      "exists": true,
+      "file_count": 13,
+      "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_sprints_2_3_4"
+    },
+    {
+      "copied": true,
+      "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_sprints_5_6_7",
+      "exists": true,
+      "file_count": 12,
+      "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_sprints_5_6_7"
+    },
+    {
+      "copied": true,
+      "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_sprints_8_9_10",
+      "exists": true,
+      "file_count": 19,
+      "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_sprints_8_9_10"
+    },
+    {
+      "copied": true,
+      "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_sprint_11",
+      "exists": true,
+      "file_count": 2,
+      "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_sprint_11"
+    },
+    {
+      "copied": true,
+      "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_release",
+      "exists": true,
+      "file_count": 1,
+      "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_release"
+    },
+    {
+      "copied": true,
+      "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_acceptance_seal",
+      "exists": true,
+      "file_count": 2,
+      "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_acceptance_seal"
+    }
+  ],
+  "claim_boundary": "Restore-on-clean-workspace drill for controlled lab artifacts only; private replay artifacts remain local and are not public.",
+  "clean_clone_gate": {
+    "args": [
+      "cmd",
+      "/c",
+      "hermes.cmd",
+      "vaccine-full-gate"
+    ],
+    "passed": true,
+    "returncode": 0,
+    "stderr_tail": "warning: `VIRTUAL_ENV=C:\\Users\\Admin\\Documents\\Hermes\\.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead\nUsing CPython 3.12.10 interpreter at: C:\\Users\\Admin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\nCreating virtual environment at: .venv\nInstalled 133 packages in 2.27s\n",
+    "stdout_tail": "    },\\n              {\\n                \\\"feature\\\": \\\"family=decimal_comparison\\\",\\n                \\\"importance\\\": 1.368855\\n              },\\n              {\\n                \\\"feature\\\": \\\"operator_family=equality\\\",\\n                \\\"importance\\\": 1.329822\\n              },\\n              {\\n                \\\"feature\\\": \\\"has_arithmetic\\\",\\n                \\\"importance\\\": 1.222017\\n              }\\n            ]\\n          },\\n          \\\"random_forest\\\": {\\n            \\\"metrics\\\": {\\n              \\\"accuracy\\\": 1.0,\\n              \\\"false_negative_rate\\\": 0.0,\\n              \\\"false_positive_rate\\\": 0.0,\\n              \\\"fn\\\": 0,\\n              \\\"fp\\\": 0,\\n              \\\"precision\\\": 1.0,\\n              \\\"recall\\\": 1.0,\\n              \\\"tn\\\": 50,\\n              \\\"tp\\\": 50\\n            },\\n            \\\"model_artifact\\\": \\\"artifacts\\\\\\\\vaccine_sprints_5_6_7\\\\\\\\private\\\\\\\\sprint7_random_forest.joblib\\\",\\n            \\\"top_features\\\": [\\n              {\\n                \\\"feature\\\": \\\"normalized_len\\\",\\n                \\\"importance\\\": 0.223846\\n              },\\n              {\\n                \\\"feature\\\": \\\"token_count\\\",\\n                \\\"importance\\\": 0.173877\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=multiplicative_arithmetic\\\",\\n                \\\"importance\\\": 0.065707\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=malformed_non_threatening\\\",\\n                \\\"importance\\\": 0.04925\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=greater_than_ordering\\\",\\n                \\\"importance\\\": 0.043756\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=near_boolean_benign\\\",\\n                \\\"importance\\\": 0.041955\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=benign_math\\\",\\n                \\\"importance\\\": 0.039846\\n              },\\n              {\\n                \\\"feature\\\": \\\"has_decimal\\\",\\n                \\\"importance\\\": 0.037467\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=ordinary_numeric_noise\\\",\\n                \\\"importance\\\": 0.036156\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=benign_numeric_filter\\\",\\n                \\\"importance\\\": 0.035194\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=nested_parenthesized\\\",\\n                \\\"importance\\\": 0.034179\\n              },\\n              {\\n                \\\"feature\\\": \\\"operator_family=ordering\\\",\\n                \\\"importance\\\": 0.032806\\n              }\\n            ]\\n          }\\n        },\\n        \\\"status\\\": \\\"PASS\\\"\\n      },\\n      \\\"name\\\": \\\"ml_baseline_ready\\\",\\n      \\\"passed\\\": true\\n    }\\n  ],\\n  \\\"one_command\\\": \\\"uv run python scripts/run_vaccine_gate.py\\\",\\n  \\\"passed_gates\\\": [\\n    \\\"sprint_2_4_prereq_pass\\\",\\n    \\\"seqgan_adapter_reward_loop_present\\\",\\n    \\\"not_projection_only\\\",\\n    \\\"attack_flag_rate_threshold\\\",\\n    \\\"benign_allow_rate_threshold\\\",\\n    \\\"fpr_threshold\\\",\\n    \\\"fnr_threshold\\\",\\n    \\\"ml_baseline_ready\\\"\\n  ],\\n  \\\"status\\\": \\\"PASS\\\"\\n}\\n\"\n      },\n      \"name\": \"one_command_vaccine_gate_pass\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"pytest\": {\n          \"args\": [\n            \"uv\",\n            \"run\",\n            \"pytest\",\n            \"-q\"\n          ],\n          \"passed\": true,\n          \"returncode\": 0,\n          \"stderr_tail\": \"\",\n          \"stdout_tail\": \"..............................................                           [100%]\\n46 passed in 20.92s\\n\"\n        },\n        \"ruff\": {\n          \"args\": [\n            \"uv\",\n            \"run\",\n            \"ruff\",\n            \"check\",\n            \"app\",\n            \"scripts\",\n            \"tests\",\n            \"training\"\n          ],\n          \"passed\": true,\n          \"returncode\": 0,\n          \"stderr_tail\": \"\",\n          \"stdout_tail\": \"All checks passed!\\n\"\n        },\n        \"skipped\": false\n      },\n      \"name\": \"static_quality_gate_pass\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"count\": 9,\n        \"docs\": {\n          \"docs\\\\vaccine_lab\\\\ARCHITECTURE.md\": true,\n          \"docs\\\\vaccine_lab\\\\ARTIFACT_MAP.md\": true,\n          \"docs\\\\vaccine_lab\\\\CLAIM_BOUNDARY.md\": true,\n          \"docs\\\\vaccine_lab\\\\NEW_CHAT_HANDOVER.md\": true,\n          \"docs\\\\vaccine_lab\\\\README.md\": true,\n          \"docs\\\\vaccine_lab\\\\REPLAY.md\": true,\n          \"docs\\\\vaccine_lab\\\\ROLLBACK.md\": true,\n          \"docs\\\\vaccine_lab\\\\RUNBOOK.md\": true,\n          \"docs\\\\vaccine_lab\\\\TROUBLESHOOTING.md\": true\n        },\n        \"passed\": true\n      },\n      \"name\": \"documentation_pack_exists\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"private_replay\": {\n          \"artifacts\\\\boolean_vaccine\\\\private\\\\reward_loop_acceptance.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_2_3_4\\\\private\\\\sprint2_before_attack.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_2_3_4\\\\private\\\\sprint4_multifamily.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_5_6_7\\\\private\\\\sprint5_seqgan_adapter_acceptance.local.jsonl\": true\n        }\n      },\n      \"name\": \"private_replay_artifacts_exist\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"violations\": []\n      },\n      \"name\": \"public_redaction_clean\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"lines\": [],\n        \"passed\": true,\n        \"unexpected\": []\n      },\n      \"name\": \"git_release_state_clean\",\n      \"passed\": true\n    }\n  ],\n  \"generated_at\": \"2026-10-04T02:36:28.202291+00:00\",\n  \"one_command\": \"hermes vaccine-full-gate\",\n  \"passed_gates\": [\n    \"all_previous_sprints_pass\",\n    \"one_command_vaccine_gate_pass\",\n    \"static_quality_gate_pass\",\n    \"documentation_pack_exists\",\n    \"private_replay_artifacts_exist\",\n    \"public_redaction_clean\",\n    \"git_release_state_clean\"\n  ],\n  \"status\": \"PASS\"\n}\n"
+  },
+  "clean_clone_git_status": "",
+  "clone_path": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone",
+  "clone_result": {
+    "args": [
+      "git",
+      "clone",
+      "C:\\Users\\Admin\\Documents\\Hermes",
+      "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone"
+    ],
+    "passed": true,
+    "returncode": 0,
+    "stderr_tail": "Cloning into 'C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone'...\ndone.\n",
+    "stdout_tail": ""
+  },
+  "definition_of_done_passed": true,
+  "failed_gates": [],
+  "gates": [
+    {
+      "evidence": {
+        "args": [
+          "cmd",
+          "/c",
+          "hermes.cmd",
+          "vaccine-full-gate"
+        ],
+        "passed": true,
+        "returncode": 0,
+        "stderr_tail": "",
+        "stdout_tail": "     },\\n              {\\n                \\\"feature\\\": \\\"family=decimal_comparison\\\",\\n                \\\"importance\\\": 1.368855\\n              },\\n              {\\n                \\\"feature\\\": \\\"operator_family=equality\\\",\\n                \\\"importance\\\": 1.329822\\n              },\\n              {\\n                \\\"feature\\\": \\\"has_arithmetic\\\",\\n                \\\"importance\\\": 1.222017\\n              }\\n            ]\\n          },\\n          \\\"random_forest\\\": {\\n            \\\"metrics\\\": {\\n              \\\"accuracy\\\": 1.0,\\n              \\\"false_negative_rate\\\": 0.0,\\n              \\\"false_positive_rate\\\": 0.0,\\n              \\\"fn\\\": 0,\\n              \\\"fp\\\": 0,\\n              \\\"precision\\\": 1.0,\\n              \\\"recall\\\": 1.0,\\n              \\\"tn\\\": 50,\\n              \\\"tp\\\": 50\\n            },\\n            \\\"model_artifact\\\": \\\"artifacts\\\\\\\\vaccine_sprints_5_6_7\\\\\\\\private\\\\\\\\sprint7_random_forest.joblib\\\",\\n            \\\"top_features\\\": [\\n              {\\n                \\\"feature\\\": \\\"normalized_len\\\",\\n                \\\"importance\\\": 0.223846\\n              },\\n              {\\n                \\\"feature\\\": \\\"token_count\\\",\\n                \\\"importance\\\": 0.173877\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=multiplicative_arithmetic\\\",\\n                \\\"importance\\\": 0.065707\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=malformed_non_threatening\\\",\\n                \\\"importance\\\": 0.04925\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=greater_than_ordering\\\",\\n                \\\"importance\\\": 0.043756\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=near_boolean_benign\\\",\\n                \\\"importance\\\": 0.041955\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=benign_math\\\",\\n                \\\"importance\\\": 0.039846\\n              },\\n              {\\n                \\\"feature\\\": \\\"has_decimal\\\",\\n                \\\"importance\\\": 0.037467\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=ordinary_numeric_noise\\\",\\n                \\\"importance\\\": 0.036156\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=benign_numeric_filter\\\",\\n                \\\"importance\\\": 0.035194\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=nested_parenthesized\\\",\\n                \\\"importance\\\": 0.034179\\n              },\\n              {\\n                \\\"feature\\\": \\\"operator_family=ordering\\\",\\n                \\\"importance\\\": 0.032806\\n              }\\n            ]\\n          }\\n        },\\n        \\\"status\\\": \\\"PASS\\\"\\n      },\\n      \\\"name\\\": \\\"ml_baseline_ready\\\",\\n      \\\"passed\\\": true\\n    }\\n  ],\\n  \\\"one_command\\\": \\\"uv run python scripts/run_vaccine_gate.py\\\",\\n  \\\"passed_gates\\\": [\\n    \\\"sprint_2_4_prereq_pass\\\",\\n    \\\"seqgan_adapter_reward_loop_present\\\",\\n    \\\"not_projection_only\\\",\\n    \\\"attack_flag_rate_threshold\\\",\\n    \\\"benign_allow_rate_threshold\\\",\\n    \\\"fpr_threshold\\\",\\n    \\\"fnr_threshold\\\",\\n    \\\"ml_baseline_ready\\\"\\n  ],\\n  \\\"status\\\": \\\"PASS\\\"\\n}\\n\"\n      },\n      \"name\": \"one_command_vaccine_gate_pass\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"pytest\": {\n          \"args\": [\n            \"uv\",\n            \"run\",\n            \"pytest\",\n            \"-q\"\n          ],\n          \"passed\": true,\n          \"returncode\": 0,\n          \"stderr_tail\": \"\",\n          \"stdout_tail\": \"..............................................                           [100%]\\n46 passed in 3.32s\\n\"\n        },\n        \"ruff\": {\n          \"args\": [\n            \"uv\",\n            \"run\",\n            \"ruff\",\n            \"check\",\n            \"app\",\n            \"scripts\",\n            \"tests\",\n            \"training\"\n          ],\n          \"passed\": true,\n          \"returncode\": 0,\n          \"stderr_tail\": \"\",\n          \"stdout_tail\": \"All checks passed!\\n\"\n        },\n        \"skipped\": false\n      },\n      \"name\": \"static_quality_gate_pass\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"count\": 9,\n        \"docs\": {\n          \"docs\\\\vaccine_lab\\\\ARCHITECTURE.md\": true,\n          \"docs\\\\vaccine_lab\\\\ARTIFACT_MAP.md\": true,\n          \"docs\\\\vaccine_lab\\\\CLAIM_BOUNDARY.md\": true,\n          \"docs\\\\vaccine_lab\\\\NEW_CHAT_HANDOVER.md\": true,\n          \"docs\\\\vaccine_lab\\\\README.md\": true,\n          \"docs\\\\vaccine_lab\\\\REPLAY.md\": true,\n          \"docs\\\\vaccine_lab\\\\ROLLBACK.md\": true,\n          \"docs\\\\vaccine_lab\\\\RUNBOOK.md\": true,\n          \"docs\\\\vaccine_lab\\\\TROUBLESHOOTING.md\": true\n        },\n        \"passed\": true\n      },\n      \"name\": \"documentation_pack_exists\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"private_replay\": {\n          \"artifacts\\\\boolean_vaccine\\\\private\\\\reward_loop_acceptance.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_2_3_4\\\\private\\\\sprint2_before_attack.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_2_3_4\\\\private\\\\sprint4_multifamily.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_5_6_7\\\\private\\\\sprint5_seqgan_adapter_acceptance.local.jsonl\": true\n        }\n      },\n      \"name\": \"private_replay_artifacts_exist\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"violations\": []\n      },\n      \"name\": \"public_redaction_clean\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"lines\": [],\n        \"passed\": true,\n        \"unexpected\": []\n      },\n      \"name\": \"git_release_state_clean\",\n      \"passed\": true\n    }\n  ],\n  \"generated_at\": \"2026-10-04T02:35:38.276702+00:00\",\n  \"one_command\": \"hermes vaccine-full-gate\",\n  \"passed_gates\": [\n    \"all_previous_sprints_pass\",\n    \"one_command_vaccine_gate_pass\",\n    \"static_quality_gate_pass\",\n    \"documentation_pack_exists\",\n    \"private_replay_artifacts_exist\",\n    \"public_redaction_clean\",\n    \"git_release_state_clean\"\n  ],\n  \"status\": \"PASS\"\n}\n"
+      },
+      "name": "source_final_gate_pass",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "args": [
+          "git",
+          "clone",
+          "C:\\Users\\Admin\\Documents\\Hermes",
+          "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone"
+        ],
+        "passed": true,
+        "returncode": 0,
+        "stderr_tail": "Cloning into 'C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone'...\ndone.\n",
+        "stdout_tail": ""
+      },
+      "name": "local_clone_created",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "copied": [
+          {
+            "copied": true,
+            "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\boolean_vaccine",
+            "exists": true,
+            "file_count": 18,
+            "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\boolean_vaccine"
+          },
+          {
+            "copied": true,
+            "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_sprints_2_3_4",
+            "exists": true,
+            "file_count": 13,
+            "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_sprints_2_3_4"
+          },
+          {
+            "copied": true,
+            "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_sprints_5_6_7",
+            "exists": true,
+            "file_count": 12,
+            "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_sprints_5_6_7"
+          },
+          {
+            "copied": true,
+            "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_sprints_8_9_10",
+            "exists": true,
+            "file_count": 19,
+            "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_sprints_8_9_10"
+          },
+          {
+            "copied": true,
+            "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_sprint_11",
+            "exists": true,
+            "file_count": 2,
+            "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_sprint_11"
+          },
+          {
+            "copied": true,
+            "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_release",
+            "exists": true,
+            "file_count": 1,
+            "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_release"
+          },
+          {
+            "copied": true,
+            "destination": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_restore_drill\\workspace\\hermes-clean-clone\\artifacts\\vaccine_acceptance_seal",
+            "exists": true,
+            "file_count": 2,
+            "source": "C:\\Users\\Admin\\Documents\\Hermes\\artifacts\\vaccine_acceptance_seal"
+          }
+        ]
+      },
+      "name": "private_artifact_handoff_copied",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "args": [
+          "cmd",
+          "/c",
+          "hermes.cmd",
+          "vaccine-full-gate"
+        ],
+        "passed": true,
+        "returncode": 0,
+        "stderr_tail": "warning: `VIRTUAL_ENV=C:\\Users\\Admin\\Documents\\Hermes\\.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead\nUsing CPython 3.12.10 interpreter at: C:\\Users\\Admin\\AppData\\Local\\Programs\\Python\\Python312\\python.exe\nCreating virtual environment at: .venv\nInstalled 133 packages in 2.27s\n",
+        "stdout_tail": "    },\\n              {\\n                \\\"feature\\\": \\\"family=decimal_comparison\\\",\\n                \\\"importance\\\": 1.368855\\n              },\\n              {\\n                \\\"feature\\\": \\\"operator_family=equality\\\",\\n                \\\"importance\\\": 1.329822\\n              },\\n              {\\n                \\\"feature\\\": \\\"has_arithmetic\\\",\\n                \\\"importance\\\": 1.222017\\n              }\\n            ]\\n          },\\n          \\\"random_forest\\\": {\\n            \\\"metrics\\\": {\\n              \\\"accuracy\\\": 1.0,\\n              \\\"false_negative_rate\\\": 0.0,\\n              \\\"false_positive_rate\\\": 0.0,\\n              \\\"fn\\\": 0,\\n              \\\"fp\\\": 0,\\n              \\\"precision\\\": 1.0,\\n              \\\"recall\\\": 1.0,\\n              \\\"tn\\\": 50,\\n              \\\"tp\\\": 50\\n            },\\n            \\\"model_artifact\\\": \\\"artifacts\\\\\\\\vaccine_sprints_5_6_7\\\\\\\\private\\\\\\\\sprint7_random_forest.joblib\\\",\\n            \\\"top_features\\\": [\\n              {\\n                \\\"feature\\\": \\\"normalized_len\\\",\\n                \\\"importance\\\": 0.223846\\n              },\\n              {\\n                \\\"feature\\\": \\\"token_count\\\",\\n                \\\"importance\\\": 0.173877\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=multiplicative_arithmetic\\\",\\n                \\\"importance\\\": 0.065707\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=malformed_non_threatening\\\",\\n                \\\"importance\\\": 0.04925\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=greater_than_ordering\\\",\\n                \\\"importance\\\": 0.043756\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=near_boolean_benign\\\",\\n                \\\"importance\\\": 0.041955\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=benign_math\\\",\\n                \\\"importance\\\": 0.039846\\n              },\\n              {\\n                \\\"feature\\\": \\\"has_decimal\\\",\\n                \\\"importance\\\": 0.037467\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=ordinary_numeric_noise\\\",\\n                \\\"importance\\\": 0.036156\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=benign_numeric_filter\\\",\\n                \\\"importance\\\": 0.035194\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=nested_parenthesized\\\",\\n                \\\"importance\\\": 0.034179\\n              },\\n              {\\n                \\\"feature\\\": \\\"operator_family=ordering\\\",\\n                \\\"importance\\\": 0.032806\\n              }\\n            ]\\n          }\\n        },\\n        \\\"status\\\": \\\"PASS\\\"\\n      },\\n      \\\"name\\\": \\\"ml_baseline_ready\\\",\\n      \\\"passed\\\": true\\n    }\\n  ],\\n  \\\"one_command\\\": \\\"uv run python scripts/run_vaccine_gate.py\\\",\\n  \\\"passed_gates\\\": [\\n    \\\"sprint_2_4_prereq_pass\\\",\\n    \\\"seqgan_adapter_reward_loop_present\\\",\\n    \\\"not_projection_only\\\",\\n    \\\"attack_flag_rate_threshold\\\",\\n    \\\"benign_allow_rate_threshold\\\",\\n    \\\"fpr_threshold\\\",\\n    \\\"fnr_threshold\\\",\\n    \\\"ml_baseline_ready\\\"\\n  ],\\n  \\\"status\\\": \\\"PASS\\\"\\n}\\n\"\n      },\n      \"name\": \"one_command_vaccine_gate_pass\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"pytest\": {\n          \"args\": [\n            \"uv\",\n            \"run\",\n            \"pytest\",\n            \"-q\"\n          ],\n          \"passed\": true,\n          \"returncode\": 0,\n          \"stderr_tail\": \"\",\n          \"stdout_tail\": \"..............................................                           [100%]\\n46 passed in 20.92s\\n\"\n        },\n        \"ruff\": {\n          \"args\": [\n            \"uv\",\n            \"run\",\n            \"ruff\",\n            \"check\",\n            \"app\",\n            \"scripts\",\n            \"tests\",\n            \"training\"\n          ],\n          \"passed\": true,\n          \"returncode\": 0,\n          \"stderr_tail\": \"\",\n          \"stdout_tail\": \"All checks passed!\\n\"\n        },\n        \"skipped\": false\n      },\n      \"name\": \"static_quality_gate_pass\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"count\": 9,\n        \"docs\": {\n          \"docs\\\\vaccine_lab\\\\ARCHITECTURE.md\": true,\n          \"docs\\\\vaccine_lab\\\\ARTIFACT_MAP.md\": true,\n          \"docs\\\\vaccine_lab\\\\CLAIM_BOUNDARY.md\": true,\n          \"docs\\\\vaccine_lab\\\\NEW_CHAT_HANDOVER.md\": true,\n          \"docs\\\\vaccine_lab\\\\README.md\": true,\n          \"docs\\\\vaccine_lab\\\\REPLAY.md\": true,\n          \"docs\\\\vaccine_lab\\\\ROLLBACK.md\": true,\n          \"docs\\\\vaccine_lab\\\\RUNBOOK.md\": true,\n          \"docs\\\\vaccine_lab\\\\TROUBLESHOOTING.md\": true\n        },\n        \"passed\": true\n      },\n      \"name\": \"documentation_pack_exists\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"private_replay\": {\n          \"artifacts\\\\boolean_vaccine\\\\private\\\\reward_loop_acceptance.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_2_3_4\\\\private\\\\sprint2_before_attack.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_2_3_4\\\\private\\\\sprint4_multifamily.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_5_6_7\\\\private\\\\sprint5_seqgan_adapter_acceptance.local.jsonl\": true\n        }\n      },\n      \"name\": \"private_replay_artifacts_exist\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"violations\": []\n      },\n      \"name\": \"public_redaction_clean\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"lines\": [],\n        \"passed\": true,\n        \"unexpected\": []\n      },\n      \"name\": \"git_release_state_clean\",\n      \"passed\": true\n    }\n  ],\n  \"generated_at\": \"2026-10-04T02:36:28.202291+00:00\",\n  \"one_command\": \"hermes vaccine-full-gate\",\n  \"passed_gates\": [\n    \"all_previous_sprints_pass\",\n    \"one_command_vaccine_gate_pass\",\n    \"static_quality_gate_pass\",\n    \"documentation_pack_exists\",\n    \"private_replay_artifacts_exist\",\n    \"public_redaction_clean\",\n    \"git_release_state_clean\"\n  ],\n  \"status\": \"PASS\"\n}\n"
+      },
+      "name": "clean_workspace_final_gate_pass",
+      "passed": true
+    },
+    {
+      "evidence": {
+        "violations": []
+      },
+      "name": "public_redaction_clean",
+      "passed": true
+    }
+  ],
+  "generated_at": "2026-10-04T02:36:29.122548+00:00",
+  "next_boundary": "After this drill, further work should be a separate production design or an external manual review, not more lab sprinting.",
+  "public_redaction_clean": true,
+  "redaction_violations": [],
+  "source_final_gate": {
+    "args": [
+      "cmd",
+      "/c",
+      "hermes.cmd",
+      "vaccine-full-gate"
+    ],
+    "passed": true,
+    "returncode": 0,
+    "stderr_tail": "",
+    "stdout_tail": "     },\\n              {\\n                \\\"feature\\\": \\\"family=decimal_comparison\\\",\\n                \\\"importance\\\": 1.368855\\n              },\\n              {\\n                \\\"feature\\\": \\\"operator_family=equality\\\",\\n                \\\"importance\\\": 1.329822\\n              },\\n              {\\n                \\\"feature\\\": \\\"has_arithmetic\\\",\\n                \\\"importance\\\": 1.222017\\n              }\\n            ]\\n          },\\n          \\\"random_forest\\\": {\\n            \\\"metrics\\\": {\\n              \\\"accuracy\\\": 1.0,\\n              \\\"false_negative_rate\\\": 0.0,\\n              \\\"false_positive_rate\\\": 0.0,\\n              \\\"fn\\\": 0,\\n              \\\"fp\\\": 0,\\n              \\\"precision\\\": 1.0,\\n              \\\"recall\\\": 1.0,\\n              \\\"tn\\\": 50,\\n              \\\"tp\\\": 50\\n            },\\n            \\\"model_artifact\\\": \\\"artifacts\\\\\\\\vaccine_sprints_5_6_7\\\\\\\\private\\\\\\\\sprint7_random_forest.joblib\\\",\\n            \\\"top_features\\\": [\\n              {\\n                \\\"feature\\\": \\\"normalized_len\\\",\\n                \\\"importance\\\": 0.223846\\n              },\\n              {\\n                \\\"feature\\\": \\\"token_count\\\",\\n                \\\"importance\\\": 0.173877\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=multiplicative_arithmetic\\\",\\n                \\\"importance\\\": 0.065707\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=malformed_non_threatening\\\",\\n                \\\"importance\\\": 0.04925\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=greater_than_ordering\\\",\\n                \\\"importance\\\": 0.043756\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=near_boolean_benign\\\",\\n                \\\"importance\\\": 0.041955\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=benign_math\\\",\\n                \\\"importance\\\": 0.039846\\n              },\\n              {\\n                \\\"feature\\\": \\\"has_decimal\\\",\\n                \\\"importance\\\": 0.037467\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=ordinary_numeric_noise\\\",\\n                \\\"importance\\\": 0.036156\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=benign_numeric_filter\\\",\\n                \\\"importance\\\": 0.035194\\n              },\\n              {\\n                \\\"feature\\\": \\\"family=nested_parenthesized\\\",\\n                \\\"importance\\\": 0.034179\\n              },\\n              {\\n                \\\"feature\\\": \\\"operator_family=ordering\\\",\\n                \\\"importance\\\": 0.032806\\n              }\\n            ]\\n          }\\n        },\\n        \\\"status\\\": \\\"PASS\\\"\\n      },\\n      \\\"name\\\": \\\"ml_baseline_ready\\\",\\n      \\\"passed\\\": true\\n    }\\n  ],\\n  \\\"one_command\\\": \\\"uv run python scripts/run_vaccine_gate.py\\\",\\n  \\\"passed_gates\\\": [\\n    \\\"sprint_2_4_prereq_pass\\\",\\n    \\\"seqgan_adapter_reward_loop_present\\\",\\n    \\\"not_projection_only\\\",\\n    \\\"attack_flag_rate_threshold\\\",\\n    \\\"benign_allow_rate_threshold\\\",\\n    \\\"fpr_threshold\\\",\\n    \\\"fnr_threshold\\\",\\n    \\\"ml_baseline_ready\\\"\\n  ],\\n  \\\"status\\\": \\\"PASS\\\"\\n}\\n\"\n      },\n      \"name\": \"one_command_vaccine_gate_pass\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"pytest\": {\n          \"args\": [\n            \"uv\",\n            \"run\",\n            \"pytest\",\n            \"-q\"\n          ],\n          \"passed\": true,\n          \"returncode\": 0,\n          \"stderr_tail\": \"\",\n          \"stdout_tail\": \"..............................................                           [100%]\\n46 passed in 3.32s\\n\"\n        },\n        \"ruff\": {\n          \"args\": [\n            \"uv\",\n            \"run\",\n            \"ruff\",\n            \"check\",\n            \"app\",\n            \"scripts\",\n            \"tests\",\n            \"training\"\n          ],\n          \"passed\": true,\n          \"returncode\": 0,\n          \"stderr_tail\": \"\",\n          \"stdout_tail\": \"All checks passed!\\n\"\n        },\n        \"skipped\": false\n      },\n      \"name\": \"static_quality_gate_pass\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"count\": 9,\n        \"docs\": {\n          \"docs\\\\vaccine_lab\\\\ARCHITECTURE.md\": true,\n          \"docs\\\\vaccine_lab\\\\ARTIFACT_MAP.md\": true,\n          \"docs\\\\vaccine_lab\\\\CLAIM_BOUNDARY.md\": true,\n          \"docs\\\\vaccine_lab\\\\NEW_CHAT_HANDOVER.md\": true,\n          \"docs\\\\vaccine_lab\\\\README.md\": true,\n          \"docs\\\\vaccine_lab\\\\REPLAY.md\": true,\n          \"docs\\\\vaccine_lab\\\\ROLLBACK.md\": true,\n          \"docs\\\\vaccine_lab\\\\RUNBOOK.md\": true,\n          \"docs\\\\vaccine_lab\\\\TROUBLESHOOTING.md\": true\n        },\n        \"passed\": true\n      },\n      \"name\": \"documentation_pack_exists\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"private_replay\": {\n          \"artifacts\\\\boolean_vaccine\\\\private\\\\reward_loop_acceptance.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_2_3_4\\\\private\\\\sprint2_before_attack.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_2_3_4\\\\private\\\\sprint4_multifamily.local.jsonl\": true,\n          \"artifacts\\\\vaccine_sprints_5_6_7\\\\private\\\\sprint5_seqgan_adapter_acceptance.local.jsonl\": true\n        }\n      },\n      \"name\": \"private_replay_artifacts_exist\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"passed\": true,\n        \"violations\": []\n      },\n      \"name\": \"public_redaction_clean\",\n      \"passed\": true\n    },\n    {\n      \"evidence\": {\n        \"lines\": [],\n        \"passed\": true,\n        \"unexpected\": []\n      },\n      \"name\": \"git_release_state_clean\",\n      \"passed\": true\n    }\n  ],\n  \"generated_at\": \"2026-10-04T02:35:38.276702+00:00\",\n  \"one_command\": \"hermes vaccine-full-gate\",\n  \"passed_gates\": [\n    \"all_previous_sprints_pass\",\n    \"one_command_vaccine_gate_pass\",\n    \"static_quality_gate_pass\",\n    \"documentation_pack_exists\",\n    \"private_replay_artifacts_exist\",\n    \"public_redaction_clean\",\n    \"git_release_state_clean\"\n  ],\n  \"status\": \"PASS\"\n}\n"
+  },
+  "source_git_status_before": "",
+  "status": "PASS"
+}
