@@ -276,3 +276,84 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+
+def bot_id_for_telegram_username(username: str | None) -> str | None:
+    if not username:
+        return None
+    normalized = username.strip().lstrip("@").lower()
+    for bot_id, profile in load_bot_profiles().items():
+        telegram = str(profile.get("telegram_username") or "").strip().lstrip("@").lower()
+        if telegram == normalized:
+            return bot_id
+    return None
+
+
+def load_bot_profile(bot_id: str) -> dict[str, Any]:
+    profiles = load_bot_profiles()
+    if bot_id not in profiles:
+        raise RegistryValidationError(f"unknown bot_id: {bot_id}")
+    return profiles[bot_id]
+
+
+def format_bot_identity(bot_id: str) -> str:
+    bot = load_bot_profile(bot_id)
+    return "\n".join(
+        [
+            f"Bot profile: {bot_id}",
+            f"display_name: {bot.get('display_name')}",
+            f"telegram_username: {bot.get('telegram_username')}",
+            "role_tags: " + ", ".join(_as_str_list(bot.get("role_tags"))),
+            "disciplines: " + ", ".join(_as_str_list(bot.get("disciplines"))),
+            f"permission_ceiling: {bot.get('permission_ceiling')}",
+            f"model_policy.preferred: {(bot.get('model_policy') or {}).get('preferred')}",
+            f"model_policy.may_delegate: {str((bot.get('model_policy') or {}).get('may_delegate')).lower()}",
+            f"notes: {bot.get('notes')}",
+        ]
+    )
+
+
+def format_skill_resolution_for_username(username: str | None, include_denied: bool = False) -> str:
+    bot_id = bot_id_for_telegram_username(username)
+    if bot_id is None:
+        return "No bot profile is mapped to this Telegram username."
+    return format_skill_resolution(bot_id, include_denied=include_denied)
+
+
+def allowed_skill_context_for_bot(bot_id: str | None) -> str | None:
+    if not bot_id:
+        return None
+    bot = load_bot_profile(bot_id)
+    allowed = [item for item in resolve_skills_for_bot(bot_id) if item.allowed]
+    lines = [
+        "[Hermes Skill Access Control]",
+        f"bot_id: {bot_id}",
+        f"display_name: {bot.get('display_name')}",
+        "role_tags: " + ", ".join(_as_str_list(bot.get("role_tags"))),
+        f"permission_ceiling: {bot.get('permission_ceiling')}",
+        "Rule: you may reference or use only skills listed under allowed_skills. Secondary tags do not grant access.",
+        "allowed_skills:",
+    ]
+    if not allowed:
+        lines.append("- none")
+    for item in allowed:
+        secondary = ",".join(item.secondary_tags) or "-"
+        disciplines = ",".join(item.discipline) or "-"
+        lines.append(
+            f"- {item.name}: primary={item.primary_tag}; secondary={secondary}; "
+            f"permission={item.required_permission}; discipline={disciplines}"
+        )
+    return "\n".join(lines)
+
+
+def format_all_bot_skill_matrix() -> str:
+    lines = ["Hermes bot/skill access matrix"]
+    for bot_id in sorted(load_bot_profiles()):
+        allowed = [item for item in resolve_skills_for_bot(bot_id) if item.allowed]
+        names = ", ".join(item.name for item in allowed) or "-"
+        profile = load_bot_profile(bot_id)
+        lines.append(
+            f"- {bot_id} ({profile.get('display_name')}): {len(allowed)} skills -> {names}"
+        )
+    return "\n".join(lines)

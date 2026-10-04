@@ -8,6 +8,12 @@ from app.core.case_pipeline import run_case_pipeline
 from app.core.chat_pipeline import run_chat_turn
 from app.core.omh_hooks import handle_omh_command
 from app.core.settings import settings
+from app.core.skill_registry import (
+    bot_id_for_telegram_username,
+    format_all_bot_skill_matrix,
+    format_bot_identity,
+    format_skill_resolution_for_username,
+)
 from app.core.word_chain_game import WordChainTurn, build_word_chain
 from app.schemas.case import CaseRecord
 
@@ -157,7 +163,9 @@ def _help_text() -> str:
             "/chain eye - run a 50-turn English word chain across all four bots",
             "/health - adapter health",
             "/omh - Oh My Hermes deployment status",
-            "/skills - local Hermes/OMH skill inventory",
+            "/skills - skills allowed for the current bot profile",
+            "/whoami - current bot profile and permission ceiling",
+            "/skills-all - bot/skill access matrix",
             "Natural-language questions route through Hermes; 9router is only a provider.",
         ]
     )
@@ -197,6 +205,15 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
         return [TelegramReply(sender, _help_text())]
     if lowered == "/health":
         return [TelegramReply(sender, "Hermes Telegram adapter: ok")]
+    if lowered in {"/whoami", "whoami"}:
+        bot_id = bot_id_for_telegram_username(sender)
+        if bot_id is None:
+            return [TelegramReply(sender, "No Hermes bot profile is mapped to this Telegram username.")]
+        return [TelegramReply(sender, format_bot_identity(bot_id))]
+    if lowered in {"/skills", "skills", "skill inventory"}:
+        return [TelegramReply(sender, format_skill_resolution_for_username(sender))]
+    if lowered in {"/skills-all", "skills-all", "skill matrix"}:
+        return [TelegramReply(sender, format_all_bot_skill_matrix())]
     if lowered == "oh my hermes" or lowered == "omh" or lowered.startswith("/omh"):
         return [TelegramReply(sender, handle_omh_command(normalized))]
     if lowered in {"/demo_a", "demo_a", "demo a"}:
@@ -224,6 +241,7 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
         )
         return [_render_chain_turn(turn) for turn in turns]
     assistant_name = short_bot_name(sender or configured_bot_usernames()[0])
+    bot_id = bot_id_for_telegram_username(sender)
     addressed = addressed_bot_usernames(text)
     peer_names = tuple(
         short_bot_name(username)
@@ -231,16 +249,22 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
         if sender is None or username.lower() != sender.lower()
     )
     llm_prompt = strip_all_bot_mentions(normalized) or normalized
-    return [
-        TelegramReply(
-            sender,
-            run_chat_turn(
-                llm_prompt,
-                assistant_name=assistant_name,
-                peer_names=peer_names,
-            ).response_text,
+    try:
+        chat_result = run_chat_turn(
+            llm_prompt,
+            assistant_name=assistant_name,
+            peer_names=peer_names,
+            bot_id=bot_id,
         )
-    ]
+    except TypeError as exc:
+        if "unexpected keyword argument" not in str(exc):
+            raise
+        chat_result = run_chat_turn(
+            llm_prompt,
+            assistant_name=assistant_name,
+            peer_names=peer_names,
+        )
+    return [TelegramReply(sender, chat_result.response_text)]
 
 
 def handle_telegram_message(text: str, receiver_username: str | None = None) -> str | None:

@@ -41,5 +41,5 @@ def test_omh_skill_inventory_text_lists_skills():
 def test_telegram_skills_command_reports_local_inventory():
     response = handle_telegram_message("@Swain_SubAgent_bot /skills", receiver_username="Swain_SubAgent_bot")
     assert response is not None
-    assert "Hermes skill inventory" in response
+    assert "Bot skill resolution: lead" in response
     assert "omh-triage" in response

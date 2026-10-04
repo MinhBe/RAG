@@ -6,7 +6,10 @@ from typing import Literal
 
 from app.core.bot_personas import canonical_persona_name
 from app.core.omh_hooks import pre_llm_call
-from app.core.omh_registry import omh_skill_inventory_text
+from app.core.skill_registry import (
+    allowed_skill_context_for_bot,
+    format_skill_resolution,
+)
 from app.providers.ai.general import GeneralAssistantProvider
 
 
@@ -74,6 +77,7 @@ def run_chat_turn(
     message: str,
     assistant_name: str = "Swain",
     peer_names: tuple[str, ...] = (),
+    bot_id: str | None = None,
 ) -> ChatTurnResult:
     """Hermes chat entrypoint for UI/chat transports.
 
@@ -89,11 +93,17 @@ def run_chat_turn(
             policy_notes=("empty_input",),
         )
     if normalized.lower() in {"/skills", "skills", "skill inventory"} or _is_skill_inventory_request(normalized):
+        if bot_id:
+            response = format_skill_resolution(bot_id)
+            provider = "local_skill_resolver"
+        else:
+            response = "Skill inventory requires a mapped bot profile. Use /whoami first."
+            provider = "local_skill_resolver_unmapped"
         return ChatTurnResult(
-            response_text=omh_skill_inventory_text(),
+            response_text=response,
             route="command",
-            provider="local_omh_registry",
-            policy_notes=("local_command_no_llm",),
+            provider=provider,
+            policy_notes=("local_command_no_llm", "bot_scoped_skill_inventory"),
         )
     hook = pre_llm_call(
         user_message=normalized,
@@ -102,7 +112,13 @@ def run_chat_turn(
         peer_names=peer_names,
     )
     provider = GeneralAssistantProvider()
-    system_context = (hook.context,) if hook.context else ()
+    system_context_parts = []
+    skill_context = allowed_skill_context_for_bot(bot_id)
+    if skill_context:
+        system_context_parts.append(skill_context)
+    if hook.context:
+        system_context_parts.append(hook.context)
+    system_context = tuple(system_context_parts)
     try:
         answer = provider.answer(
             hook.user_message,

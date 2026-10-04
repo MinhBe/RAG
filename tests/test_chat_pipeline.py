@@ -20,5 +20,5 @@ def test_skill_inventory_request_is_local_command():
 
     result = run_chat_turn("thông tin cho tôi về các skill đang có trên hermes")
     assert result.route == "command"
-    assert result.provider == "local_omh_registry"
-    assert "Hermes skill inventory" in result.response_text
+    assert result.provider == "local_skill_resolver_unmapped"
+    assert "requires a mapped bot profile" in result.response_text
