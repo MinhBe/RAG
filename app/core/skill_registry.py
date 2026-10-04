@@ -161,6 +161,14 @@ def validate_registry() -> list[str]:
         confidence = claim.get("confidence")
         if not isinstance(confidence, int | float) or not (0 <= float(confidence) <= 1):
             errors.append(f"skill {skill_id} has invalid confidence: {confidence}")
+        if bool(claim.get("composite")):
+            if claim.get("must_delegate") is not True:
+                errors.append(f"skill {skill_id} is composite but missing must_delegate=true")
+            if required_permission in ranks and ranks[str(required_permission)] > ranks["task_create"]:
+                errors.append(f"composite skill {skill_id} cannot require direct execution permission: {required_permission}")
+            delegates = _as_str_list(claim.get("delegates_to"))
+            if not delegates:
+                errors.append(f"composite skill {skill_id} must declare delegates_to")
     return errors
 
 
@@ -337,12 +345,15 @@ def allowed_skill_context_for_bot(bot_id: str | None) -> str | None:
     ]
     if not allowed:
         lines.append("- none")
+    claims = load_skill_claims()
     for item in allowed:
         secondary = ",".join(item.secondary_tags) or "-"
         disciplines = ",".join(item.discipline) or "-"
+        claim = claims.get(item.skill_id, {})
+        composite_note = "; composite=must_delegate" if claim.get("composite") and claim.get("must_delegate") else ""
         lines.append(
             f"- {item.name}: primary={item.primary_tag}; secondary={secondary}; "
-            f"permission={item.required_permission}; discipline={disciplines}"
+            f"permission={item.required_permission}; discipline={disciplines}{composite_note}"
         )
     return "\n".join(lines)
 

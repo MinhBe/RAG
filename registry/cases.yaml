@@ -1,0 +1,13 @@
+cases:
+  - id: research_question
+    mission_id: research.question
+    accept_threshold: 0.8
+    review_threshold: 0.5
+    roles: [lead, scout, analyst, critic]
+    notes: First runnable case using current resolver and OMH research skill.
+  - id: generic
+    mission_id: generic.request
+    accept_threshold: 1.0
+    review_threshold: 0.0
+    roles: [lead]
+    notes: Fallback; logs low-confidence unmatched utterances.

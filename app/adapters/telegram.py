@@ -7,6 +7,7 @@ from typing import Any
 from app.core.case_pipeline import run_case_pipeline
 from app.core.chat_pipeline import run_chat_turn
 from app.core.omh_hooks import handle_omh_command
+from app.core.runtime_guard import evaluate_runtime_request_for_username
 from app.core.settings import settings
 from app.core.skill_registry import (
     bot_id_for_telegram_username,
@@ -194,6 +195,38 @@ def _render_chain_turn(turn: WordChainTurn) -> TelegramReply:
     return TelegramReply(sender_username=turn.bot_username, text=turn.render())
 
 
+COMMAND_TOKEN_RE = re.compile(r"/(?:skills-all|whoami|skills|health)\b", re.IGNORECASE)
+
+
+def _single_deterministic_command_reply(command: str, sender: str | None) -> TelegramReply | None:
+    lowered = command.lower().strip()
+    if lowered == "/health":
+        return TelegramReply(sender, "Hermes Telegram adapter: ok")
+    if lowered == "/whoami":
+        bot_id = bot_id_for_telegram_username(sender)
+        if bot_id is None:
+            return TelegramReply(sender, "No Hermes bot profile is mapped to this Telegram username.")
+        return TelegramReply(sender, format_bot_identity(bot_id))
+    if lowered == "/skills":
+        return TelegramReply(sender, format_skill_resolution_for_username(sender))
+    if lowered == "/skills-all":
+        return TelegramReply(sender, format_all_bot_skill_matrix())
+    return None
+
+
+def _deterministic_command_replies(normalized: str, sender: str | None) -> list[TelegramReply] | None:
+    matches = list(COMMAND_TOKEN_RE.finditer(normalized))
+    if not matches:
+        return None
+    # If any slash command is present, handle recognized deterministic commands here and do not let LLM rephrase them.
+    replies: list[TelegramReply] = []
+    for match in matches:
+        reply = _single_deterministic_command_reply(match.group(0), sender)
+        if reply is not None:
+            replies.append(reply)
+    return replies or None
+
+
 def handle_telegram_event(text: str, receiver_username: str | None = None) -> list[TelegramReply]:
     directed = extract_directed_text(text, receiver_username=receiver_username)
     if directed is None:
@@ -203,6 +236,9 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
     sender = receiver_username
     if lowered in {"/start", "start", "help", "/help"}:
         return [TelegramReply(sender, _help_text())]
+    command_replies = _deterministic_command_replies(normalized, sender)
+    if command_replies is not None:
+        return command_replies
     if lowered == "/health":
         return [TelegramReply(sender, "Hermes Telegram adapter: ok")]
     if lowered in {"/whoami", "whoami"}:
@@ -240,6 +276,9 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
             target_length=50,
         )
         return [_render_chain_turn(turn) for turn in turns]
+    guard = evaluate_runtime_request_for_username(sender, normalized)
+    if guard is not None:
+        return [TelegramReply(sender, guard.message)]
     assistant_name = short_bot_name(sender or configured_bot_usernames()[0])
     bot_id = bot_id_for_telegram_username(sender)
     addressed = addressed_bot_usernames(text)

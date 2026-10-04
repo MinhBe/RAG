@@ -1,0 +1,21 @@
+gaps:
+  - id: critic_real_skill
+    role_tag: critic
+    status: open
+    note: omh-triage is a weak proxy for critic; need a dedicated adversarial critique skill.
+  - id: security_real_skill
+    role_tag: security
+    status: open
+    note: Sentinel currently has no primary security skill claim in runtime.
+  - id: design_publishing_real_skill
+    role_tag: design_publishing
+    status: open
+    note: Builder-UI has no primary design/publishing skill claim in runtime.
+  - id: reviewer_real_skill
+    role_tag: reviewer
+    status: open
+    note: Reviewer currently has taxonomy/documentation skill but no true code-review skill.
+  - id: place_finding_provider
+    role_tag: research
+    status: open
+    note: No provider for real-world place search; do not use restaurant/place tasks as first case.

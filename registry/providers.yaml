@@ -1,0 +1,21 @@
+providers:
+  - id: builtin.research.web
+    mission_id: research.question
+    tier: common
+    required_role_tag: research
+    required_permission: network
+    tool_family: web
+    description: Common provider slot for integrated web/search tooling.
+  - id: omh.deep_research
+    mission_id: research.question
+    tier: specific
+    required_role_tag: research
+    required_permission: network
+    skill_id: omh.omh-deep-research
+    description: Specific OMH provider for parallel research and citation verification.
+  - id: builtin.generic.lead
+    mission_id: generic.request
+    tier: common
+    required_role_tag: orchestrator
+    required_permission: task_create
+    description: Lead-owned generic fallback provider.

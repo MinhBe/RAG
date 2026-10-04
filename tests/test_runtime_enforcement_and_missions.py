@@ -1,0 +1,129 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+
+from app.adapters.telegram import handle_telegram_event, handle_telegram_message
+from app.core.briefing import (
+    LEAD_BRIEF_EXTRACTION_PROMPT,
+    minimal_brief_from_text,
+    validate_brief_payload,
+)
+from app.core.case_matcher import match_case
+from app.core.loop_controller import LoopObservation, LoopPolicy, decide_loop
+from app.core.mission_registry import resolve_provider
+from app.core.runtime_guard import (
+    guard_repo_write_for_username,
+    guard_skill_invocation_for_username,
+)
+from app.core.skill_registry import load_skill_claims, validate_registry
+
+
+def test_multi_command_message_returns_one_reply_per_command_without_llm() -> None:
+    replies = handle_telegram_event(
+        "@Swain_SubAgent_bot /whoami /skills /skills-all",
+        receiver_username="Swain_SubAgent_bot",
+    )
+    assert len(replies) == 3
+    assert "Bot profile: lead" in replies[0].text
+    assert "Bot skill resolution: lead" in replies[1].text
+    assert "Hermes bot/skill access matrix" in replies[2].text
+
+
+def test_validator_is_blocked_from_implementation_skill_at_runtime() -> None:
+    result = guard_skill_invocation_for_username("Lucian_SubAgent_bot", "omh-ralph")
+    assert not result.allowed
+    assert result.bot_id == "validator"
+    assert "BLOCKED" in result.message
+    assert "primary tag 'implementation' not worn by bot" in result.message
+
+
+def test_lead_is_blocked_from_repo_write_at_runtime() -> None:
+    result = guard_repo_write_for_username("Swain_SubAgent_bot")
+    assert not result.allowed
+    assert result.bot_id == "lead"
+    assert "permission_ceiling: task_create" in result.message
+
+
+def test_telegram_natural_attempts_are_guarded_before_llm() -> None:
+    lucian = handle_telegram_message("@Lucian_SubAgent_bot chay omh-ralph", receiver_username="Lucian_SubAgent_bot")
+    assert lucian is not None
+    assert "BLOCKED by Hermes runtime access control" in lucian
+    swain = handle_telegram_message("@Swain_SubAgent_bot write file to repo", receiver_username="Swain_SubAgent_bot")
+    assert swain is not None
+    assert "BLOCKED by Hermes runtime permission ceiling" in swain
+
+
+def test_composite_autopilot_must_delegate() -> None:
+    claims = load_skill_claims()
+    autopilot = claims["omh.omh-autopilot"]
+    assert autopilot["composite"] is True
+    assert autopilot["must_delegate"] is True
+    result = guard_skill_invocation_for_username("Swain_SubAgent_bot", "omh-autopilot")
+    assert not result.allowed
+    assert result.reason == "composite_must_delegate"
+
+
+def test_registry_validation_accepts_composite_constraints() -> None:
+    assert validate_registry() == []
+
+
+def test_brief_schema_validates_stated_and_inferred_fields() -> None:
+    brief = minimal_brief_from_text("research AURA FARMING", case_hint="research_question")
+    result = validate_brief_payload(brief.model_dump())
+    assert result.ok
+    assert result.brief is not None
+    assert result.brief.objective.stated == "research AURA FARMING"
+    assert "JSON only" in LEAD_BRIEF_EXTRACTION_PROMPT
+
+
+def test_case_matcher_research_and_generic_fallback() -> None:
+    research = match_case("research and cite sources about small models")
+    assert research.case_id == "research_question"
+    assert research.confidence >= 0.8
+    fallback = match_case("nearby cafe")
+    assert fallback.case_id == "generic"
+    assert fallback.band == "fallback"
+
+
+def test_twenty_routing_examples_have_expected_cases() -> None:
+    samples = [
+        ("research small models", "research_question"),
+        ("find information with sources about aura farming", "research_question"),
+        ("make a report comparing sources about skill registry", "research_question"),
+        ("research current approaches to small agents", "research_question"),
+        ("find information and citations about validators", "research_question"),
+        ("web research about security skill", "research_question"),
+        ("source synthesis report about OMH", "research_question"),
+        ("research citation verify", "research_question"),
+        ("find information and rank sources", "research_question"),
+        ("compare sources about multi agent", "research_question"),
+        ("implement resolver code", "generic"),
+        ("fix timeout bug", "generic"),
+        ("build Telegram adapter", "generic"),
+        ("debug runner error", "generic"),
+        ("write config file", "generic"),
+        ("design bot profile", "generic"),
+        ("deployment planning", "generic"),
+        ("system testing", "generic"),
+        ("nearby cafe", "generic"),
+        ("continue conversation", "generic"),
+    ]
+    for text, expected in samples:
+        assert match_case(text).case_id == expected
+
+
+def test_mission_provider_resolver_reuses_skill_access() -> None:
+    scout_specific = resolve_provider("research.question", "scout", tier="specific")
+    assert scout_specific.allowed
+    assert scout_specific.provider_id == "omh.deep_research"
+    lead_specific = resolve_provider("research.question", "lead", tier="specific")
+    assert not lead_specific.allowed
+    assert "not allowed by resolver" in lead_specific.reason or "required role" in lead_specific.reason
+
+
+def test_loop_controller_stops_by_budget_deadline_and_score() -> None:
+    assert not decide_loop(LoopPolicy(max_rounds=2), [LoopObservation(0, 0.4), LoopObservation(1, 0.5)]).continue_loop
+    assert not decide_loop(LoopPolicy(max_cost_units=1.0), [LoopObservation(0, 0.4, cost_units=1.0)]).continue_loop
+    assert not decide_loop(LoopPolicy(deadline_at=datetime.now(UTC) - timedelta(seconds=1)), []).continue_loop
+    history = [LoopObservation(0, 0.8), LoopObservation(1, 0.7), LoopObservation(2, 0.8)]
+    assert not decide_loop(LoopPolicy(no_improvement_rounds=2), history).continue_loop
