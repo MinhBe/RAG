@@ -123,7 +123,11 @@ function Show-Status {
     "AI_BASE_URL",
     "AI_API_KEY",
     "AI_MODEL",
-    "HERMES_A_LLM_ENABLED"
+    "HERMES_A_LLM_ENABLED",
+    "HERMES_OMH_HOOKS_ENABLED",
+    "HERMES_OMH_EVIDENCE_ENABLED",
+    "HERMES_OMH_STATE_DIR",
+    "HERMES_OMH_EVENTS_PATH"
   ) | ForEach-Object {
     $configured = if (Test-DotEnvValue $_) { "yes" } else { "no" }
     Write-Output "  ${_}: $configured"

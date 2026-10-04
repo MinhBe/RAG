@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     ai_api_key: str | None = None
     ai_model: str | None = None
     hermes_a_llm_enabled: bool = False
+    hermes_omh_hooks_enabled: bool = False
+    hermes_omh_evidence_enabled: bool = False
+    hermes_omh_state_dir: str = ".omh/state"
+    hermes_omh_events_path: str = ".omh/events/hooks.jsonl"
     supabase_url: str | None = None
     supabase_secret_key: str | None = None
     telegram_bot_token: str | None = None

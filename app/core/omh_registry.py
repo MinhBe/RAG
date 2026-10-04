@@ -178,9 +178,9 @@ def load_omh_registry() -> OmhRegistry:
     branch = _run_git(source, "branch", "--show-current")
     integrity = "available_git_source" if head_sha else "available_unverified_source"
     if hooks:
-        notes.append("Plugin hooks are not auto-enabled; deployment mode is registry-controlled/reference-only.")
+        notes.append("Plugin hooks are available through Hermes OMH hook bridge when HERMES_OMH_HOOKS_ENABLED=true.")
     if tools:
-        notes.append("OMH tools are discovered but not directly exposed until Hermes wrapper contracts are added.")
+        notes.append("OMH tools are exposed only through Hermes wrapper contracts and allowlists.")
     return OmhRegistry(
         available=bool(skills or tools or hooks),
         source_path=str(source),
@@ -190,7 +190,7 @@ def load_omh_registry() -> OmhRegistry:
         plugin_hooks=hooks,
         roles=roles,
         skills=skills,
-        mode="registry_controlled_reference_only",
+        mode="registry_controlled_hook_bridge",
         integrity_state=integrity,
         notes=tuple(notes),
     )
@@ -232,7 +232,7 @@ def omh_capability_records() -> list[dict[str, Any]]:
                 "capability_tags": list(skill.capability_tags),
                 "mode": registry.mode,
                 "parallel_safe": "unknown_until_runtime_observed",
-                "side_effects": "prompt/reference only unless plugin hooks/tools are explicitly enabled",
+                "side_effects": "hook bridge may write .omh state/events; evidence commands require allowlist",
             }
         )
     return records

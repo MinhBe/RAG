@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from app.core.bot_personas import canonical_persona_name
+from app.core.omh_hooks import pre_llm_call
 from app.providers.ai.general import GeneralAssistantProvider
 
 
@@ -76,23 +77,31 @@ def run_chat_turn(
             provider=None,
             policy_notes=("empty_input",),
         )
+    hook = pre_llm_call(
+        user_message=normalized,
+        is_first_turn=True,
+        assistant_name=assistant_name,
+        peer_names=peer_names,
+    )
     provider = GeneralAssistantProvider()
+    system_context = (hook.context,) if hook.context else ()
     try:
         answer = provider.answer(
-            normalized,
+            hook.user_message,
             assistant_name=assistant_name,
             peer_names=peer_names,
+            system_context=system_context,
         )
     except TypeError as exc:
         if "unexpected keyword argument" not in str(exc):
             raise
-        answer = provider.answer(normalized)
+        answer = provider.answer(hook.user_message)
     answer = _strip_agent_labels(answer, assistant_name=assistant_name, peer_names=peer_names)
     answer = _trim_words(answer, _requested_word_limit(normalized))
     return ChatTurnResult(
         response_text=answer,
         route="general_llm",
         provider="9router_openai_compatible",
-        policy_notes=("provider_is_not_orchestrator",),
+        policy_notes=("provider_is_not_orchestrator", *hook.policy_notes),
     )
 

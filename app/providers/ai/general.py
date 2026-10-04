@@ -23,6 +23,7 @@ class GeneralAssistantProvider:
         question: str,
         assistant_name: str = "Swain",
         peer_names: tuple[str, ...] = (),
+        system_context: tuple[str, ...] = (),
     ) -> str:
         if not self.is_configured():
             return (
@@ -32,13 +33,16 @@ class GeneralAssistantProvider:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        system_prompt = build_persona_prompt(assistant_name, peer_names=peer_names)
+        if system_context:
+            system_prompt = system_prompt + "\n\n" + "\n\n".join(part for part in system_context if part)
         payload = {
             "model": self.model,
             "temperature": 0.2,
             "messages": [
                 {
                     "role": "system",
-                    "content": build_persona_prompt(assistant_name, peer_names=peer_names),
+                    "content": system_prompt,
                 },
                 {"role": "user", "content": question},
             ],

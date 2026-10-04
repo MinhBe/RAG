@@ -20,6 +20,7 @@ from app.adapters.telegram import (
     extract_directed_text,
     handle_telegram_event,
 )
+from app.core.omh_hooks import on_session_end
 from app.core.settings import settings
 
 
@@ -229,6 +230,7 @@ def main() -> None:
                         try:
                             with ProcessingIndicator(client, bot, chat_id):
                                 replies = handle_telegram_event(text, receiver_username=bot.username)
+                            on_session_end(session_kind="telegram", reason="turn_complete")
                         except (OSError, ValueError, ValidationError) as exc:
                             replies = [
                                 TelegramReply(

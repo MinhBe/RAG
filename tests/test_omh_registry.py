@@ -16,7 +16,7 @@ def test_omh_registry_loads_local_source():
 def test_omh_capability_records_are_routing_safe():
     records = omh_capability_records()
     assert records
-    assert all(record["mode"] == "registry_controlled_reference_only" for record in records)
+    assert all(record["mode"] == "registry_controlled_hook_bridge" for record in records)
     assert any(record["name"] == "omh-ralplan" for record in records)
 
 
@@ -24,4 +24,4 @@ def test_telegram_omh_command_reports_status():
     response = handle_telegram_message("@Swain_SubAgent_bot /omh", receiver_username="Swain_SubAgent_bot")
     assert response is not None
     assert "Oh My Hermes deployment status" in response
-    assert "mode: registry_controlled_reference_only" in response
+    assert "mode: registry_controlled_hook_bridge" in response
