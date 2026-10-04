@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 import json
@@ -325,7 +325,7 @@ def format_bot_identity(bot_id: str) -> str:
 def format_skill_resolution_for_username(username: str | None, include_denied: bool = False) -> str:
     bot_id = bot_id_for_telegram_username(username)
     if bot_id is None:
-        return "No bot profile is mapped to this Telegram username."
+        return "BLOCKED by Hermes runtime profile guard: no bot profile is mapped to this Telegram username."
     return format_skill_resolution(bot_id, include_denied=include_denied)
 
 

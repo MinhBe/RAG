@@ -28,3 +28,9 @@ providers:
     tier: common
     required_role_tag: validator
     required_permission: runtime_execute
+
+  - id: builtin.generic_planner
+    mission_id: planning.generic
+    tier: common
+    required_role_tag: planner
+    required_permission: task_create

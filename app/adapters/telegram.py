@@ -7,7 +7,11 @@ from typing import Any
 from app.core.case_pipeline import run_case_pipeline
 from app.core.chat_pipeline import run_chat_turn
 from app.core.omh_hooks import handle_omh_command
-from app.core.orchestration import create_intake_job, should_async_intake
+from app.core.orchestration import (
+    create_intake_job,
+    is_user_override_request,
+    should_async_intake,
+)
 from app.core.runtime_guard import evaluate_runtime_request_for_username
 from app.core.settings import settings
 from app.core.skill_registry import (
@@ -328,11 +332,11 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
     if guard is not None:
         return [TelegramReply(sender, guard.message)]
     bot_id = bot_id_for_telegram_username(sender)
+    if sender is not None and bot_id is None:
+        return [TelegramReply(sender, "BLOCKED by Hermes runtime profile guard: no bot profile is mapped to this Telegram username.")]
     intake_prompt = strip_all_bot_mentions(normalized) or normalized
     if should_async_intake(intake_prompt, bot_id):
-        lowered_prompt = intake_prompt.lower()
-        user_override = any(token in lowered_prompt for token in ("giao viec", "giao việc", "mọi người", "moi nguoi", "tat ca", "tất cả"))
-        ack = create_intake_job(intake_prompt, user_override=user_override)
+        ack = create_intake_job(intake_prompt, user_override=is_user_override_request(intake_prompt))
         return [TelegramReply(sender, ack.text)]
     assistant_name = short_bot_name(sender or configured_bot_usernames()[0])
     addressed = addressed_bot_usernames(text)

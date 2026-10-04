@@ -132,12 +132,16 @@ class ProcessingIndicator:
             self._thread.join(timeout=0.5)
 
 
-def _send_message(client: httpx.Client, bot: BotConfig, chat_id: int, text: str) -> None:
+def _send_message(client: httpx.Client, bot: BotConfig, chat_id: int, text: str, reply_to_message_id: int | None = None) -> None:
     _show_processing_action(client, bot, chat_id)
     time.sleep(_response_delay_seconds(text))
+    payload = {"chat_id": chat_id, "text": text[:3900]}
+    if reply_to_message_id is not None:
+        payload["reply_to_message_id"] = reply_to_message_id
+        payload["allow_sending_without_reply"] = True
     client.post(
         _api_url(bot.token, "sendMessage"),
-        json={"chat_id": chat_id, "text": text[:3900]},
+        json=payload,
         timeout=20.0,
     ).raise_for_status()
 
@@ -147,6 +151,7 @@ def _send_replies(
     default_bot: BotConfig,
     chat_id: int,
     replies: list[TelegramReply],
+    reply_to_message_id: int | None = None,
 ) -> None:
     for reply in replies:
         sender = reply.sender_username or default_bot.username
@@ -157,10 +162,11 @@ def _send_replies(
                 default_bot,
                 chat_id,
                 f"Missing local token for @{sender}; cannot send this turn.",
+                reply_to_message_id=reply_to_message_id,
             )
             time.sleep(POST_SEND_DELAY_SECONDS)
             continue
-        _send_message(client, bot, chat_id, reply.text)
+        _send_message(client, bot, chat_id, reply.text, reply_to_message_id=reply_to_message_id)
         time.sleep(POST_SEND_DELAY_SECONDS)
 
 
@@ -209,6 +215,7 @@ def main() -> None:
                         offsets[bot.username], int(update["update_id"]) + 1
                     )
                     message = update.get("message") or {}
+                    message_id = int(message.get("message_id", 0) or 0)
                     if _is_from_bot(message):
                         continue
                     chat = message.get("chat") or {}
@@ -244,7 +251,7 @@ def main() -> None:
                         flush=True,
                     )
                     if replies:
-                        _send_replies(client, bots_by_username, bot, chat_id, replies)
+                        _send_replies(client, bots_by_username, bot, chat_id, replies, reply_to_message_id=message_id or None)
             time.sleep(0.2)
 
 

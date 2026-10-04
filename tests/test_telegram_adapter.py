@@ -41,23 +41,13 @@ def test_extracts_actual_bot_command_for_receiver():
     assert extract_directed_text("/demo_a@Shen_SubAgent_bot", receiver_username="Swain_SubAgent_bot") is None
 
 
-def test_natural_language_goes_through_hermes_core(monkeypatch):
-    class FakeResult:
-        response_text = "core response"
-
-    def fake_run_chat_turn(
-        message: str,
-        assistant_name: str = "Swain",
-        peer_names: tuple[str, ...] = (),
-    ) -> FakeResult:
-        assert message == "hello"
-        assert assistant_name == "Swain"
-        assert peer_names == ()
-        return FakeResult()
-
-    monkeypatch.setattr("app.adapters.telegram.run_chat_turn", fake_run_chat_turn)
-    assert handle_telegram_message("@Swain_SubAgent_bot hello", receiver_username="Swain_SubAgent_bot") == "core response"
-    assert handle_telegram_message("Swain hello", receiver_username="Swain_SubAgent_bot") == "core response"
+def test_lead_natural_language_creates_job_not_freeform_llm():
+    response = handle_telegram_message("@Swain_SubAgent_bot hello", receiver_username="Swain_SubAgent_bot")
+    assert response is not None
+    assert response.startswith("Da nhan. job_id=")
+    assert "case=generic" in response
+    short = handle_telegram_message("Swain hello", receiver_username="Swain_SubAgent_bot")
+    assert short is not None and short.startswith("Da nhan. job_id=")
 
 
 def test_actual_bot_username_mention_is_not_partially_stripped():
@@ -78,7 +68,7 @@ def test_word_chain_event_returns_fifty_turns_and_all_four_bots():
         assert current_word[0].lower() == previous_word[-1].lower()
 
 
-def test_multi_tag_passes_only_current_persona_and_strips_mentions(monkeypatch):
+def test_multi_tag_lead_creates_job_but_non_lead_keeps_persona_route(monkeypatch):
     calls: list[tuple[str, str, tuple[str, ...]]] = []
 
     class FakeResult:
@@ -99,10 +89,9 @@ def test_multi_tag_passes_only_current_persona_and_strips_mentions(monkeypatch):
     taric_reply = handle_telegram_message(text, receiver_username="Taric_SubAgent_bot")
     sylas_reply = handle_telegram_message(text, receiver_username="Sylas_SubAgent_bot")
 
-    assert swain_reply == "persona response"
+    assert swain_reply is not None and swain_reply.startswith("Da nhan. job_id=")
     assert taric_reply == "persona response"
     assert sylas_reply is None
     assert calls == [
-        ("2 người tìm Aura battle, trả về chỉ 20 chữ", "Swain", ("Taric",)),
         ("2 người tìm Aura battle, trả về chỉ 20 chữ", "Taric", ("Swain",)),
     ]

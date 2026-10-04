@@ -10,3 +10,6 @@ missions:
     description: Critique risks, unsupported claims, and missing verification.
   - id: answer.verify
     description: Verify final answer claims and pass/fail evidence.
+
+  - id: planning.generic
+    description: Lead planner drafts a generic execution plan when no specific case is matched.

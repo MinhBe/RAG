@@ -172,3 +172,36 @@ def test_line_scoped_addressing_prevents_cross_bot_command_handling() -> None:
     assert swain[0].text.startswith("Bot profile: lead")
     assert len(lucian) == 1
     assert lucian[0].text.startswith("BLOCKED by Hermes runtime access control")
+
+
+
+def test_accented_local_place_request_creates_job_and_case() -> None:
+    response = handle_telegram_message(
+        "@Swain_SubAgent_bot giao việc cho mọi người tìm quán cắt tóc ở 165 Cầu Giấy",
+        receiver_username="Swain_SubAgent_bot",
+    )
+    assert response is not None
+    assert response.startswith("Da nhan. job_id=")
+    assert "case=local_place_lookup" in response
+
+
+def test_local_place_matcher_handles_accent_case_and_mention_variants() -> None:
+    samples = [
+        "giao việc cho mọi người tìm quán cắt tóc ở 165 Cầu Giấy",
+        "GIAO VIỆC CHO MỌI NGƯỜI TÌM QUÁN CẮT TÓC Ở 165 CẦU GIẤY",
+        "@Swain_SubAgent_bot giao viec cho moi nguoi tim quan cat toc o 165 Cau Giay",
+    ]
+    for sample in samples:
+        match = match_case(sample)
+        assert match.case_id == "local_place_lookup"
+        assert match.confidence >= 0.8
+
+
+def test_autopilot_must_delegate_and_unprofiled_bots_are_blocked() -> None:
+    autopilot = handle_telegram_message("@Swain_SubAgent_bot chay omh-autopilot", receiver_username="Swain_SubAgent_bot")
+    assert autopilot is not None
+    assert autopilot.startswith("BLOCKED as direct execution")
+    kayn = handle_telegram_message("@Kayn_SubAgent_bot /skills", receiver_username="Kayn_SubAgent_bot")
+    xinzhao = handle_telegram_message("@Xinzhao_SubAgent_bot /skills", receiver_username="Xinzhao_SubAgent_bot")
+    assert kayn is not None and kayn.startswith("BLOCKED by Hermes runtime profile guard")
+    assert xinzhao is not None and xinzhao.startswith("BLOCKED by Hermes runtime profile guard")
