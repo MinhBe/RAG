@@ -6,6 +6,7 @@ from typing import Literal
 
 from app.core.bot_personas import canonical_persona_name
 from app.core.omh_hooks import pre_llm_call
+from app.core.omh_registry import omh_skill_inventory_text
 from app.providers.ai.general import GeneralAssistantProvider
 
 
@@ -18,6 +19,16 @@ class ChatTurnResult:
 
 
 _WORD_LIMIT_RE = re.compile(r"(?:\b(?:chỉ|chi|tối đa|toi da|dưới|duoi|limit)\b\s*)?(\d{1,3})\s*(?:chữ|chu|từ|tu|words?)", re.IGNORECASE)
+
+
+def _is_skill_inventory_request(message: str) -> bool:
+    lowered = message.lower()
+    skill_terms = ("skill", "skills", "kỹ năng", "kĩ năng", "ky nang", "bộ kỹ năng", "bo ky nang")
+    hermes_terms = ("hermes", "omh", "oh my hermes")
+    inventory_terms = ("đang có", "dang co", "hiện có", "hien co", "thông tin", "thong tin", "liệt kê", "liet ke", "inventory", "danh sách", "danh sach")
+    return any(term in lowered for term in skill_terms) and (
+        any(term in lowered for term in hermes_terms) or any(term in lowered for term in inventory_terms)
+    )
 
 
 def _requested_word_limit(message: str) -> int | None:
@@ -76,6 +87,13 @@ def run_chat_turn(
             route="fallback",
             provider=None,
             policy_notes=("empty_input",),
+        )
+    if normalized.lower() in {"/skills", "skills", "skill inventory"} or _is_skill_inventory_request(normalized):
+        return ChatTurnResult(
+            response_text=omh_skill_inventory_text(),
+            route="command",
+            provider="local_omh_registry",
+            policy_notes=("local_command_no_llm",),
         )
     hook = pre_llm_call(
         user_message=normalized,

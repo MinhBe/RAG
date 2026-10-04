@@ -157,6 +157,7 @@ def _help_text() -> str:
             "/chain eye - run a 50-turn English word chain across all four bots",
             "/health - adapter health",
             "/omh - Oh My Hermes deployment status",
+            "/skills - local Hermes/OMH skill inventory",
             "Natural-language questions route through Hermes; 9router is only a provider.",
         ]
     )

@@ -1,6 +1,10 @@
 
 from app.adapters.telegram import handle_telegram_message
-from app.core.omh_registry import load_omh_registry, omh_capability_records
+from app.core.omh_registry import (
+    load_omh_registry,
+    omh_capability_records,
+    omh_skill_inventory_text,
+)
 
 
 def test_omh_registry_loads_local_source():
@@ -25,3 +29,17 @@ def test_telegram_omh_command_reports_status():
     assert response is not None
     assert "Oh My Hermes deployment status" in response
     assert "mode: registry_controlled_hook_bridge" in response
+
+
+def test_omh_skill_inventory_text_lists_skills():
+    text = omh_skill_inventory_text()
+    assert "Hermes skill inventory" in text
+    assert "omh-deep-research" in text
+    assert "OMH roles" in text
+
+
+def test_telegram_skills_command_reports_local_inventory():
+    response = handle_telegram_message("@Swain_SubAgent_bot /skills", receiver_username="Swain_SubAgent_bot")
+    assert response is not None
+    assert "Hermes skill inventory" in response
+    assert "omh-triage" in response

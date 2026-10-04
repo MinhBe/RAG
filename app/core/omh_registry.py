@@ -81,14 +81,26 @@ def _yaml_list(text: str, key: str) -> tuple[str, ...]:
 
 def _summary_from_skill(path: Path) -> str:
     text = _read_text(path / "SKILL.md")
+    in_frontmatter = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped == "---":
+            in_frontmatter = not in_frontmatter
+            continue
+        if in_frontmatter and stripped.lower().startswith("description:"):
+            summary = stripped.split(":", 1)[1].strip().strip("'\"")
+            if summary:
+                return summary[:220]
     for line in text.splitlines():
         stripped = line.strip(" #\t")
+        if not stripped or stripped == "---" or ":" in stripped[:20]:
+            continue
         if stripped and not stripped.lower().startswith("skill"):
             return stripped[:220]
     readme = _read_text(path / "README.md")
     for line in readme.splitlines():
         stripped = line.strip(" #\t")
-        if stripped:
+        if stripped and stripped != "---":
             return stripped[:220]
     return "OMH skill; summary not declared in first lines."
 
@@ -236,3 +248,26 @@ def omh_capability_records() -> list[dict[str, Any]]:
             }
         )
     return records
+
+
+def omh_skill_inventory_text(max_skills: int = 24) -> str:
+    registry = load_omh_registry()
+    lines = ["Hermes skill inventory"]
+    lines.append(f"OMH available: {str(registry.available).lower()}")
+    lines.append(f"mode: {registry.mode}")
+    lines.append(f"skills: {len(registry.skills)}")
+    lines.append(f"roles: {len(registry.roles)}")
+    lines.append(f"hooks: {', '.join(registry.plugin_hooks) or '-'}")
+    lines.append(f"tools: {', '.join(registry.plugin_tools) or '-'}")
+    if registry.skills:
+        lines.append("\nOMH skills:")
+        for skill in registry.skills[:max_skills]:
+            tags = ", ".join(skill.capability_tags)
+            lines.append(f"- {skill.name}: {skill.summary} [{tags}]")
+        if len(registry.skills) > max_skills:
+            lines.append(f"... {len(registry.skills) - max_skills} more skills omitted")
+    if registry.roles:
+        lines.append("\nOMH roles:")
+        lines.append(", ".join(registry.roles))
+    lines.append("\nUse /omh status, /omh roles, /omh role <name>, or /omh evidence <allowlisted command>.")
+    return "\n".join(lines)[:3900]
