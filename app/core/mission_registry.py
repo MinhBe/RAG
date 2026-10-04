@@ -62,6 +62,9 @@ def resolve_provider(mission_id: str, bot_id: str, tier: Literal["common", "spec
     denied_reasons: list[str] = []
     for provider in candidates:
         provider_id = str(provider.get("id"))
+        if provider.get("enabled") is False:
+            denied_reasons.append(f"{provider_id}: provider disabled/not configured")
+            continue
         required_role = provider.get("required_role_tag")
         required_permission = str(provider.get("required_permission", "read"))
         skill_id = provider.get("skill_id")

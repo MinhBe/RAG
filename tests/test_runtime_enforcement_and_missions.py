@@ -127,3 +127,48 @@ def test_loop_controller_stops_by_budget_deadline_and_score() -> None:
     assert not decide_loop(LoopPolicy(deadline_at=datetime.now(UTC) - timedelta(seconds=1)), []).continue_loop
     history = [LoopObservation(0, 0.8), LoopObservation(1, 0.7), LoopObservation(2, 0.8)]
     assert not decide_loop(LoopPolicy(no_improvement_rounds=2), history).continue_loop
+
+
+
+def test_end_to_end_lead_ack_creates_job_tasks_and_trace() -> None:
+    import re
+    import time
+    from pathlib import Path
+
+    from app.adapters.telegram import handle_telegram_event
+    from app.core.job_store import reset_jobs_for_tests, tasks_for_job
+
+    reset_jobs_for_tests()
+    started = time.monotonic()
+    replies = handle_telegram_event(
+        "@Swain_SubAgent_bot giao viec cho moi nguoi tim quan cat toc o 165 Cau Giay",
+        receiver_username="Swain_SubAgent_bot",
+    )
+    elapsed = time.monotonic() - started
+    assert elapsed < 3
+    assert len(replies) == 1
+    assert replies[0].text.startswith("Da nhan. job_id=")
+    job_id = re.search(r"job_id=(b-[a-f0-9]+)", replies[0].text).group(1)  # type: ignore[union-attr]
+    trace_id = re.search(r"trace_id=([^ ]+)", replies[0].text).group(1)  # type: ignore[union-attr]
+    tasks = tasks_for_job(job_id)
+    assert len(tasks) >= 3
+    assert len({task.bot_id for task in tasks}) >= 3
+    assert {"scout", "sentinel", "validator"}.issubset({task.bot_id for task in tasks})
+    trace_path = Path(".omh") / "traces" / f"{trace_id}.jsonl"
+    assert trace_path.exists()
+    trace_text = trace_path.read_text(encoding="utf-8")
+    assert "brief.created" in trace_text
+    assert "case.matched" in trace_text
+    assert "job.created" in trace_text
+
+
+def test_line_scoped_addressing_prevents_cross_bot_command_handling() -> None:
+    from app.adapters.telegram import handle_telegram_event
+
+    message = "@Swain_SubAgent_bot /whoami\n@Lucian_SubAgent_bot chay omh-ralph"
+    swain = handle_telegram_event(message, receiver_username="Swain_SubAgent_bot")
+    lucian = handle_telegram_event(message, receiver_username="Lucian_SubAgent_bot")
+    assert len(swain) == 1
+    assert swain[0].text.startswith("Bot profile: lead")
+    assert len(lucian) == 1
+    assert lucian[0].text.startswith("BLOCKED by Hermes runtime access control")

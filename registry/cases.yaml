@@ -1,13 +1,14 @@
+
 cases:
+  - id: local_place_lookup
+    description: Local place lookup such as barber/cafe/store near an address.
+    default_missions: [research.local_places, risk.critic, answer.verify]
+    complexity: M
   - id: research_question
-    mission_id: research.question
-    accept_threshold: 0.8
-    review_threshold: 0.5
-    roles: [lead, scout, analyst, critic]
-    notes: First runnable case using current resolver and OMH research skill.
+    description: Research question needing source collection, synthesis, and verification.
+    default_missions: [research.question, risk.critic, answer.verify]
+    complexity: M
   - id: generic
-    mission_id: generic.request
-    accept_threshold: 1.0
-    review_threshold: 0.0
-    roles: [lead]
-    notes: Fallback; logs low-confidence unmatched utterances.
+    description: Fallback for unmatched or unsupported messages.
+    default_missions: [intake.clarify, risk.critic, answer.verify]
+    complexity: S

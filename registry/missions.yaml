@@ -1,13 +1,12 @@
+
 missions:
+  - id: research.local_places
+    description: Find local places near a specified address and record source limitations.
   - id: research.question
-    name: Research Question
-    primary_case: research_question
-    description: Answer a question by collecting, ranking, synthesizing, and checking sources.
-    expected_roles: [lead, scout, analyst, critic]
-    output_contract: research_report
-  - id: generic.request
-    name: Generic Request
-    primary_case: generic
-    description: Fallback mission for requests that do not match a specialized case.
-    expected_roles: [lead]
-    output_contract: clarification_or_plan
+    description: Collect and synthesize sources for a research question.
+  - id: intake.clarify
+    description: Clarify an underspecified user request.
+  - id: risk.critic
+    description: Critique risks, unsupported claims, and missing verification.
+  - id: answer.verify
+    description: Verify final answer claims and pass/fail evidence.

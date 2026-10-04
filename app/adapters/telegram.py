@@ -7,6 +7,7 @@ from typing import Any
 from app.core.case_pipeline import run_case_pipeline
 from app.core.chat_pipeline import run_chat_turn
 from app.core.omh_hooks import handle_omh_command
+from app.core.orchestration import create_intake_job, should_async_intake
 from app.core.runtime_guard import evaluate_runtime_request_for_username
 from app.core.settings import settings
 from app.core.skill_registry import (
@@ -84,8 +85,31 @@ def _strip_addressed_short_name(normalized: str, receiver_username: str | None =
     return None
 
 
-def extract_directed_text(text: str, receiver_username: str | None = None) -> str | None:
-    normalized = text.strip()
+
+def _line_addresses_any_bot(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped:
+        return False
+    first = stripped.split()[0].lower()
+    if first.startswith('/') and '@' in first:
+        _, target = first.split('@', 1)
+        if target in {name.lower() for name in configured_bot_usernames()}:
+            return True
+    for username in configured_bot_usernames():
+        if re.search(rf"@{re.escape(username)}(?=$|\s|[:,])", stripped, flags=re.IGNORECASE):
+            return True
+    first_clean = first.rstrip(':,')
+    short_aliases = {short_bot_name(name).lower() for name in configured_bot_usernames()}
+    return first_clean.lstrip('@') in short_aliases and (first_clean.startswith('@') or first_clean in short_aliases)
+
+
+def _is_lead_receiver(receiver_username: str | None) -> bool:
+    if receiver_username is None:
+        return True
+    return bot_id_for_telegram_username(receiver_username) == "lead"
+
+
+def _extract_directed_text_single(normalized: str, receiver_username: str | None = None) -> str | None:
     if not normalized:
         return None
     aliases = set(_sorted_full_aliases(receiver_username))
@@ -107,6 +131,30 @@ def extract_directed_text(text: str, receiver_username: str | None = None) -> st
         return normalized
     return None
 
+
+def extract_directed_text(text: str, receiver_username: str | None = None) -> str | None:
+    """Return only the message segments meant for this receiver.
+
+    Routing is line-scoped. A line addressed to @Lucian is invisible to Swain.
+    A line with no explicit bot address goes only to Lead/the DM context.
+    """
+    normalized = text.strip()
+    if not normalized:
+        return None
+    segments: list[str] = []
+    for raw_line in normalized.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        directed = _extract_directed_text_single(line, receiver_username=receiver_username)
+        if directed is not None:
+            segments.append(directed)
+            continue
+        if not _line_addresses_any_bot(line) and _is_lead_receiver(receiver_username):
+            segments.append(line)
+    if segments:
+        return "\n".join(segments).strip()
+    return None
 
 def addressed_bot_usernames(text: str) -> list[str]:
     normalized = text.strip()
@@ -279,8 +327,14 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
     guard = evaluate_runtime_request_for_username(sender, normalized)
     if guard is not None:
         return [TelegramReply(sender, guard.message)]
-    assistant_name = short_bot_name(sender or configured_bot_usernames()[0])
     bot_id = bot_id_for_telegram_username(sender)
+    intake_prompt = strip_all_bot_mentions(normalized) or normalized
+    if should_async_intake(intake_prompt, bot_id):
+        lowered_prompt = intake_prompt.lower()
+        user_override = any(token in lowered_prompt for token in ("giao viec", "giao việc", "mọi người", "moi nguoi", "tat ca", "tất cả"))
+        ack = create_intake_job(intake_prompt, user_override=user_override)
+        return [TelegramReply(sender, ack.text)]
+    assistant_name = short_bot_name(sender or configured_bot_usernames()[0])
     addressed = addressed_bot_usernames(text)
     peer_names = tuple(
         short_bot_name(username)

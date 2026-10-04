@@ -18,8 +18,9 @@ def test_help_message_lists_short_and_full_bot_names():
     assert "9router is only a provider" in reply
 
 
-def test_message_without_bot_name_is_ignored_for_receiver():
-    assert handle_telegram_message("approve everything now", receiver_username="Swain_SubAgent_bot") is None
+def test_message_without_bot_name_routes_only_to_lead():
+    assert extract_directed_text("approve everything now", receiver_username="Swain_SubAgent_bot") == "approve everything now"
+    assert extract_directed_text("approve everything now", receiver_username="Lucian_SubAgent_bot") is None
     assert handle_telegram_message("@Swain /health", receiver_username="Swain_SubAgent_bot") is None
 
 
@@ -29,7 +30,8 @@ def test_extracts_full_username_and_short_name_for_receiver():
     assert extract_directed_text("Swain: hello", receiver_username="Swain_SubAgent_bot") == "hello"
     assert extract_directed_text("Swain, hello", receiver_username="Swain_SubAgent_bot") == "hello"
     assert extract_directed_text("Swain", receiver_username="Swain_SubAgent_bot") == "/help"
-    assert extract_directed_text("Swainful hello", receiver_username="Swain_SubAgent_bot") is None
+    assert extract_directed_text("Swainful hello", receiver_username="Swain_SubAgent_bot") == "Swainful hello"
+    assert extract_directed_text("Swainful hello", receiver_username="Lucian_SubAgent_bot") is None
     assert extract_directed_text("@Shen_SubAgent_bot /health", receiver_username="Swain_SubAgent_bot") is None
     assert extract_directed_text("Shen /health", receiver_username="Swain_SubAgent_bot") is None
 
