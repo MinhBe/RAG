@@ -31,11 +31,17 @@ def run_fake_provider(task: TaskRecord) -> dict[str, Any]:
         }
     if task.mission == "risk.critic":
         deps = _dependency_reports(task)
+        flags = []
+        for dep in deps:
+            for gap in dep.get("gaps", []) or []:
+                if "injection" in str(gap).lower():
+                    flags.append("possible_prompt_injection")
         return {
             "ok": True,
             "mission": task.mission,
-            "summary": "Critic da kiem tra rui ro: du lieu dia diem la provider gia, chua duoc xac minh thuc dia.",
+            "summary": "Critic da kiem tra rui ro va dau hieu injection trong bao cao phu thuoc.",
             "must_disclose": ["chưa xác minh giờ mở cửa", "chưa xác minh tồn tại bằng provider thật"],
+            "security_flags": flags,
             "dependency_count": len(deps),
         }
     if task.mission == "answer.verify":

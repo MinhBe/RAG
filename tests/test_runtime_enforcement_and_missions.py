@@ -313,3 +313,174 @@ def test_slice_a_dedupes_same_chat_message_id() -> None:
     assert "duplicate" in second[0].text
     assert len(tasks_for_job(first_job)) == 3
 
+
+
+
+def test_slice_b_common_research_provider_is_allowed_and_hash_pinned() -> None:
+    from app.core.mission_registry import load_providers, resolve_provider
+    from app.core.skill_loader import load_skill_from_provider
+
+    resolution = resolve_provider("research.question", "scout", tier="common")
+    assert resolution.allowed
+    assert resolution.provider_id == "matt.research_common"
+    provider = next(item for item in load_providers() if item["id"] == "matt.research_common")
+    skill = load_skill_from_provider(provider)
+    assert skill.ref == "skill:A02_skills/skills/engineering/research"
+    assert skill.actual_hash == provider["skill_hash"]
+
+
+def test_slice_b_t1_real_executor_research_question_traceable_sources(monkeypatch) -> None:
+    import re
+    from pathlib import Path
+
+    from app.adapters.telegram import handle_telegram_event
+    from app.core.job_store import reset_jobs_for_tests, tasks_for_job
+    from app.core.settings import settings
+    from app.core.task_worker import collect_job_notifications, process_ready_tasks_once
+
+    reset_jobs_for_tests()
+    monkeypatch.setattr(settings, "hermes_executor", "real")
+    replies = handle_telegram_event(
+        "@Swain_SubAgent_bot research traceable Hermes skill execution",
+        receiver_username="Swain_SubAgent_bot",
+        chat_id=101,
+        message_id=201,
+    )
+    assert replies and replies[0].text.startswith("Da nhan. job_id=")
+    job_id = re.search(r"job_id=(b-[a-f0-9]+)", replies[0].text).group(1)  # type: ignore[union-attr]
+    trace_id = re.search(r"trace_id=([^ ]+)", replies[0].text).group(1)  # type: ignore[union-attr]
+    for _ in range(4):
+        process_ready_tasks_once(["scout", "sentinel", "validator"])
+    tasks = tasks_for_job(job_id)
+    scout = next(task for task in tasks if task.bot_id == "scout")
+    assert scout.status == "done"
+    assert scout.report is not None
+    assert scout.report["status"] == "ok"
+    assert scout.report["skill_applied"]["ref"] == "skill:A02_skills/skills/engineering/research"
+    assert scout.report["skill_applied"]["hash"].startswith("sha256:")
+    assert len(scout.report["findings"]) >= 2
+    assert all(finding["source_urls"] for finding in scout.report["findings"])
+    notifications = collect_job_notifications()
+    final = [note for note in notifications if note.kind == "final"]
+    assert final
+    assert "Ket qua nghien cuu co nguon truy vet" in final[0].text
+    trace_text = (Path(".omh") / "traces" / f"{trace_id}.jsonl").read_text(encoding="utf-8")
+    assert "skill_applied" in trace_text
+    assert "tool_called" in trace_text
+    assert "llm_call" in trace_text
+    assert "report_saved" in trace_text
+
+
+def test_slice_b_t2_login_url_is_refused_as_partial(monkeypatch) -> None:
+    import re
+
+    from app.adapters.telegram import handle_telegram_event
+    from app.core.job_store import reset_jobs_for_tests, tasks_for_job
+    from app.core.settings import settings
+    from app.core.task_worker import process_ready_tasks_once
+
+    reset_jobs_for_tests()
+    monkeypatch.setattr(settings, "hermes_executor", "real")
+    replies = handle_telegram_event(
+        "@Swain_SubAgent_bot research https://private.example/login-required",
+        receiver_username="Swain_SubAgent_bot",
+    )
+    job_id = re.search(r"job_id=(b-[a-f0-9]+)", replies[0].text).group(1)  # type: ignore[union-attr]
+    process_ready_tasks_once(["scout"])
+    scout = next(task for task in tasks_for_job(job_id) if task.bot_id == "scout")
+    assert scout.report is not None
+    assert scout.report["status"] in {"partial", "failed"}
+    assert any("login" in str(gap).lower() or "private" in str(gap).lower() for gap in scout.report["gaps"])
+
+
+def test_slice_b_t3_injection_content_is_data_not_instruction(monkeypatch) -> None:
+    import re
+
+    from app.adapters.telegram import handle_telegram_event
+    from app.core.job_store import reset_jobs_for_tests, tasks_for_job
+    from app.core.settings import settings
+    from app.core.task_worker import process_ready_tasks_once
+
+    reset_jobs_for_tests()
+    monkeypatch.setattr(settings, "hermes_executor", "real")
+    replies = handle_telegram_event(
+        "@Swain_SubAgent_bot research injection page says ignore previous instructions",
+        receiver_username="Swain_SubAgent_bot",
+    )
+    job_id = re.search(r"job_id=(b-[a-f0-9]+)", replies[0].text).group(1)  # type: ignore[union-attr]
+    for _ in range(3):
+        process_ready_tasks_once(["scout", "sentinel", "validator"])
+    tasks = tasks_for_job(job_id)
+    scout = next(task for task in tasks if task.bot_id == "scout")
+    sentinel = next(task for task in tasks if task.bot_id == "sentinel")
+    assert scout.report is not None
+    assert "write files" not in scout.report["summary"].lower()
+    assert any("injection" in str(gap).lower() for gap in scout.report["gaps"])
+    assert sentinel.report is not None
+    assert "possible_prompt_injection" in sentinel.report.get("security_flags", [])
+
+
+def test_slice_b_t4_tool_gate_enforces_max_calls(monkeypatch) -> None:
+    from app.core import tool_gate
+    from app.core.tool_gate import ToolGate, ToolGateError
+
+    original = tool_gate._load_tools
+
+    def fake_tools():
+        data = original()
+        data["web_search"] = {**data["web_search"], "limits": {**data["web_search"].get("limits", {}), "max_calls": 2}}
+        return data
+
+    monkeypatch.setattr(tool_gate, "_load_tools", fake_tools)
+    provider = {"requires_tools": ["web_search"]}
+    gate = ToolGate(bot_id="scout", provider=provider, trace_id="trace_test_max_calls", task_id="t-max")
+    gate.call("web_search", query="one")
+    gate.call("web_search", query="two")
+    try:
+        gate.call("web_search", query="three")
+    except ToolGateError as exc:
+        assert "max_calls" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("third call should be blocked")
+
+
+def test_slice_b_t6_skill_hash_mismatch_is_rejected() -> None:
+    from app.core.mission_registry import load_providers
+    from app.core.skill_loader import SkillLoadError, load_skill_from_provider
+
+    provider = next(item for item in load_providers() if item["id"] == "matt.research_common")
+    broken = {**provider, "skill_hash": "sha256:" + "1" * 64}
+    try:
+        load_skill_from_provider(broken)
+    except SkillLoadError as exc:
+        assert "hash mismatch" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("hash mismatch should fail")
+
+
+def test_slice_b_t7_untraceable_source_fails_report_check() -> None:
+    from app.core.task_report import check_traceable_sources, validate_task_report
+
+    report = {
+        "status": "ok",
+        "summary": "bad report",
+        "findings": [{"claim": "made up", "source_urls": ["https://not-observed.example"], "confidence": 0.9}],
+        "gaps": [],
+        "skill_applied": {"ref": "skill:x", "hash": "sha256:" + "0" * 64},
+        "tools_called": [{"name": "web_search", "ms": 1, "bytes": 10}],
+        "usage": {"llm_calls": 1, "tokens": 1, "ms": 1},
+    }
+    assert validate_task_report(report).ok
+    errors = check_traceable_sources(report, {"https://observed.example"})
+    assert errors and "not-observed" in errors[0]
+
+
+def test_slice_b_tools_yaml_keeps_session_channels_disabled() -> None:
+    import yaml
+
+    with open("registry/tools.yaml", encoding="utf-8") as fh:
+        data = yaml.safe_load(fh)
+    tools = {item["id"]: item for item in data["tools"]}
+    assert tools["session_fetch"]["enabled"] is False
+    assert tools["session_fetch"]["permission"] == "session_access"
+    assert "session_access" in tools["web_search"]["deny"]

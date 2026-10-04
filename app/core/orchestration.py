@@ -62,7 +62,7 @@ def _tasks_for_case(case_id: str, user_text: str) -> list[dict]:
         validator = _task("validator", "answer.verify", "common", user_text, depends_on=[critic["task_id"]])
         return [scout, critic, validator]
     if case_id == "research_question":
-        scout = _task("scout", "research.question", "specific", user_text)
+        scout = _task("scout", "research.question", "common", user_text)
         critic = _task("sentinel", "risk.critic", "common", user_text, depends_on=[scout["task_id"]])
         validator = _task("validator", "answer.verify", "common", user_text, depends_on=[critic["task_id"]])
         return [scout, critic, validator]

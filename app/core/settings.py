@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     ai_model: str | None = None
     ai_timeout_seconds: float = 45.0
     ai_retry_count: int = 1
+    hermes_executor: str = "fake"
+    hermes_real_llm_enabled: bool = False
     hermes_a_llm_enabled: bool = False
     hermes_omh_hooks_enabled: bool = False
     hermes_omh_evidence_enabled: bool = False

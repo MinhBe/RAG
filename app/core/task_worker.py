@@ -21,6 +21,8 @@ from app.core.job_store import (
     tasks_for_job,
 )
 from app.core.mission_registry import resolve_provider
+from app.core.settings import settings
+from app.core.skill_executor import run_skill_executor
 from app.core.task_providers import run_fake_provider
 from app.core.trace_log import append_trace_event
 
@@ -76,7 +78,13 @@ def _dependency_reports(task: TaskRecord) -> list[dict]:
     return reports
 
 
-def process_one_task(bot_id: str, provider_runner: ProviderRunner = run_fake_provider) -> WorkerEvent | None:
+def _default_provider_runner(task: TaskRecord) -> dict:
+    if settings.hermes_executor.lower() == "real" and task.mission == "research.question":
+        return run_skill_executor(task)
+    return run_fake_provider(task)
+
+
+def process_one_task(bot_id: str, provider_runner: ProviderRunner | None = None) -> WorkerEvent | None:
     task = claim_next_task(bot_id)
     if task is None:
         return None
@@ -104,7 +112,8 @@ def process_one_task(bot_id: str, provider_runner: ProviderRunner = run_fake_pro
         updated_at=task.updated_at,
     )
     try:
-        report = _run_with_timeout(task, provider_runner, max(float(task.timeout_s), 0.01))
+        runner = provider_runner or _default_provider_runner
+        report = _run_with_timeout(task, runner, max(float(task.timeout_s), 0.01))
         report["provider_allowed"] = provider.allowed
         report["provider_reason"] = provider.reason
         completed = complete_task(task.task_id, report, status="done")
@@ -120,7 +129,7 @@ def process_one_task(bot_id: str, provider_runner: ProviderRunner = run_fake_pro
         return WorkerEvent("task_error", failed.job_id, failed.task_id, failed.bot_id, str(exc))
 
 
-def process_ready_tasks_once(bot_ids: list[str], provider_runner: ProviderRunner = run_fake_provider) -> list[WorkerEvent]:
+def process_ready_tasks_once(bot_ids: list[str], provider_runner: ProviderRunner | None = None) -> list[WorkerEvent]:
     events: list[WorkerEvent] = []
     for bot_id in bot_ids:
         event = process_one_task(bot_id, provider_runner=provider_runner)
@@ -135,12 +144,23 @@ def _best_effort_final_text(job_id: str) -> str:
     reports = reports_for_job(job_id)
     failures = [task for task in tasks if task.status in {"failed", "blocked", "expired"}]
     place_names: list[str] = []
+    research_findings: list[tuple[str, list[str]]] = []
     notices: set[str] = set()
     for report in reports:
         for place in report.get("places", []) or []:
             name = place.get("name")
             if name:
                 place_names.append(str(name))
+        for finding in report.get("findings", []) or []:
+            claim = finding.get("claim") if isinstance(finding, dict) else None
+            urls = finding.get("source_urls", []) if isinstance(finding, dict) else []
+            if claim:
+                research_findings.append((str(claim), [str(url) for url in urls if isinstance(url, str)]))
+        status = report.get("status")
+        if status and status != "ok":
+            notices.add(f"report_status={status}")
+        for gap in report.get("gaps", []) or []:
+            notices.add(str(gap))
         for item in report.get("limitations", []) or []:
             notices.add(str(item))
         for item in report.get("must_disclose", []) or []:
@@ -151,11 +171,16 @@ def _best_effort_final_text(job_id: str) -> str:
     lines = [f"Ket qua job_id={job_id}"]
     if job is not None:
         lines.append(f"case={job.case_id}")
-    if place_names:
+    if research_findings:
+        lines.append("Ket qua nghien cuu co nguon truy vet:")
+        for claim, urls in research_findings[:5]:
+            suffix = f" (sources: {', '.join(urls[:2])})" if urls else ""
+            lines.append(f"- {claim}{suffix}")
+    elif place_names:
         lines.append("Dia diem mau tu provider gia:")
         lines.extend(f"- {name}" for name in place_names[:5])
     else:
-        lines.append("Chua co ket qua dia diem day du; tra ket qua tot nhat hien co.")
+        lines.append("Chua co ket qua day du; tra ket qua tot nhat hien co.")
     if notices:
         lines.append("Luu y: " + "; ".join(sorted(notices)))
     if failures:

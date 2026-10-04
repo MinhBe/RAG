@@ -1,0 +1,51 @@
+tools:
+- id: web_search
+  backend: fake_search
+  enabled: true
+  permission: network
+  allow_channels:
+  - fake
+  - v2ex
+  - rss
+  - bilibili_public
+  deny:
+  - logged_in
+  - credentials
+  - cookies
+  - session_access
+  limits:
+    max_calls: 8
+    timeout_s: 20
+    max_output_chars: 20000
+  notes: Agent-Reach probe found no direct no-login general web search CLI. Fake backend
+    is used for tests until Exa/public search backend is configured.
+- id: fetch
+  backend: agent-reach-jina-reader
+  enabled: true
+  argv:
+  - curl
+  - https://r.jina.ai/{url}
+  permission: network
+  allow_channels:
+  - web
+  deny:
+  - logged_in
+  - credentials
+  - cookies
+  - session_access
+  limits:
+    max_calls: 6
+    timeout_s: 20
+    max_output_chars: 30000
+  notes: Jina Reader public-page fetch path from Agent-Reach documentation. Runtime
+    gate calls without shell=True.
+- id: session_fetch
+  backend: agent-reach-opencli
+  enabled: false
+  permission: session_access
+  deny: []
+  limits:
+    max_calls: 2
+    timeout_s: 30
+    max_output_chars: 30000
+  notes: Disabled. Covers logged-in Chrome/OpenCLI/cookie channels such as Reddit/Facebook/Instagram/Boss/XHS.

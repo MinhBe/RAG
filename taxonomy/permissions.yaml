@@ -1,25 +1,30 @@
-﻿permissions:
-  - id: read
-    rank: 0
-    description: Read files, registry, and state only.
-  - id: network
-    rank: 1
-    description: Use network or public/private sources for retrieval.
-  - id: task_create
-    rank: 2
-    description: Create tasks, plans, and delegations without writing implementation code.
-  - id: repo_write
-    rank: 3
-    description: Modify repository files under contract.
-  - id: shell_limited
-    rank: 4
-    description: Run allowlisted shell, test, and build commands.
-  - id: render
-    rank: 5
-    description: Render UI, media, artifacts, or previews.
-  - id: runtime_execute
-    rank: 6
-    description: Run the system for validation or user testing.
-  - id: admin
-    rank: 7
-    description: Administrative runtime and configuration operations.
+permissions:
+- id: read
+  rank: 0
+  description: Read files, registry, and state only.
+- id: network
+  rank: 1
+  description: Use network or public/private sources for retrieval.
+- id: task_create
+  rank: 2
+  description: Create tasks, plans, and delegations without writing implementation
+    code.
+- id: repo_write
+  rank: 3
+  description: Modify repository files under contract.
+- id: shell_limited
+  rank: 4
+  description: Run allowlisted shell, test, and build commands.
+- id: render
+  rank: 5
+  description: Render UI, media, artifacts, or previews.
+- id: runtime_execute
+  rank: 6
+  description: Run the system for validation or user testing.
+- id: session_access
+  rank: 7
+  description: Use logged-in browser sessions, cookies, credentials, or authenticated
+    platform state.
+- id: admin
+  rank: 8
+  description: Administrative runtime and configuration operations.

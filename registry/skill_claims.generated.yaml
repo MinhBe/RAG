@@ -2,7 +2,8 @@ claims:
 - skill_id: omh.hermes-executor-verification
   name: hermes-executor-verification
   source: oh-my-hermes
-  description: 'Ad-hoc verification tempfile pattern for executor turns that trigger ''Verification status: unverified''.'
+  description: 'Ad-hoc verification tempfile pattern for executor turns that trigger
+    ''Verification status: unverified''.'
   role_tags:
     primary: validator
     secondary:
@@ -16,7 +17,8 @@ claims:
     - delegated
   origin: inferred
   confidence: 0.78
-  rationale: Verification/pass-fail evidence skill should not be available to implementation bots by primary tag.
+  rationale: Verification/pass-fail evidence skill should not be available to implementation
+    bots by primary tag.
 - skill_id: omh.omh-autopilot
   name: omh-autopilot
   source: oh-my-hermes
@@ -36,8 +38,8 @@ claims:
     - delegated
   origin: inferred
   confidence: 0.72
-  rationale: End-to-end pipeline composition is orchestration; execution remains delegated. Composite orchestration only;
-    direct self-execution is blocked by runtime guard.
+  rationale: End-to-end pipeline composition is orchestration; execution remains delegated.
+    Composite orchestration only; direct self-execution is blocked by runtime guard.
   composite: true
   must_delegate: true
   delegates_to:
@@ -100,7 +102,8 @@ claims:
     - delegated
   origin: inferred
   confidence: 0.81
-  rationale: Execution skill; validation wording is local evidence collection, not independent approval.
+  rationale: Execution skill; validation wording is local evidence collection, not
+    independent approval.
 - skill_id: omh.omh-ralph-driver
   name: omh-ralph-driver
   source: oh-my-hermes
@@ -200,8 +203,9 @@ claims:
     - delegated
   origin: inferred
   confidence: 0.55
-  rationale: 'Triage challenges priority/risk and is appropriate for Sentinel''s critic hat. Confidence reduced: this is a
-    proxy for critic, not a dedicated critic/security skill.'
+  rationale: 'Triage challenges priority/risk and is appropriate for Sentinel''s critic
+    hat. Confidence reduced: this is a proxy for critic, not a dedicated critic/security
+    skill.'
   coverage_gap: critic_real_skill
 - skill_id: omh.omh-triage-driver
   name: omh-triage-driver
@@ -224,7 +228,8 @@ claims:
 - skill_id: omh.omh-v18-loop-taxonomy
   name: omh-v18-loop-taxonomy
   source: oh-my-hermes
-  description: 'Saturate loop kind taxonomy: six typed loop kinds, per-kind specs, turn results, terminal states.'
+  description: 'Saturate loop kind taxonomy: six typed loop kinds, per-kind specs,
+    turn results, terminal states.'
   role_tags:
     primary: documentation
     secondary:
@@ -238,6 +243,37 @@ claims:
     - manual
   origin: inferred
   confidence: 0.5
-  rationale: 'Taxonomy/specification skill best fits documentation and analysis. Confidence reduced: taxonomy documentation
-    is not a true code-review skill.'
+  rationale: 'Taxonomy/specification skill best fits documentation and analysis. Confidence
+    reduced: taxonomy documentation is not a true code-review skill.'
   coverage_gap: reviewer_real_skill
+- skill_id: matt.research
+  name: research
+  source: mattpocock/skills
+  source_path: C:\Users\Admin\Downloads\Knowleage\Model Setup\skill_sources_v0_5\A02_skills\skills\engineering\research\SKILL.md
+  skill_ref: skill:A02_skills/skills/engineering/research
+  skill_hash: sha256:985569f15739c713d6784887c3d186d4ef9ac85bec5ad9c068d25bf0739928e4
+  description: Investigate a question against high-trust primary sources; Hermes overrides
+    file output into task_report.v1 JSON.
+  role_tags:
+    primary: research
+    secondary:
+    - analyst
+  discipline:
+  - research
+  - documentation
+  required_permission: network
+  requires_tools:
+  - web_search
+  - fetch
+  forbid:
+  - repo_write
+  - subagent
+  - session_access
+  output_mode: report_json
+  activation:
+    trigger_modes:
+    - delegated
+  origin: inferred
+  confidence: 0.84
+  rationale: Common research skill; Scout may use it through tool gate but cannot
+    write Markdown files to repo.
