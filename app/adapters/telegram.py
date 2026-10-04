@@ -279,7 +279,12 @@ def _deterministic_command_replies(normalized: str, sender: str | None) -> list[
     return replies or None
 
 
-def handle_telegram_event(text: str, receiver_username: str | None = None) -> list[TelegramReply]:
+def handle_telegram_event(
+    text: str,
+    receiver_username: str | None = None,
+    chat_id: int | None = None,
+    message_id: int | None = None,
+) -> list[TelegramReply]:
     directed = extract_directed_text(text, receiver_username=receiver_username)
     if directed is None:
         return []
@@ -336,7 +341,12 @@ def handle_telegram_event(text: str, receiver_username: str | None = None) -> li
         return [TelegramReply(sender, "BLOCKED by Hermes runtime profile guard: no bot profile is mapped to this Telegram username.")]
     intake_prompt = strip_all_bot_mentions(normalized) or normalized
     if should_async_intake(intake_prompt, bot_id):
-        ack = create_intake_job(intake_prompt, user_override=is_user_override_request(intake_prompt))
+        ack = create_intake_job(
+            intake_prompt,
+            user_override=is_user_override_request(intake_prompt),
+            chat_id=chat_id,
+            message_id=message_id,
+        )
         return [TelegramReply(sender, ack.text)]
     assistant_name = short_bot_name(sender or configured_bot_usernames()[0])
     addressed = addressed_bot_usernames(text)

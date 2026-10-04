@@ -205,3 +205,111 @@ def test_autopilot_must_delegate_and_unprofiled_bots_are_blocked() -> None:
     xinzhao = handle_telegram_message("@Xinzhao_SubAgent_bot /skills", receiver_username="Xinzhao_SubAgent_bot")
     assert kayn is not None and kayn.startswith("BLOCKED by Hermes runtime profile guard")
     assert xinzhao is not None and xinzhao.startswith("BLOCKED by Hermes runtime profile guard")
+
+
+def _job_id_from_ack(text: str) -> str:
+    import re
+
+    match = re.search(r"job_id=(b-[a-f0-9]+)", text)
+    assert match is not None
+    return match.group(1)
+
+
+def test_slice_a_worker_runs_dependencies_and_final_notice() -> None:
+    from app.core.job_store import reset_jobs_for_tests, tasks_for_job
+    from app.core.task_worker import collect_job_notifications, process_one_task
+
+    reset_jobs_for_tests()
+    replies = handle_telegram_event(
+        "@Swain_SubAgent_bot giao việc cho mọi người tìm quán cắt tóc ở 165 Cầu Giấy",
+        receiver_username="Swain_SubAgent_bot",
+        chat_id=1001,
+        message_id=2001,
+    )
+    job_id = _job_id_from_ack(replies[0].text)
+    tasks = tasks_for_job(job_id)
+    assert [task.bot_id for task in tasks] == ["scout", "sentinel", "validator"]
+    assert tasks[1].depends_on == (tasks[0].task_id,)
+    assert tasks[2].depends_on == (tasks[1].task_id,)
+
+    assert process_one_task("validator") is None
+    assert process_one_task("sentinel") is None
+    assert process_one_task("scout") is not None
+    progress = collect_job_notifications()
+    assert any(note.kind == "progress" and note.message_id == 2001 for note in progress)
+
+    assert process_one_task("sentinel") is not None
+    assert process_one_task("validator") is not None
+    final = collect_job_notifications()
+    final_text = "\n".join(note.text for note in final if note.kind == "final")
+    assert "Barber Mau 1" in final_text
+    assert "chưa xác minh giờ mở cửa" in final_text
+
+
+def test_slice_a_provider_error_still_produces_final_with_missing_parts() -> None:
+    from app.core.job_store import reset_jobs_for_tests
+    from app.core.task_worker import collect_job_notifications, process_one_task
+
+    reset_jobs_for_tests()
+    replies = handle_telegram_event(
+        "@Swain_SubAgent_bot giao viec cho moi nguoi tim quan cat toc o 165 Cau Giay",
+        receiver_username="Swain_SubAgent_bot",
+        chat_id=1001,
+        message_id=2002,
+    )
+    job_id = _job_id_from_ack(replies[0].text)
+
+    def failing_provider(task):
+        raise RuntimeError("provider boom")
+
+    assert process_one_task("scout", provider_runner=failing_provider) is not None
+    assert process_one_task("scout", provider_runner=failing_provider) is not None
+    final = collect_job_notifications()
+    final_text = "\n".join(note.text for note in final if note.job_id == job_id)
+    assert "Ket qua job_id=" in final_text
+    assert "Con thieu/loi" in final_text
+
+
+def test_slice_a_provider_timeout_still_produces_final() -> None:
+    import time
+
+    from app.core.job_store import connect, reset_jobs_for_tests, tasks_for_job
+    from app.core.task_worker import collect_job_notifications, process_one_task
+
+    reset_jobs_for_tests()
+    replies = handle_telegram_event(
+        "@Swain_SubAgent_bot giao viec cho moi nguoi tim quan cat toc o 165 Cau Giay",
+        receiver_username="Swain_SubAgent_bot",
+        chat_id=1001,
+        message_id=2003,
+    )
+    job_id = _job_id_from_ack(replies[0].text)
+    scout_task = tasks_for_job(job_id)[0]
+    with connect() as conn:
+        conn.execute("UPDATE tasks SET timeout_s = 0 WHERE task_id = ?", (scout_task.task_id,))
+
+    def slow_provider(task):
+        time.sleep(0.1)
+        return {"ok": True}
+
+    assert process_one_task("scout", provider_runner=slow_provider) is not None
+    assert process_one_task("scout", provider_runner=slow_provider) is not None
+    final = collect_job_notifications()
+    final_text = "\n".join(note.text for note in final if note.job_id == job_id)
+    assert "Ket qua job_id=" in final_text
+    assert "Con thieu/loi" in final_text
+
+
+def test_slice_a_dedupes_same_chat_message_id() -> None:
+    from app.core.job_store import reset_jobs_for_tests, tasks_for_job
+
+    reset_jobs_for_tests()
+    kwargs = {"receiver_username": "Swain_SubAgent_bot", "chat_id": 2001, "message_id": 3001}
+    first = handle_telegram_event("@Swain_SubAgent_bot giao viec cho moi nguoi tim quan cat toc o 165 Cau Giay", **kwargs)
+    second = handle_telegram_event("@Swain_SubAgent_bot giao viec cho moi nguoi tim quan cat toc o 165 Cau Giay", **kwargs)
+    first_job = _job_id_from_ack(first[0].text)
+    second_job = _job_id_from_ack(second[0].text)
+    assert first_job == second_job
+    assert "duplicate" in second[0].text
+    assert len(tasks_for_job(first_job)) == 3
+

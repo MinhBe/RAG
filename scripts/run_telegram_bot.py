@@ -22,6 +22,7 @@ from app.adapters.telegram import (
 )
 from app.core.omh_hooks import on_session_end
 from app.core.settings import settings
+from app.core.task_worker import collect_job_notifications, process_ready_tasks_once
 
 
 @dataclass(frozen=True)
@@ -34,6 +35,7 @@ CHAT_ACTION_DELAY_MIN_SECONDS = 0.45
 CHAT_ACTION_DELAY_MAX_SECONDS = 0.95
 POST_SEND_DELAY_SECONDS = 0.35
 PROCESSING_HEARTBEAT_SECONDS = 3.0
+WORKER_BOT_IDS = ["lead", "scout", "sentinel", "validator"]
 
 
 def _local_env_values() -> dict[str, str]:
@@ -170,6 +172,36 @@ def _send_replies(
         time.sleep(POST_SEND_DELAY_SECONDS)
 
 
+
+def _lead_bot(bots_by_username: dict[str, BotConfig], default_bot: BotConfig) -> BotConfig:
+    return bots_by_username.get("swain_subagent_bot", default_bot)
+
+
+def _job_worker_loop(
+    bots_by_username: dict[str, BotConfig],
+    default_bot: BotConfig,
+    allowed_chat_id: int,
+) -> None:
+    lead_bot = _lead_bot(bots_by_username, default_bot)
+    with httpx.Client(timeout=25.0) as client:
+        while True:
+            try:
+                process_ready_tasks_once(WORKER_BOT_IDS)
+                for notification in collect_job_notifications():
+                    if notification.chat_id != allowed_chat_id:
+                        continue
+                    _send_message(
+                        client,
+                        lead_bot,
+                        notification.chat_id,
+                        notification.text,
+                        reply_to_message_id=notification.message_id,
+                    )
+            except (OSError, ValueError, httpx.HTTPError) as exc:
+                print(f"Hermes job worker error: {type(exc).__name__}", flush=True)
+            time.sleep(1.0)
+
+
 def _is_from_bot(message: dict[str, Any]) -> bool:
     sender = message.get("from") or {}
     return bool(sender.get("is_bot"))
@@ -184,6 +216,12 @@ def main() -> None:
         f"Hermes Telegram multi-bot adapter started: {configured_names}. Tokens hidden.",
         flush=True,
     )
+    threading.Thread(
+        target=_job_worker_loop,
+        args=(bots_by_username, bots[0], allowed_chat_id),
+        name="hermes-job-worker",
+        daemon=True,
+    ).start()
     with httpx.Client(timeout=35.0) as client:
         while True:
             for bot in bots:
@@ -236,7 +274,12 @@ def main() -> None:
                     else:
                         try:
                             with ProcessingIndicator(client, bot, chat_id):
-                                replies = handle_telegram_event(text, receiver_username=bot.username)
+                                replies = handle_telegram_event(
+                                    text,
+                                    receiver_username=bot.username,
+                                    chat_id=chat_id,
+                                    message_id=message_id or None,
+                                )
                             on_session_end(session_kind="telegram", reason="turn_complete")
                         except (OSError, ValueError, ValidationError) as exc:
                             replies = [
