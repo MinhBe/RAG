@@ -1,0 +1,169 @@
+﻿claims:
+  - skill_id: omh.hermes-executor-verification
+    name: hermes-executor-verification
+    source: oh-my-hermes
+    description: "Ad-hoc verification tempfile pattern for executor turns that trigger 'Verification status: unverified'."
+    role_tags:
+      primary: validator
+      secondary: [reviewer]
+    discipline: [testing]
+    required_permission: runtime_execute
+    activation:
+      trigger_modes: [manual, delegated]
+    origin: inferred
+    confidence: 0.78
+    rationale: Verification/pass-fail evidence skill should not be available to implementation bots by primary tag.
+  - skill_id: omh.omh-autopilot
+    name: omh-autopilot
+    source: oh-my-hermes
+    description: "pipeline: interview→plan→execute→QA→verify (idea→code)"
+    role_tags:
+      primary: orchestrator
+      secondary: [planner, validator]
+    discipline: [registry, ai_routing]
+    required_permission: task_create
+    activation:
+      trigger_modes: [manual, delegated]
+    origin: inferred
+    confidence: 0.72
+    rationale: End-to-end pipeline composition is orchestration; execution remains delegated.
+  - skill_id: omh.omh-deep-interview
+    name: omh-deep-interview
+    source: oh-my-hermes
+    description: Socratic reqs interview; clarify vague/ambiguous goals
+    role_tags:
+      primary: planner
+      secondary: [analyst]
+    discipline: [research, documentation]
+    required_permission: read
+    activation:
+      trigger_modes: [manual]
+    origin: inferred
+    confidence: 0.82
+    rationale: Clarifying requirements feeds planning rather than implementation.
+  - skill_id: omh.omh-deep-research
+    name: omh-deep-research
+    source: oh-my-hermes
+    description: parallel web research; subagents→synthesis→cite-verify
+    role_tags:
+      primary: research
+      secondary: [analyst, validator]
+    discipline: [research]
+    required_permission: network
+    activation:
+      trigger_modes: [manual, delegated]
+    origin: inferred
+    confidence: 0.86
+    rationale: Research/synthesis/citation verification is Scout-owned.
+  - skill_id: omh.omh-ralph
+    name: omh-ralph
+    source: oh-my-hermes
+    description: "execute plan: 1 task/call, verify evidence, iron law"
+    role_tags:
+      primary: implementation
+      secondary: []
+    discipline: [backend, database, frontend, infra]
+    required_permission: shell_limited
+    activation:
+      trigger_modes: [delegated]
+    origin: inferred
+    confidence: 0.81
+    rationale: Execution skill; validation wording is local evidence collection, not independent approval.
+  - skill_id: omh.omh-ralph-driver
+    name: omh-ralph-driver
+    source: oh-my-hermes
+    description: "Drive an omh-ralph run: dispatch, evidence, commit hygiene."
+    role_tags:
+      primary: orchestrator
+      secondary: [planner]
+    discipline: [registry, ai_routing]
+    required_permission: task_create
+    activation:
+      trigger_modes: [manual, delegated]
+    origin: inferred
+    confidence: 0.79
+    rationale: Driver dispatches implementation tasks; it should not itself write code.
+  - skill_id: omh.omh-ralph-task
+    name: omh-ralph-task
+    source: oh-my-hermes
+    description: "Execute one omh-ralph task: file-scope, commit, report."
+    role_tags:
+      primary: implementation
+      secondary: []
+    discipline: [backend, database, frontend, infra]
+    required_permission: repo_write
+    activation:
+      trigger_modes: [delegated]
+    origin: inferred
+    confidence: 0.84
+    rationale: Single-task implementation/commit workflow.
+  - skill_id: omh.omh-ralplan
+    name: omh-ralplan
+    source: oh-my-hermes
+    description: "Planner+Architect+Critic→consensus impl plan (≤3 rounds)"
+    role_tags:
+      primary: planner
+      secondary: [orchestrator, critic]
+    discipline: [registry, backend, frontend, infra]
+    required_permission: task_create
+    activation:
+      trigger_modes: [manual, delegated]
+    origin: inferred
+    confidence: 0.87
+    rationale: Consensus planning skill; no repository writes.
+  - skill_id: omh.omh-ralplan-driver
+    name: omh-ralplan-driver
+    source: oh-my-hermes
+    description: "Drive omh-ralplan: context package, rounds, distillation."
+    role_tags:
+      primary: orchestrator
+      secondary: [planner, critic]
+    discipline: [registry, ai_routing]
+    required_permission: task_create
+    activation:
+      trigger_modes: [manual, delegated]
+    origin: inferred
+    confidence: 0.83
+    rationale: Driver is orchestration of planning rounds.
+  - skill_id: omh.omh-triage
+    name: omh-triage
+    source: oh-my-hermes
+    description: "Multi-role consensus triage of an issue backlog."
+    role_tags:
+      primary: critic
+      secondary: [analyst, planner]
+    discipline: [registry, testing]
+    required_permission: read
+    activation:
+      trigger_modes: [manual, delegated]
+    origin: inferred
+    confidence: 0.74
+    rationale: Triage challenges priority/risk and is appropriate for Sentinel's critic hat.
+  - skill_id: omh.omh-triage-driver
+    name: omh-triage-driver
+    source: oh-my-hermes
+    description: "Drive omh-triage: when to invoke, how to run rounds."
+    role_tags:
+      primary: orchestrator
+      secondary: [analyst]
+    discipline: [registry]
+    required_permission: task_create
+    activation:
+      trigger_modes: [manual, delegated]
+    origin: inferred
+    confidence: 0.76
+    rationale: Driver dispatches triage workflow; Lead may invoke it.
+  - skill_id: omh.omh-v18-loop-taxonomy
+    name: omh-v18-loop-taxonomy
+    source: oh-my-hermes
+    description: "Saturate loop kind taxonomy: six typed loop kinds, per-kind specs, turn results, terminal states."
+    role_tags:
+      primary: documentation
+      secondary: [analyst]
+    discipline: [documentation, registry]
+    required_permission: read
+    activation:
+      trigger_modes: [manual]
+    origin: inferred
+    confidence: 0.69
+    rationale: Taxonomy/specification skill best fits documentation and analysis.

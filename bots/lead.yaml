@@ -1,0 +1,10 @@
+﻿bot_id: lead
+display_name: Lead
+telegram_username: Swain_SubAgent_bot
+role_tags: [orchestrator, planner]
+permission_ceiling: task_create
+disciplines: [registry, ai_routing, telegram_transport]
+model_policy:
+  preferred: general_llm
+  may_delegate: true
+notes: User-facing coordinator. Does not write code.

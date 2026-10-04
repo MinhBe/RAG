@@ -566,6 +566,7 @@ dependencies = [
     { name = "httpx" },
     { name = "langgraph" },
     { name = "pydantic-settings" },
+    { name = "pyyaml" },
     { name = "supabase" },
 ]
 
@@ -584,6 +585,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "langgraph", specifier = ">=1.2.12" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "supabase", specifier = ">=2.31.0" },
 ]
 

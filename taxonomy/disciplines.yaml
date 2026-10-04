@@ -1,0 +1,13 @@
+﻿disciplines:
+  - id: database
+  - id: backend
+  - id: frontend
+  - id: infra
+  - id: telegram_transport
+  - id: ai_routing
+  - id: registry
+  - id: security
+  - id: documentation
+  - id: research
+  - id: testing
+  - id: design_publishing

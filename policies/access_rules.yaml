@@ -1,0 +1,22 @@
+﻿policies:
+  - id: segregation_of_duties
+    applies_to_roles: [implementation, validator, reviewer, security]
+    rule: A bot with implementation must not also carry validator, reviewer, or security.
+  - id: orchestrator_no_write
+    applies_to_roles: [orchestrator]
+    rule: Orchestrator may plan/delegate but must not receive repo_write or higher implementation authority.
+  - id: skill_access
+    applies_to_roles: [orchestrator, planner, research, analyst, implementation, security, reviewer, documentation, validator, monitor, critic, design_publishing]
+    rule: Skill allowed iff primary tag matches one bot tag and required permission is within bot ceiling.
+  - id: primary_tag_required
+    applies_to_roles: [orchestrator, planner, research, analyst, implementation, security, reviewer, documentation, validator, monitor, critic, design_publishing]
+    rule: Each skill has exactly one primary role tag.
+  - id: secondary_tag_limit
+    applies_to_roles: [orchestrator, planner, research, analyst, implementation, security, reviewer, documentation, validator, monitor, critic, design_publishing]
+    rule: Each skill has at most two secondary tags; secondary tags are search hints, not access grants.
+  - id: scheduled_is_trigger
+    applies_to_roles: [monitor]
+    rule: Scheduled is an activation trigger, not a role tag.
+  - id: policies_are_constraints
+    applies_to_roles: [orchestrator, planner, research, analyst, implementation, security, reviewer, documentation, validator, monitor, critic, design_publishing]
+    rule: Policy entries constrain behavior and are not invokable skills.

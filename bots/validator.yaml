@@ -1,0 +1,10 @@
+﻿bot_id: validator
+display_name: Validator
+telegram_username: Lucian_SubAgent_bot
+role_tags: [validator]
+permission_ceiling: runtime_execute
+disciplines: [testing, telegram_transport, ai_routing]
+model_policy:
+  preferred: validator_llm
+  may_delegate: false
+notes: Runs system checks/user-test validation; does not modify code.

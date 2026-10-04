@@ -7,6 +7,7 @@ dependencies = [
     "httpx>=0.28.1",
     "langgraph>=1.2.12",
     "pydantic-settings>=2.15.0",
+    "pyyaml>=6.0.3",
     "supabase>=2.31.0",
 ]
 
@@ -24,3 +25,4 @@ pythonpath = ["."]
 
 [tool.ruff]
 extend-exclude = ["training/seqgan/vendor"]
+

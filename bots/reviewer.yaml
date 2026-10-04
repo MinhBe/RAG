@@ -1,0 +1,10 @@
+﻿bot_id: reviewer
+display_name: Reviewer
+telegram_username: Jarvan_SubAgent_bot
+role_tags: [reviewer, documentation]
+permission_ceiling: read
+disciplines: [documentation, testing, registry]
+model_policy:
+  preferred: review_llm
+  may_delegate: false
+notes: Read-only review and documentation quality gate.
