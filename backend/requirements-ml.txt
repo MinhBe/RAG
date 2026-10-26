@@ -1,0 +1,2 @@
+# Optional: real multilingual embeddings (EMBEDDER=bge-m3). Pulls in PyTorch.
+sentence-transformers==5.1.*
