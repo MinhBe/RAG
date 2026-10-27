@@ -79,6 +79,39 @@ def search(req: SearchRequest, db: Session = Depends(get_db)):
     return {"query": req.query, "hits": hits}
 
 
+# ---------- Hiệu lực theo thời gian + sửa đổi (M4) ----------
+@router.get("/api/law_as_of")
+def law_as_of_route(date: str, topic: str | None = None, db: Session = Depends(get_db)):
+    from datetime import date as _date
+
+    from app.amend.store import law_as_of
+
+    rows = law_as_of(db, _date.fromisoformat(date), topic=topic)
+    return {"date": date, "topic": topic, "count": len(rows), "nodes": rows}
+
+
+@router.get("/api/node/{node_id}/history")
+def node_history_route(node_id: str, db: Session = Depends(get_db)):
+    from app.amend.store import node_history
+
+    return {"node_id": node_id, "history": node_history(db, node_id)}
+
+
+class DiffRequest(BaseModel):
+    old_doc_id: str
+    new_doc_id: str
+    write: bool = False
+
+
+@router.post("/api/admin/diff")
+def diff_route(req: DiffRequest, db: Session = Depends(get_db)):
+    from app.amend.store import diff_documents
+
+    diffs = diff_documents(db, req.old_doc_id, req.new_doc_id, write=req.write)
+    changed = [d for d in diffs if d["change_type"] != "unchanged"]
+    return {"total": len(diffs), "changed": len(changed), "diffs": changed[:200]}
+
+
 # ---------- Chat (SSE) ----------
 class ChatMessage(BaseModel):
     role: str

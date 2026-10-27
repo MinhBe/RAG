@@ -166,6 +166,28 @@ class LLMRouter:
 
         return self._with_retry(_once, provider="claude", rotate=False)
 
+    def extract_json(
+        self, messages: list[dict[str, str]], *, task: str = "answer", temperature: float = 0.0
+    ) -> dict:
+        """Gọi LLM và parse JSON. Retry nhích nhiệt độ khi JSON hỏng."""
+        import json
+
+        for attempt in range(3):
+            temp = temperature if attempt == 0 else 0.5
+            res = self.chat(messages, task=task, temperature=temp)
+            raw = res.text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("```", 2)[1]
+                raw = raw[4:] if raw.lower().startswith("json") else raw
+                raw = raw.strip()
+            start, end = raw.find("{"), raw.rfind("}")
+            if start != -1 and end != -1:
+                try:
+                    return json.loads(raw[start : end + 1])
+                except json.JSONDecodeError:
+                    continue
+        raise LLMError("Không parse được JSON từ LLM sau 3 lần.")
+
     # ---- streaming (chỉ Gemini/FPT, OpenAI-compatible) ----
     def stream(
         self,
