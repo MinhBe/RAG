@@ -180,6 +180,19 @@ def draft_export(req: DraftRequest, db: Session = Depends(get_db)):
     )
 
 
+# ---------- Tổng hợp án lệ (M6b) ----------
+class PrecedentRequest(BaseModel):
+    query: str
+    top_k: int = 4
+
+
+@router.post("/api/precedent")
+def precedent_route(req: PrecedentRequest):
+    from app.agent.precedent import synthesize
+
+    return synthesize(req.query, top_k=req.top_k)
+
+
 # ---------- Báo cáo nhiều văn bản (M6) ----------
 class ReportRequest(BaseModel):
     topic: str

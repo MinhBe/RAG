@@ -86,3 +86,26 @@ def search_nodes(
         r["display"] = _display(r)
         r["score"] = float(r.get("score") or 0.0)
     return rows
+
+
+def search_precedents(db: Session, query: str, *, top_k: int = 5) -> list[dict[str, Any]]:
+    """Tìm án lệ/bản án gần nhất theo vector (M6b)."""
+    n = db.execute(text("SELECT count(*) FROM precedent WHERE embedding IS NOT NULL")).scalar() or 0
+    if n == 0:
+        return []
+    qvec = embed_one(query)
+    sql = text(
+        """
+        SELECT doc_name, court, court_level, precedent_number, is_precedent,
+               category, issued_date, source_url, text,
+               1 - (embedding <=> CAST(:vec AS vector)) AS score
+        FROM precedent
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> CAST(:vec AS vector)
+        LIMIT :k
+        """
+    )
+    rows = [dict(r._mapping) for r in db.execute(sql, {"vec": str(qvec), "k": top_k})]
+    for r in rows:
+        r["score"] = float(r.get("score") or 0.0)
+    return rows

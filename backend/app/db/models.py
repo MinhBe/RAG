@@ -99,6 +99,25 @@ class DocumentRelation(Base):
     rel: Mapped[str] = mapped_column(String(16), primary_key=True)
 
 
+class Precedent(Base):
+    """Án lệ / bản án (tòa án) — nguồn cho nhánh tổng hợp án lệ (M6b)."""
+
+    __tablename__ = "precedent"
+
+    doc_name: Mapped[str] = mapped_column(String(128), primary_key=True)
+    title: Mapped[str | None] = mapped_column(Text)
+    court: Mapped[str | None] = mapped_column(Text)
+    court_level: Mapped[str | None] = mapped_column(String(64))
+    precedent_number: Mapped[str | None] = mapped_column(String(64))
+    is_precedent: Mapped[bool | None] = mapped_column()
+    category: Mapped[str | None] = mapped_column(String(128))
+    issued_date: Mapped[date | None] = mapped_column(Date)
+    citations_law: Mapped[str | None] = mapped_column(Text)  # JSON/text các luật được viện dẫn
+    source_url: Mapped[str | None] = mapped_column(Text)
+    text: Mapped[str] = mapped_column(Text)  # markdown bản án
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBED_DIM))
+
+
 class Thread(Base):
     __tablename__ = "thread"
 
