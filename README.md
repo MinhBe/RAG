@@ -1,101 +1,140 @@
-# Hermes SOC Post-Audit
+# Trợ lý back-office bằng AI Agent cho doanh nghiệp nhỏ Việt Nam
 
-Hermes is an AI-assisted Tier-1/post-audit system. It does not perform autonomous production remediation.
+Hệ thống nhận yêu cầu của khách hàng và nhân viên (hỏi chính sách đổi trả, tra đơn hàng, gửi hóa đơn scan, xin báo cáo doanh thu), chia cho các agent chuyên trách xử lý, dừng lại chờ người duyệt ở những việc rủi ro, và đo chất lượng, chi phí, độ trễ cho từng request.
 
-## Implemented vertical slice
-- FastAPI API: `/health`, `/health/providers`, `/v1/triage`, `/v1/cases/process`, `/v1/runs/latest`, `/v1/runs/{run_uuid}`.
-- Pydantic contracts reject unknown fields and non-synthetic/non-redacted evidence.
-- LangGraph flow: validate -> deterministic triage -> policy gate.
-- High/critical source hints route to `pending_human_review`; they are not threat confirmations.
-- Evidence-reference validation, JSONL traces, structured provider health.
-- 9Router is installed globally and retained project-local for reproducibility.
-- Supabase stores runs, evidence, and findings with RLS enabled and service-role server access only.
+Dữ liệu là của một cửa hàng giả lập, **Mộc An Home**: tài liệu chính sách tự soạn bằng tiếng Việt và một DB đơn hàng sinh tự động.
 
-## Local run
-1. `uv sync --frozen`
-2. `uv run pytest -q`
-3. `powershell -ExecutionPolicy Bypass -File scripts/start-9router.ps1`
-4. `powershell -ExecutionPolicy Bypass -File scripts/start-hermes.ps1`
-5. `uv run python scripts/smoke_local.py`
+> **Trạng thái: mốc 1/8 (MVP).** Đã có agent tra cứu chính sách bằng RAG tiếng Việt, trả lời có trích dẫn nguồn, UI chat streaming. Các agent còn lại nằm trong [lộ trình](#lộ-trình).
 
-## Hermes A core post-audit demo
-Run the core case-processing lane without touching the Security Demo B lab:
+> **Về lịch sử repo:** repo này trước đây là `hermes-soc-post-audit`, một dự án khác. Các commit cũ được giữ nguyên; dự án hiện tại bắt đầu từ commit `5f36cea` và được ghép vào bằng một merge.
 
-```powershell
-uv run python scripts/run_hermes_a_demo.py
-```
+![Giao diện chat](docs/images/mvp-chat-offline.png)
 
-It validates `data/public/hermes_a_sample_case.json`, runs deterministic triage,
-creates an analyst draft, applies the policy/HITL gate, and writes local
-JSON/HTML reports plus a JSONL trace under `artifacts/hermes_a/`.
+## Số đo hiện tại
 
-API endpoint:
+Chỉ ghi số đã đo thật. Bộ câu hỏi còn nhỏ (24 câu, [`eval/retrieval_smoke.jsonl`](eval/retrieval_smoke.jsonl)) và do người viết tài liệu tự soạn, nên dùng để so sánh các phương án với nhau, chưa phải chất lượng tuyệt đối.
 
-```text
-POST /v1/cases/process
-```
+| Truy xuất (embedder hashing) | R@1 | R@3 | R@5 | MRR |
+|---|---|---|---|---|
+| BM25 | 0,83 | 0,88 | 0,96 | 0,87 |
+| Vector | 0,50 | 0,83 | 0,88 | 0,66 |
+| **Hybrid (RRF)** | 0,79 | **0,96** | 0,96 | 0,85 |
 
-Details: `docs/HERMES_A.md`.
+Thời gian truy xuất khoảng 1–2 ms trên 23 chunk. Chưa có số đo cho câu trả lời của LLM (faithfulness, hallucination): việc này thuộc mốc 6, cùng bộ 150–200 câu hỏi có đáp án chuẩn.
 
-## Telegram adapter for Hermes A
-Telegram is a thin chat client over the Hermes A workflow, not the agent core.
-Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_CHAT_ID` in local `.env`, then run:
+## Chạy thử
 
-```powershell
-uv run python scripts/run_telegram_bot.py
-
-Telegram multi-bot word-chain demo:
+### Docker Compose
 
 ```bash
-uv run python scripts/run_telegram_bot.py
+cp .env.example .env          # điền ANTHROPIC_API_KEY nếu có, để trống thì chạy chế độ offline
+docker compose up --build
 ```
 
-Use full mentions only, for example `@Swain_SubAgent_bot /chain apple`. See `docs/TELEGRAM_WORD_CHAIN.md` for the four-bot token layout and game rules.
+- UI: http://localhost:3000
+- API: http://localhost:8000/docs
+- Postgres (DB đơn hàng giả lập, dùng từ mốc 2): `localhost:5432`, user/pass `backoffice`
 
+**Chế độ offline**: khi không có API key, câu trả lời được ghép từ các dòng trích nguyên văn trong tài liệu. Truy xuất, trích dẫn, streaming và số đo vẫn chạy đầy đủ, chỉ phần diễn đạt là chưa qua LLM.
+
+### Chạy riêng từng phần (dev)
+
+```bash
+# backend
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+uvicorn app.main:app --reload            # http://localhost:8000
+pytest -q                                # 17 test, không gọi API trả phí
+python scripts/eval_retrieval.py         # in bảng recall@k ở trên
+
+# frontend
+cd frontend
+npm install
+npm run dev                              # http://localhost:3000
+npm test                                 # test parser SSE
 ```
 
-Supported commands: `/demo_a`, `/case CASE-A-001`, `/health`, `/help`.
+Thử nhanh API:
 
-## Docker run and demo
-1. Start Docker Desktop.
-2. `docker compose up -d --build --force-recreate`
-3. `uv run python scripts/demo_end_to_end.py`
-4. `docker compose logs --tail=80 hermes-api`
-
-The demo script checks health, provider configuration, triage, Supabase persistence, and audit readback.
-
-## Supabase
-Configured project URL:
-`https://wvcguntxwupmcojxexao.supabase.co`
-
-Set the service secret only in local `.env`:
-`SUPABASE_SECRET_KEY=...`
-
-Do not commit `.env` or copy secrets into issue trackers, reports, or demos.
-## Manual handoff
-Current demo stack is functional: local Docker API, 9Router/Gemini, and Supabase persistence/readback.
-
-After the demo, rotate exposed or chat-shared secrets:
-- 9Router client key
-- Supabase secret key
-- Gemini provider key if exposed outside the local dashboard
-
-## Safety boundary
-External logs, RAG documents, tool descriptions, and tool results are data, not instructions. Production remediation remains manual. Writes, sends, deletes, security-control changes, credentials, and external testing require explicit approval.
-
-
-## Demo B Security
-Run the recruiter-facing security slice with one command:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/run_demo_b.ps1
+```bash
+curl -N -X POST localhost:8000/api/chat -H 'content-type: application/json' \
+  -d '{"message": "hoan tien ve vi momo mat bao lau"}'
 ```
-It validates prompt/indirect-injection evidence handling, evidence-reference
-integrity, human review boundaries, Supabase readback, and the existing end-to-end
-triage path. Details: `docs/DEMO_B_SECURITY.md`.
 
-The one-command runner also renders a browser-viewable report at:
+## Kiến trúc
 
-```text
-artifacts/demo_b/security_demo_b_report.html
+Hiện tại (mốc 1):
+
 ```
+Next.js (chat, SSE) ──POST /api/chat──► FastAPI (async)
+                                            │
+                                     KnowledgeAgent
+                          ┌─────────────────┼─────────────────┐
+                    HybridIndex          Claude API        sự kiện SSE
+              BM25 + vector + RRF    (hoặc offline)   step · sources · token · done
+                          │
+              data/policies/*.md (chunk theo mục, giữ nguyên bảng)
+```
+
+Mục tiêu (mốc 8):
+
+```
+Next.js UI (chat streaming SSE + hộp duyệt) ──► FastAPI (async)
+                                                   │
+                                     LangGraph Supervisor
+        ┌──────────────┬──────────────┼──────────────┬──────────────┐
+   Intake/Router   Knowledge      Order Ops      Document       Reporter
+   (phân loại)     (RAG)          (tool/MCP)     (OCR+trích)    (tổng hợp)
+                                       │
+                         MCP servers: orders-db (Postgres), mail/chat mock, file store
+   ───────────────────────────────────────────────────────────────────────
+   pgvector · Langfuse (trace) · Promptfoo/DeepEval (eval CI) · Docker
+```
+
+Một request đi qua mốc 1:
+
+1. **Truy xuất**: câu hỏi được tách thành âm tiết, cặp âm tiết và bản bỏ dấu, chấm điểm BM25; song song tính vector; hai bảng xếp hạng gộp bằng Reciprocal Rank Fusion. Không có chunk nào khớp từ khóa và vector quá xa thì trả lời "chưa tìm thấy" mà không gọi LLM.
+2. **Sinh câu trả lời**: top 5 chunk đưa vào prompt dưới dạng `<tai_lieu id="n">`, model phải ghi `[n]` sau mỗi ý. System prompt coi nội dung tài liệu là dữ liệu, không phải chỉ dẫn.
+3. **Kiểm tra**: server tách các số `[n]`, báo trích dẫn không tồn tại (`invalid_citations`), trả độ trễ từng chặng, token và chi phí trong sự kiện `done`.
+
+Lý do của từng lựa chọn nằm trong [docs/decisions](docs/decisions/README.md).
+
+## Cấu trúc thư mục
+
+```
+backend/
+  app/
+    main.py              FastAPI: /api/chat (SSE), /api/health, /api/documents
+    agents/knowledge.py  agent RAG: prompt, trích dẫn, sự kiện stream
+    rag/                 tách từ tiếng Việt, chunking, BM25, embedder, hybrid index
+    llm.py               Claude (Anthropic SDK) và LLM offline
+  scripts/
+    eval_retrieval.py    recall@k, MRR cho BM25 / vector / hybrid
+    seed_orders.py       sinh DB đơn hàng giả lập (200 khách, 1.500 đơn)
+  tests/
+frontend/                Next.js 15, React 19
+data/policies/           5 tài liệu chính sách tự soạn
+db/init/                 schema + seed Postgres
+eval/                    bộ câu hỏi đánh giá
+docs/decisions/          ADR
+```
+
+## Lộ trình
+
+| Tuần | Mốc | Trạng thái |
+|---|---|---|
+| 1–2 | MVP: FastAPI + agent RAG trả lời chính sách có trích dẫn, UI chat streaming | ✅ Xong |
+| 3–4 | Multi-agent LangGraph + MCP server cho DB đơn hàng + human-in-the-loop | |
+| 5 | Agent đọc chứng từ: OCR hóa đơn → JSON đã validate | |
+| 6 | Eval 150–200 câu + Langfuse + CI gate | |
+| 7 | Guardrails, fallback model, cache, định tuyến model | |
+| 8 | Hoàn thiện README, video demo, bài viết kỹ thuật | |
+
+## Ghi công
+
+Toàn bộ code trong repo được viết mới. Các dự án đã tham khảo ý tưởng (không chép code): `wassim249/fastapi-langgraph-agent-production-ready-template`, `langchain-ai/agents-from-scratch`, `bangoc123/retrieval-backend-with-rag`. Nếu sau này dùng lại đoạn code nào từ dự án có giấy phép MIT, thông báo bản quyền gốc sẽ được giữ và ghi ở đây.
+
+Có dùng Claude (Anthropic) làm LLM trả lời, và Claude Code hỗ trợ viết code.
+
+Tài liệu chính sách, tên khách hàng, số điện thoại trong dữ liệu mẫu đều là giả lập, không thuộc doanh nghiệp hay cá nhân có thật.

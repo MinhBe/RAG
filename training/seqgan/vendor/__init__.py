@@ -1,1 +1,0 @@
-"""Vendored SeqGAN research modules."""

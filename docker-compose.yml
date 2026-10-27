@@ -1,15 +1,40 @@
 services:
-  hermes-api:
-    build: .
-    ports:
-      - "127.0.0.1:8000:8000"
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
     environment:
-      HERMES_ENV: ${HERMES_ENV:-development}
-      AI_BASE_URL: http://host.docker.internal:20128/v1
-      AI_API_KEY: ${AI_API_KEY:-}
-      AI_MODEL: ${AI_MODEL:-}
-      SUPABASE_URL: ${SUPABASE_URL:-}
-      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+      DATA_DIR: /app/data/policies
+      CORS_ORIGINS: '["http://localhost:3000"]'
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports: ["3000:3000"]
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Orders DB with synthetic data. Not read by the app yet: the Order Ops agent
+  # and its MCP server arrive in milestone 2.
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: backoffice
+      POSTGRES_USER: backoffice
+      POSTGRES_PASSWORD: backoffice
+    ports: ["5432:5432"]
     volumes:
-      - ./artifacts:/app/artifacts
-    restart: unless-stopped
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
