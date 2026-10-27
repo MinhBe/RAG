@@ -106,7 +106,7 @@ def node_history(db: Session, node_id: str) -> list[dict]:
     sql = text(
         """
         WITH RECURSIVE chain(node_id, step) AS (
-            SELECT :id, 0
+            SELECT CAST(:id AS varchar), 0
             UNION ALL
             SELECT s.new_id, chain.step + 1
             FROM node_supersession s JOIN chain ON s.old_id = chain.node_id

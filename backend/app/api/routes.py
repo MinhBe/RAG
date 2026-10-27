@@ -180,6 +180,33 @@ def draft_export(req: DraftRequest, db: Session = Depends(get_db)):
     )
 
 
+# ---------- Báo cáo nhiều văn bản (M6) ----------
+class ReportRequest(BaseModel):
+    topic: str
+    top_k: int = 15
+
+
+@router.post("/api/report")
+def report_route(req: ReportRequest):
+    from app.report.multi_doc import build_report
+
+    return build_report(req.topic, top_k=req.top_k)
+
+
+@router.post("/api/report/export")
+def report_export_route(req: ReportRequest):
+    from fastapi.responses import Response
+
+    from app.report.multi_doc import build_report, report_to_docx
+
+    data = report_to_docx(build_report(req.topic, top_k=req.top_k))
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": 'attachment; filename="bao-cao.docx"'},
+    )
+
+
 # ---------- Chat (SSE) ----------
 class ChatMessage(BaseModel):
     role: str
