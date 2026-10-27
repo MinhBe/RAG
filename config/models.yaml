@@ -1,26 +1,32 @@
 # Vai trò -> model, theo cú pháp LiteLLM "<nhà cung cấp>/<tên model>".
 # Code nghiệp vụ chỉ gọi theo vai trò; đổi model là sửa file này rồi chạy lại eval.
 #
-# ${GEMINI_MODEL} lấy từ .env: điền tên model đã gọi thử thành công với key của bạn
-# (xem danh sách model trong AI Studio). Không ghi cứng tên model ở đây.
+# Tên model dưới đây là những model đã gọi thử thành công bằng key free tier ngày 27/10/2026.
+# Dòng gemini-2.5-* trả 404 với tài khoản mới, các model pro trả 429 ở free tier.
+# Có thể dùng ${TEN_BIEN} để lấy giá trị từ biến môi trường.
 # Khi chuyển sang Claude: thay dòng model bằng ví dụ "anthropic/claude-sonnet-5-5".
+#
+# Model "thinking" tiêu một phần max_tokens cho phần suy nghĩ; đặt dưới khoảng 1024
+# thì có thể nhận về chuỗi rỗng.
 
 roles:
   # Soạn câu trả lời cuối từ tài liệu đã truy xuất (KnowledgeAgent dùng vai trò này).
   answer:
-    model: gemini/${GEMINI_MODEL}
-    fallbacks: []
+    model: gemini/gemini-3.5-flash
+    fallbacks: [gemini/gemini-3.5-flash-lite]
     temperature: 0
-    max_tokens: 2000
+    max_tokens: 2048
 
   # Phân loại câu hỏi: chính sách / đơn hàng / ngoài phạm vi (bước A).
   router:
-    model: gemini/${GEMINI_MODEL}
+    model: gemini/gemini-3.1-flash-lite
+    fallbacks: [gemini/gemini-3.5-flash-lite]
     temperature: 0
-    max_tokens: 200
+    max_tokens: 1024
 
   # Trích JSON từ email khách (bước B).
   extract:
-    model: gemini/${GEMINI_MODEL}
+    model: gemini/gemini-3.1-flash-lite
+    fallbacks: [gemini/gemini-3.5-flash-lite]
     temperature: 0
-    max_tokens: 800
+    max_tokens: 1024

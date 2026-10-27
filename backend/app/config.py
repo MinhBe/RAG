@@ -21,8 +21,6 @@ class Settings(BaseSettings):
     llm_provider: str = "auto"
     anthropic_api_key: str | None = None
     gemini_api_key: str | None = None
-    # Fills ${GEMINI_MODEL} in models.yaml; read here so a value in .env works outside Docker too.
-    gemini_model: str | None = None
     # Role -> model table for the LiteLLM gateway (provider "litellm").
     models_config: Path = REPO_ROOT / "config" / "models.yaml"
     llm_model: str = "claude-opus-5-5"

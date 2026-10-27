@@ -22,15 +22,20 @@ class HTTPError(Exception):
         self.status_code = status_code
 
 
-def test_load_roles_fills_model_from_env():
-    roles = load_roles(MODELS_YAML, {"GEMINI_MODEL": "model-x"})
-    assert roles["answer"].model == "gemini/model-x"
-    assert roles["router"].temperature == 0
+def test_repo_models_yaml_has_every_role():
+    roles = load_roles(MODELS_YAML, {})
+    assert set(roles) == {"answer", "router", "extract"}
+    # Thinking models spend part of max_tokens on reasoning; below ~1024 they can return "".
+    assert all(r.max_tokens >= 1024 for r in roles.values())
+    assert all(r.temperature == 0 for r in roles.values())
 
 
-def test_load_roles_fails_fast_without_model_name():
-    with pytest.raises(ValueError, match="GEMINI_MODEL"):
-        load_roles(MODELS_YAML, {})
+def test_load_roles_fills_env_vars_and_fails_fast_when_missing(tmp_path):
+    path = tmp_path / "models.yaml"
+    path.write_text("roles:\n  answer:\n    model: gemini/${ANSWER_MODEL}\n", encoding="utf-8")
+    assert load_roles(path, {"ANSWER_MODEL": "model-x"})["answer"].model == "gemini/model-x"
+    with pytest.raises(ValueError, match="ANSWER_MODEL"):
+        load_roles(path, {})
 
 
 def test_retry_after_header_wins_over_backoff():
@@ -128,6 +133,6 @@ async def test_backend_streams_text_usage_and_uses_fallback(monkeypatch):
 
 
 def test_build_llm_picks_gateway_when_gemini_key_set():
-    settings = Settings(llm_provider="auto", gemini_api_key="g", gemini_model="model-x", models_config=MODELS_YAML)
-    assert build_llm(settings).name == "litellm:gemini/model-x"
+    settings = Settings(llm_provider="auto", gemini_api_key="g", models_config=MODELS_YAML)
+    assert build_llm(settings).name == f"litellm:{load_roles(MODELS_YAML, {})['answer'].model}"
     assert isinstance(build_llm(Settings(llm_provider="auto", gemini_api_key=None, anthropic_api_key=None)), OfflineLLM)
