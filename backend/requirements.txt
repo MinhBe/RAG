@@ -1,6 +1,7 @@
 fastapi==0.120.*
 uvicorn[standard]==0.38.*
-pydantic-settings==2.11.*
+pydantic-settings==2.15.*
 anthropic==2.3.*
 numpy==2.3.*
 pyyaml==6.0.*
+litellm==1.102.4

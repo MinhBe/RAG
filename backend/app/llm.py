@@ -140,10 +140,22 @@ class OfflineLLM:
         return Generation(stream=_stream(), usage=Usage(model=self.name))
 
 
-def build_llm(settings: Settings) -> LLM:
+def build_llm(settings: Settings, role: str = "answer") -> LLM:
     provider = settings.llm_provider
     if provider == "auto":
-        provider = "anthropic" if settings.anthropic_api_key else "offline"
+        if settings.gemini_api_key:
+            provider = "litellm"
+        elif settings.anthropic_api_key:
+            provider = "anthropic"
+        else:
+            provider = "offline"
+    if provider == "litellm":
+        import os
+
+        from app.gateway import LiteLLMBackend, load_roles
+
+        env = {**os.environ, **({"GEMINI_MODEL": settings.gemini_model} if settings.gemini_model else {})}
+        return LiteLLMBackend(role, load_roles(settings.models_config, env)[role], settings)
     if provider == "anthropic":
         return AnthropicLLM(settings)
     if provider == "offline":

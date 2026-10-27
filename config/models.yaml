@@ -1,0 +1,26 @@
+# Vai trò -> model, theo cú pháp LiteLLM "<nhà cung cấp>/<tên model>".
+# Code nghiệp vụ chỉ gọi theo vai trò; đổi model là sửa file này rồi chạy lại eval.
+#
+# ${GEMINI_MODEL} lấy từ .env: điền tên model đã gọi thử thành công với key của bạn
+# (xem danh sách model trong AI Studio). Không ghi cứng tên model ở đây.
+# Khi chuyển sang Claude: thay dòng model bằng ví dụ "anthropic/claude-sonnet-5-5".
+
+roles:
+  # Soạn câu trả lời cuối từ tài liệu đã truy xuất (KnowledgeAgent dùng vai trò này).
+  answer:
+    model: gemini/${GEMINI_MODEL}
+    fallbacks: []
+    temperature: 0
+    max_tokens: 2000
+
+  # Phân loại câu hỏi: chính sách / đơn hàng / ngoài phạm vi (bước A).
+  router:
+    model: gemini/${GEMINI_MODEL}
+    temperature: 0
+    max_tokens: 200
+
+  # Trích JSON từ email khách (bước B).
+  extract:
+    model: gemini/${GEMINI_MODEL}
+    temperature: 0
+    max_tokens: 800
