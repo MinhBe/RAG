@@ -6,6 +6,8 @@ Dữ liệu là của một cửa hàng giả lập, **Mộc An Home**: tài li�
 
 > **Trạng thái: mốc 1/8 (MVP).** Đã có agent tra cứu chính sách bằng RAG tiếng Việt, trả lời có trích dẫn nguồn, UI chat streaming. Các agent còn lại nằm trong [lộ trình](#lộ-trình).
 
+> **Về lịch sử repo:** repo này trước đây là `hermes-soc-post-audit`, một dự án khác. Các commit cũ được giữ nguyên; dự án hiện tại bắt đầu từ commit `5f36cea` và được ghép vào bằng một merge.
+
 ![Giao diện chat](docs/images/mvp-chat-offline.png)
 
 ## Số đo hiện tại
