@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/app ./app
 COPY data /app/data
+COPY config /app/config
 
 RUN useradd --create-home appuser
 USER appuser
