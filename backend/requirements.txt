@@ -12,3 +12,8 @@ openai>=1.40
 anthropic>=0.34
 langgraph>=0.2
 langgraph-checkpoint-postgres>=1.0
+python-docx>=1.1
+duckdb>=1.0
+# Embedding + rerank model thật (M2). Kéo theo torch — ảnh nặng nhưng để index
+# vector ổn định, không phụ thuộc API ngoài.
+sentence-transformers>=3.0

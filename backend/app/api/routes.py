@@ -112,6 +112,74 @@ def diff_route(req: DiffRequest, db: Session = Depends(get_db)):
     return {"total": len(diffs), "changed": len(changed), "diffs": changed[:200]}
 
 
+# ---------- Soạn thảo văn bản NĐ30 (M5) ----------
+class DraftRequest(BaseModel):
+    doc_type: str = "quyet_dinh"
+    org_name: str = ""
+    org_parent: str | None = None
+    number: str | None = None
+    place: str = "Hà Nội"
+    subject: str = ""
+    bases: list[str] = []
+    body: str = ""
+    signer_title: str = "GIÁM ĐỐC"
+    signer_name: str = ""
+    recipients: list[str] = ["Như trên", "Lưu: VT."]
+    auto_bases: bool = True
+
+
+def _suggest_bases(db: Session) -> list[str]:
+    """Gợi ý 'Căn cứ' từ các văn bản còn hiệu lực trong kho."""
+    from app.db.models import LegalDocument
+
+    docs = db.scalars(
+        select(LegalDocument).where(LegalDocument.status == "active")
+    ).all()
+    out = []
+    for d in docs:
+        if d.doc_type == "luat":
+            out.append(f"{d.title} số {d.number}")
+        elif d.doc_type:
+            out.append(f"{d.title}")
+    return out
+
+
+def _to_input(req: DraftRequest, db: Session):
+    from app.draft.nd30 import DraftInput
+
+    bases = list(req.bases)
+    if req.auto_bases and not bases:
+        bases = _suggest_bases(db)
+    return DraftInput(
+        doc_type=req.doc_type, org_name=req.org_name, org_parent=req.org_parent,
+        number=req.number, place=req.place, subject=req.subject, bases=bases,
+        body=req.body, signer_title=req.signer_title, signer_name=req.signer_name,
+        recipients=req.recipients,
+    )
+
+
+@router.post("/api/draft/preview")
+def draft_preview(req: DraftRequest, db: Session = Depends(get_db)):
+    from app.draft.nd30 import format_check, render_text
+
+    d = _to_input(req, db)
+    return {"text": render_text(d), "issues": format_check(d), "bases": d.bases}
+
+
+@router.post("/api/draft/export")
+def draft_export(req: DraftRequest, db: Session = Depends(get_db)):
+    from app.draft.nd30 import render_docx
+
+    data = render_docx(_to_input(req, db))
+    from fastapi.responses import Response
+
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": 'attachment; filename="van-ban.docx"'},
+    )
+
+
 # ---------- Chat (SSE) ----------
 class ChatMessage(BaseModel):
     role: str
