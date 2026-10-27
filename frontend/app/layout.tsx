@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mộc An · Trợ lý back-office",
-  description: "Trợ lý AI trả lời chính sách có trích dẫn nguồn",
+  title: "Trợ lý pháp luật lao động",
+  description: "Hỏi đáp luật lao động Việt Nam có trích dẫn",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

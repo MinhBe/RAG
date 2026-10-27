@@ -1,9 +1,37 @@
+# Secrets
 .env
-.venv/
+.env.*
+!.env.example
+
+# Python
 __pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
+
+# Node / Next
 node_modules/
 .next/
-next-env.d.ts
-*.tsbuildinfo
+out/
+npm-debug.log*
+.pnpm-store/
+
+# Data (raw/processed legal corpora are large; keep out of git)
+data/raw/
+data/processed/
+*.npz
+
+# Models
+models/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Docker volumes (local bind mounts if any)
+pgdata/

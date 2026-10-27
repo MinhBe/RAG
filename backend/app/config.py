@@ -1,39 +1,72 @@
+"""Cấu hình tập trung — đọc từ biến môi trường / .env. Không hardcode secret."""
+
+from __future__ import annotations
+
 from functools import lru_cache
-from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-
-# USD per 1M tokens (input, output). Source: Anthropic pricing, checked 2026-10.
-MODEL_PRICES: dict[str, tuple[float, float]] = {
-    "claude-opus-5-5": (4.00, 20.00),
-    "claude-sonnet-5-5": (2.00, 10.00),
-    "claude-haiku-5-5": (0.10, 0.50),
-}
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    # "auto" uses Anthropic when ANTHROPIC_API_KEY is set, otherwise the offline extractive LLM.
+    # Database
+    database_url: str = "postgresql://lawvn:lawvn-dev@localhost:5432/lawvn"
+
+    # LLM chung
     llm_provider: str = "auto"
+
+    # Gemini (OpenAI-compatible)
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    gemini_model: str = "gemini-3.5-flash"
+    gemini_model_lite: str = "gemini-3.1-flash-lite"
+
+    # Claude
     anthropic_api_key: str | None = None
-    llm_model: str = "claude-opus-5-5"
-    llm_effort: str = "low"
-    llm_max_tokens: int = 8000
+    anthropic_model: str = "claude-opus-5-5"
 
-    # "hashing" needs no download; "bge-m3" needs requirements-ml.txt (sentence-transformers).
+    # FPT (tùy chọn)
+    fpt_base_url: str = "https://mkp-api.fptcloud.com"
+    fpt_api_key: str | None = None
+    fpt_model: str = "gpt-oss-20b"
+
+    # Embedding
     embedder: str = "hashing"
-    data_dir: Path = REPO_ROOT / "data" / "policies"
+    embed_dim: int = 1024
 
-    top_k: int = 5
-    candidates: int = 20
-    rrf_k: int = 60
-    # Below this dense similarity, with no keyword overlap, we answer "not found".
-    min_dense_score: float = 0.12
+    # Rerank
+    rerank_enabled: bool = False
+    rerank_model: str = "BAAI/bge-reranker-v2-m3"
 
-    cors_origins: list[str] = ["http://localhost:3000"]
+    # Observability
+    langfuse_enabled: bool = False
+    langfuse_host: str = "http://localhost:3001"
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
+
+    @property
+    def gemini_keys(self) -> list[str]:
+        """Gom GEMINI_API_KEY_1..10 từ môi trường, bỏ ô trống."""
+        import os
+
+        keys = []
+        for i in range(1, 11):
+            v = os.getenv(f"GEMINI_API_KEY_{i}", "").strip()
+            if v:
+                keys.append(v)
+        # Cho phép cả GEMINI_API_KEY đơn lẻ.
+        single = os.getenv("GEMINI_API_KEY", "").strip()
+        if single:
+            keys.append(single)
+        return keys
+
+    @property
+    def sqlalchemy_url(self) -> str:
+        """SQLAlchemy cần driver rõ ràng (psycopg3)."""
+        url = self.database_url
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+psycopg://", 1)
+        return url
 
 
 @lru_cache

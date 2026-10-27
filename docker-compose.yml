@@ -1,40 +1,78 @@
+# Trợ lý pháp luật lao động — stack local.
+# Core (mặc định): postgres (pgvector) + api + web.
+# Quan sát (profile "obs"): langfuse. Bật bằng:  docker compose --profile obs up -d
+#
+#   Web UI   : http://localhost:3000
+#   API docs : http://localhost:8000/docs
+#   Langfuse : http://localhost:3001   (chỉ khi bật profile obs)
+
 services:
-  backend:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lawvn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lawvn-dev}
+      POSTGRES_DB: ${POSTGRES_DB:-lawvn}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lawvn} -d ${POSTGRES_DB:-lawvn}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
     env_file: .env
     environment:
-      DATA_DIR: /app/data/policies
-      CORS_ORIGINS: '["http://localhost:3000"]'
-    ports: ["8000:8000"]
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
-      interval: 10s
-      retries: 5
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lawvn}:${POSTGRES_PASSWORD:-lawvn-dev}@postgres:5432/${POSTGRES_DB:-lawvn}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+      - modelcache:/root/.cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-  frontend:
+  web:
     build:
       context: ./frontend
-      args:
-        NEXT_PUBLIC_API_URL: http://localhost:8000
-    ports: ["3000:3000"]
-    depends_on:
-      backend:
-        condition: service_healthy
-
-  # Orders DB with synthetic data. Not read by the app yet: the Order Ops agent
-  # and its MCP server arrive in milestone 2.
-  postgres:
-    image: postgres:17-alpine
     environment:
-      POSTGRES_DB: backoffice
-      POSTGRES_USER: backoffice
-      POSTGRES_PASSWORD: backoffice
-    ports: ["5432:5432"]
+      # Trình duyệt gọi API qua localhost; SSR trong container gọi qua tên service.
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
     volumes:
-      - ./db/init:/docker-entrypoint-initdb.d:ro
-      - pgdata:/var/lib/postgresql/data
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
+    command: npm run dev
+
+  # --- Quan sát (tùy chọn, M7) ---
+  langfuse:
+    image: langfuse/langfuse:2
+    profiles: ["obs"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lawvn}:${POSTGRES_PASSWORD:-lawvn-dev}@postgres:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3001
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-change-me-dev-secret}
+      SALT: ${LANGFUSE_SALT:-change-me-dev-salt}
+      TELEMETRY_ENABLED: "false"
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   pgdata:
+  modelcache:

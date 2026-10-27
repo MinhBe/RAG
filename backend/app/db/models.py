@@ -1,0 +1,121 @@
+"""Lược đồ dữ liệu — thay cho Neo4j, lưu luật + hiệu lực + sửa đổi trong Postgres.
+
+Mã node theo kiểu LAWGIC: `blld2019-d35-k2-a`
+  d = Điều, k = Khoản, chữ cái cuối = Điểm.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import (
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.config import get_settings
+from app.db.base import Base
+
+EMBED_DIM = get_settings().embed_dim
+
+
+class LegalDocument(Base):
+    __tablename__ = "legal_document"
+
+    doc_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    title: Mapped[str] = mapped_column(Text)
+    doc_type: Mapped[str | None] = mapped_column(String(32))  # luat|nghi_dinh|thong_tu|...
+    number: Mapped[str | None] = mapped_column(String(64))
+    issued_date: Mapped[date | None] = mapped_column(Date)
+    effective_date: Mapped[date | None] = mapped_column(Date)
+    expired_date: Mapped[date | None] = mapped_column(Date)
+    status: Mapped[str | None] = mapped_column(String(32), default="active")
+    source_url: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    nodes: Mapped[list["LegalNode"]] = relationship(back_populates="document")
+
+
+class LegalNode(Base):
+    __tablename__ = "legal_node"
+
+    node_id: Mapped[str] = mapped_column(String(96), primary_key=True)
+    doc_id: Mapped[str] = mapped_column(ForeignKey("legal_document.doc_id", ondelete="CASCADE"))
+    level: Mapped[str] = mapped_column(String(16))  # article|clause|point
+    article_no: Mapped[int | None] = mapped_column(Integer)
+    clause_no: Mapped[int | None] = mapped_column(Integer)
+    point_letter: Mapped[str | None] = mapped_column(String(4))
+    parent_id: Mapped[str | None] = mapped_column(
+        ForeignKey("legal_node.node_id", ondelete="CASCADE")
+    )
+    heading: Mapped[str | None] = mapped_column(Text)  # tiêu đề Điều
+    text: Mapped[str] = mapped_column(Text)
+    text_hash: Mapped[str | None] = mapped_column(String(64))
+    seq: Mapped[int | None] = mapped_column(Integer)  # thứ tự trong văn bản
+    effective_from: Mapped[date | None] = mapped_column(Date)
+    effective_to: Mapped[date | None] = mapped_column(Date)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBED_DIM))
+
+    document: Mapped["LegalDocument"] = relationship(back_populates="nodes")
+
+
+class NodeSupersession(Base):
+    """Quan hệ SUPERSEDED_BY: node cũ bị node mới thay thế."""
+
+    __tablename__ = "node_supersession"
+
+    old_id: Mapped[str] = mapped_column(
+        ForeignKey("legal_node.node_id", ondelete="CASCADE"), primary_key=True
+    )
+    new_id: Mapped[str] = mapped_column(
+        ForeignKey("legal_node.node_id", ondelete="CASCADE"), primary_key=True
+    )
+    change_type: Mapped[str | None] = mapped_column(String(32))  # amended|replaced|removed|added
+    similarity: Mapped[float | None] = mapped_column(Float)
+    detected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class DocumentRelation(Base):
+    """Quan hệ cấp văn bản: AMENDS / REPLACES / GUIDES."""
+
+    __tablename__ = "document_relation"
+
+    from_doc: Mapped[str] = mapped_column(
+        ForeignKey("legal_document.doc_id", ondelete="CASCADE"), primary_key=True
+    )
+    to_doc: Mapped[str] = mapped_column(
+        ForeignKey("legal_document.doc_id", ondelete="CASCADE"), primary_key=True
+    )
+    rel: Mapped[str] = mapped_column(String(16), primary_key=True)
+
+
+class Thread(Base):
+    __tablename__ = "thread"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    title: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class Message(Base):
+    __tablename__ = "message"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    thread_id: Mapped[str] = mapped_column(ForeignKey("thread.id", ondelete="CASCADE"))
+    role: Mapped[str] = mapped_column(String(16))  # human|ai|tool
+    content: Mapped[str] = mapped_column(Text)
+    meta: Mapped[str | None] = mapped_column(Text)  # JSON (citations, tool calls)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

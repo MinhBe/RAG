@@ -1,2 +1,5 @@
-# Optional: real multilingual embeddings (EMBEDDER=bge-m3). Pulls in PyTorch.
-sentence-transformers==5.1.*
+# Cài thêm cho M2 (embedding + rerank model thật). Nặng, tải vài GB.
+#   docker compose exec api pip install -r requirements-ml.txt
+sentence-transformers>=3.0
+FlagEmbedding>=1.2
+underthesea>=6.8

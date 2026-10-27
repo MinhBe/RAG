@@ -1,38 +1,52 @@
-// Minimal Server-Sent Events parser for fetch() streams.
-// EventSource only supports GET, and the chat endpoint is a POST with a JSON body.
+// Đọc SSE từ một POST request bằng fetch + ReadableStream.
+// Mỗi sự kiện: dòng "event: <type>" và "data: <json>", ngăn nhau bằng dòng trống.
 
-export type SSEMessage = { event: string; data: string };
+export type SSEHandler = (event: string, data: any) => void;
 
-export function createSSEParser(onMessage: (msg: SSEMessage) => void) {
-  let buffer = "";
-
-  function dispatch(block: string) {
-    let event = "message";
-    const data: string[] = [];
-    for (const line of block.split("\n")) {
-      if (line.startsWith(":")) continue; // comment / keep-alive
-      const colon = line.indexOf(":");
-      const field = colon === -1 ? line : line.slice(0, colon);
-      let value = colon === -1 ? "" : line.slice(colon + 1);
-      if (value.startsWith(" ")) value = value.slice(1);
-      if (field === "event") event = value;
-      else if (field === "data") data.push(value);
-    }
-    if (data.length) onMessage({ event, data: data.join("\n") });
+export async function streamChat(
+  apiBase: string,
+  body: Record<string, unknown>,
+  onEvent: SSEHandler,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`${apiBase}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    throw new Error(`Chat request failed: ${res.status}`);
   }
 
-  return {
-    feed(chunk: string) {
-      buffer += chunk.replace(/\r\n?/g, "\n");
-      let sep: number;
-      while ((sep = buffer.indexOf("\n\n")) !== -1) {
-        dispatch(buffer.slice(0, sep));
-        buffer = buffer.slice(sep + 2);
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let sep: number;
+    while ((sep = buffer.indexOf("\n\n")) !== -1) {
+      const block = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+
+      let event = "message";
+      const dataLines: string[] = [];
+      for (const line of block.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
       }
-    },
-    flush() {
-      if (buffer.trim()) dispatch(buffer);
-      buffer = "";
-    },
-  };
+      if (dataLines.length) {
+        const raw = dataLines.join("\n");
+        try {
+          onEvent(event, JSON.parse(raw));
+        } catch {
+          onEvent(event, raw);
+        }
+      }
+    }
+  }
 }
