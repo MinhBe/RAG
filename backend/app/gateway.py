@@ -17,7 +17,8 @@ import yaml
 from app.config import MODEL_PRICES, Settings
 from app.llm import Generation, Usage
 
-_ENV_VAR = re.compile(r"\$\{(\w+)\}")
+# ${VAR} or ${VAR:-default}
+_ENV_VAR = re.compile(r"\$\{(\w+)(?::-([^}]*))?\}")
 
 # Retry only what can succeed on a second try: rate limits and server-side errors.
 # 400 (bad request), 401/403 (key), 404 (model name) fail the same way every time.
@@ -33,17 +34,19 @@ class RoleConfig:
 
 
 def load_roles(path: Path, env: dict[str, str] | None = None) -> dict[str, RoleConfig]:
-    """Reads the role table, filling ${VAR} from the environment.
+    """Reads the role table, filling ${VAR} or ${VAR:-default} from the environment.
 
-    A missing variable is an error at startup, not a 404 on the first request."""
+    A missing variable with no default is an error at startup, not a 404 on the first request."""
     env = dict(os.environ) if env is None else env
 
     def expand(value: str, role: str) -> str:
         def sub(m: re.Match) -> str:
-            name = m.group(1)
-            if not env.get(name):
-                raise ValueError(f"{path.name}: role '{role}' needs {name}, set it in .env")
-            return env[name]
+            name, default = m.group(1), m.group(2)
+            if env.get(name):
+                return env[name]
+            if default is not None:
+                return default
+            raise ValueError(f"{path.name}: role '{role}' needs {name}, set it in .env")
 
         return _ENV_VAR.sub(sub, value)
 

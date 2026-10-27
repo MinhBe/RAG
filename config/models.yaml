@@ -3,7 +3,9 @@
 #
 # Tên model dưới đây là những model đã gọi thử thành công bằng key free tier ngày 27/10/2026.
 # Dòng gemini-2.5-* trả 404 với tài khoản mới, các model pro trả 429 ở free tier.
-# Có thể dùng ${TEN_BIEN} để lấy giá trị từ biến môi trường.
+# ${TEN_BIEN:-mac_dinh} lấy giá trị từ .env, thiếu thì dùng mặc định:
+#   GEMINI_MODEL      -> việc thường (answer)
+#   GEMINI_MODEL_LITE -> việc dễ (router, extract)
 # Khi chuyển sang Claude: thay dòng model bằng ví dụ "anthropic/claude-sonnet-5-5".
 #
 # Model "thinking" tiêu một phần max_tokens cho phần suy nghĩ; đặt dưới khoảng 1024
@@ -12,21 +14,21 @@
 roles:
   # Soạn câu trả lời cuối từ tài liệu đã truy xuất (KnowledgeAgent dùng vai trò này).
   answer:
-    model: gemini/gemini-3.5-flash
+    model: gemini/${GEMINI_MODEL:-gemini-3.5-flash}
     fallbacks: [gemini/gemini-3.5-flash-lite]
     temperature: 0
     max_tokens: 2048
 
   # Phân loại câu hỏi: chính sách / đơn hàng / ngoài phạm vi (bước A).
   router:
-    model: gemini/gemini-3.1-flash-lite
+    model: gemini/${GEMINI_MODEL_LITE:-gemini-3.1-flash-lite}
     fallbacks: [gemini/gemini-3.5-flash-lite]
     temperature: 0
     max_tokens: 1024
 
   # Trích JSON từ email khách (bước B).
   extract:
-    model: gemini/gemini-3.1-flash-lite
+    model: gemini/${GEMINI_MODEL_LITE:-gemini-3.1-flash-lite}
     fallbacks: [gemini/gemini-3.5-flash-lite]
     temperature: 0
     max_tokens: 1024

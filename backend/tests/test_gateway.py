@@ -38,6 +38,22 @@ def test_load_roles_fills_env_vars_and_fails_fast_when_missing(tmp_path):
         load_roles(path, {})
 
 
+def test_default_and_env_override_for_gemini_models():
+    defaults = load_roles(MODELS_YAML, {})
+    assert defaults["answer"].model == "gemini/gemini-3.5-flash"
+    assert defaults["router"].model == "gemini/gemini-3.1-flash-lite"
+    custom = load_roles(MODELS_YAML, {"GEMINI_MODEL": "a", "GEMINI_MODEL_LITE": "b"})
+    assert (custom["answer"].model, custom["extract"].model) == ("gemini/a", "gemini/b")
+
+
+def test_build_llm_reads_model_names_from_settings():
+    settings = Settings(
+        llm_provider="litellm", gemini_api_key="g", gemini_model="x", gemini_model_lite="y", models_config=MODELS_YAML
+    )
+    assert build_llm(settings, "answer").name == "litellm:gemini/x"
+    assert build_llm(settings, "router").name == "litellm:gemini/y"
+
+
 def test_retry_after_header_wins_over_backoff():
     assert retry_delay(_rate_limit("7"), attempt=0) == 7.0
 

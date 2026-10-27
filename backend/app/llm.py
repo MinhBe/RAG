@@ -150,9 +150,17 @@ def build_llm(settings: Settings, role: str = "answer") -> LLM:
         else:
             provider = "offline"
     if provider == "litellm":
+        import os
+
         from app.gateway import LiteLLMBackend, load_roles
 
-        return LiteLLMBackend(role, load_roles(settings.models_config)[role], settings)
+        # Settings reads .env but does not export it, so pass the model names along explicitly.
+        env = {**os.environ}
+        if settings.gemini_model:
+            env["GEMINI_MODEL"] = settings.gemini_model
+        if settings.gemini_model_lite:
+            env["GEMINI_MODEL_LITE"] = settings.gemini_model_lite
+        return LiteLLMBackend(role, load_roles(settings.models_config, env)[role], settings)
     if provider == "anthropic":
         return AnthropicLLM(settings)
     if provider == "offline":

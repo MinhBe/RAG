@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     llm_provider: str = "auto"
     anthropic_api_key: str | None = None
     gemini_api_key: str | None = None
+    # Fill ${GEMINI_MODEL} / ${GEMINI_MODEL_LITE} in models.yaml; unset means the file's default.
+    gemini_model: str | None = None
+    gemini_model_lite: str | None = None
     # Role -> model table for the LiteLLM gateway (provider "litellm").
     models_config: Path = REPO_ROOT / "config" / "models.yaml"
     llm_model: str = "claude-opus-5-5"
