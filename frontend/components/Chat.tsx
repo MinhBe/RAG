@@ -87,6 +87,16 @@ const IconCheck = () => (
     <path d="M5 13l4 4L19 7" />
   </svg>
 );
+const IconSun = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+  </svg>
+);
+const IconMoon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+);
 const IconSearch = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
@@ -201,6 +211,7 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
   const threadId = useRef<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -211,7 +222,24 @@ export default function Chat() {
 
   useEffect(() => {
     setConvos(loadConvos());
+    // Khôi phục theme từ localStorage
+    try {
+      const saved = localStorage.getItem("llv_theme") as "light" | "dark" | "system" | null;
+      if (saved && saved !== "system") {
+        setTheme(saved);
+        document.documentElement.setAttribute("data-theme", saved);
+      }
+    } catch { /* ignore */ }
   }, []);
+
+  function toggleTheme() {
+    setTheme((prev) => {
+      const next = prev === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("llv_theme", next); } catch { /* ignore */ }
+      return next;
+    });
+  }
 
   function scrollDown() {
     requestAnimationFrame(() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight }));
@@ -367,6 +395,9 @@ export default function Chat() {
             <IconMenu />
           </button>
           <span className="title">Trợ lý pháp luật lao động</span>
+          <button className="theme-btn" onClick={toggleTheme} aria-label="Đổi chế độ sáng/tối">
+            {theme === "dark" ? <><IconSun /> Sáng</> : <><IconMoon /> Tối</>}
+          </button>
         </header>
 
         <div className="messages" ref={listRef}>
