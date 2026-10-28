@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { streamChat } from "@/lib/sse";
@@ -100,6 +101,12 @@ const IconSun = () => (
 const IconMoon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+);
+const IconGraph = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/>
+    <line x1="7" y1="11.5" x2="17" y2="6.5"/><line x1="7" y1="12.5" x2="17" y2="17.5"/>
   </svg>
 );
 const IconSearch = () => (
@@ -539,6 +546,9 @@ export default function Chat() {
             <IconMenu />
           </button>
           <span className="title">Trợ lý pháp luật lao động</span>
+          <Link href="/graph" className="graph-nav-btn" title="Knowledge Graph">
+            <IconGraph />
+          </Link>
           <button className="theme-btn" onClick={toggleTheme} aria-label="Đổi chế độ sáng/tối">
             {theme === "dark" ? <><IconSun /> Sáng</> : <><IconMoon /> Tối</>}
           </button>

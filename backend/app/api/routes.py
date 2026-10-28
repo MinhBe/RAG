@@ -263,6 +263,96 @@ def list_threads(db: Session = Depends(get_db)):
     return [{"id": t.id, "title": t.title} for t in rows]
 
 
+# ---------- Knowledge Graph ----------
+@router.get("/api/graph")
+def graph_route(query: str, top_k: int = 20, db: Session = Depends(get_db)):
+    """Trả về nodes + edges cho knowledge graph theo từ khóa."""
+    from app.rag.search import search_nodes
+    from app.db.models import NodeSupersession
+
+    hits = search_nodes(db, query, top_k=top_k)
+    if not hits:
+        return {"nodes": [], "edges": [], "query": query}
+
+    node_ids = [h["node_id"] for h in hits]
+    id_set = set(node_ids)
+
+    # --- Nodes ---
+    nodes = []
+    for h in hits:
+        nodes.append({
+            "id": h["node_id"],
+            "label": h.get("display") or h["node_id"],
+            "doc_id": h["doc_id"],
+            "level": h.get("level", "article"),
+            "heading": h.get("heading", ""),
+            "text": h["text"][:300] if h.get("text") else "",
+            "score": round(h.get("score", 0), 3),
+        })
+
+    # --- Edges ---
+    edges: list[dict] = []
+    seen_edges: set[tuple] = set()
+
+    def add_edge(src: str, tgt: str, etype: str):
+        key = (src, tgt)
+        if key not in seen_edges and src != tgt:
+            seen_edges.add(key)
+            edges.append({"source": src, "target": tgt, "type": etype})
+
+    # 1. Parent → child hierarchy (parent_id field)
+    from app.db.models import LegalNode
+    from sqlalchemy import select as sa_select
+    parent_rows = db.execute(
+        sa_select(LegalNode.node_id, LegalNode.parent_id)
+        .where(LegalNode.node_id.in_(node_ids))
+        .where(LegalNode.parent_id.isnot(None))
+    ).all()
+    for nid, pid in parent_rows:
+        if pid in id_set:
+            add_edge(pid, nid, "parent_child")
+
+    # 2. Supersession links involving our nodes
+    sup_rows = db.execute(
+        sa_select(NodeSupersession.old_node_id, NodeSupersession.new_node_id)
+        .where(
+            NodeSupersession.old_node_id.in_(node_ids) |
+            NodeSupersession.new_node_id.in_(node_ids)
+        )
+    ).all()
+    for old_id, new_id in sup_rows:
+        # Add endpoint nodes if not already in result
+        for nid in (old_id, new_id):
+            if nid not in id_set:
+                node = db.get(LegalNode, nid)
+                if node:
+                    nodes.append({
+                        "id": node.node_id,
+                        "label": f"Điều {node.article_no}" + (f" K{node.clause_no}" if node.clause_no else ""),
+                        "doc_id": node.doc_id,
+                        "level": node.level,
+                        "heading": node.heading or "",
+                        "text": (node.text or "")[:300],
+                        "score": 0,
+                        "ghost": True,
+                    })
+                    id_set.add(nid)
+        add_edge(old_id, new_id, "superseded_by")
+
+    # 3. Same-article siblings (connect clauses of same article)
+    article_groups: dict[str, list[str]] = {}
+    for nid in node_ids:
+        parts = nid.rsplit("-k", 1)
+        art = parts[0]
+        article_groups.setdefault(art, []).append(nid)
+    for art, siblings in article_groups.items():
+        if len(siblings) > 1:
+            for i in range(len(siblings) - 1):
+                add_edge(siblings[i], siblings[i + 1], "sibling")
+
+    return {"nodes": nodes, "edges": edges, "query": query}
+
+
 # ---------- Human-in-loop: Escalation (câu hỏi không đủ căn cứ) ----------
 _ESC_FILE = Path("/app/data/escalations.json")
 _esc_lock = threading.Lock()
