@@ -433,7 +433,7 @@ export default function Chat() {
 
   function setUrl(id: string | null) {
     const url = id ? `/?t=${id}` : "/";
-    window.history.replaceState(null, "", url);
+    setTimeout(() => window.history.replaceState(null, "", url), 0);
   }
 
   function persist(msgs: Msg[]) {
@@ -568,10 +568,22 @@ export default function Chat() {
             <div
               key={c.id}
               className={`thread-item ${c.id === activeId ? "active" : ""}`}
-              onClick={() => openConvo(c)}
               title={c.title}
             >
-              {c.title}
+              <span className="thread-title" onClick={() => openConvo(c)}>{c.title}</span>
+              <button
+                className="thread-del"
+                title="Xóa cuộc trò chuyện"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConvos((prev) => {
+                    const next = prev.filter((x) => x.id !== c.id);
+                    saveConvos(next);
+                    return next;
+                  });
+                  if (activeId === c.id) { setMessages([]); setActiveId(null); threadId.current = null; setUrl(null); }
+                }}
+              >···</button>
             </div>
           ))}
         </div>

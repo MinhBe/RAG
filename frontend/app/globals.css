@@ -638,3 +638,14 @@ html, body {
 .convo-row:hover { background: var(--muted); }
 .convo-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .convo-meta { font-size: 11px; color: var(--muted-foreground); margin-left: 12px; white-space: nowrap; }
+
+/* ---------- Sidebar conversation delete button ---------- */
+.thread-item { display: flex; align-items: center; justify-content: space-between; }
+.thread-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.thread-del {
+  flex-shrink: 0; opacity: 0; padding: 2px 5px; margin-left: 4px;
+  background: none; border: none; cursor: pointer; border-radius: 4px;
+  color: var(--muted-foreground); font-size: 14px; letter-spacing: 1px; line-height: 1;
+}
+.thread-item:hover .thread-del { opacity: 1; }
+.thread-del:hover { background: var(--border); color: var(--destructive); }
