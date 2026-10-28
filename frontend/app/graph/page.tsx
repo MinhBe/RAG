@@ -31,8 +31,8 @@ declare global {
 
 export default function GraphPage() {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [query, setQuery] = useState("thử việc");
-  const [input, setInput] = useState("thử việc");
+  const [query, setQuery] = useState("");
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<GNode | null>(null);
   const [d3Ready, setD3Ready] = useState(false);
@@ -40,6 +40,7 @@ export default function GraphPage() {
 
   const runGraph = useCallback(async (q: string) => {
     if (!window.d3 || !svgRef.current) return;
+    // empty query → fetch all nodes
     setLoading(true);
     setSelected(null);
     try {
@@ -139,7 +140,7 @@ export default function GraphPage() {
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (input.trim()) setQuery(input.trim());
+    setQuery(input.trim()); // allow empty — shows all nodes
   }
 
   return (

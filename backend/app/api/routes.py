@@ -265,12 +265,34 @@ def list_threads(db: Session = Depends(get_db)):
 
 # ---------- Knowledge Graph ----------
 @router.get("/api/graph")
-def graph_route(query: str, top_k: int = 20, db: Session = Depends(get_db)):
-    """Trả về nodes + edges cho knowledge graph theo từ khóa."""
-    from app.rag.search import search_nodes
+def graph_route(query: str = "", top_k: int = 20, db: Session = Depends(get_db)):
+    """Trả về nodes + edges cho knowledge graph theo từ khóa.
+    Nếu query rỗng, trả về toàn bộ nodes (giới hạn top_k, ưu tiên Điều cấp article).
+    """
+    from app.rag.search import search_nodes, _display
     from app.db.models import NodeSupersession
+    from sqlalchemy import select as sa_select2, text as sa_text
 
-    hits = search_nodes(db, query, top_k=top_k)
+    if query.strip():
+        hits = search_nodes(db, query, top_k=top_k)
+    else:
+        # Không có query → lấy tất cả nodes article-level trước, rồi clause
+        rows = db.execute(
+            sa_text(
+                "SELECT node_id, doc_id, article_no, clause_no, point_letter, heading, text, level "
+                "FROM legal_node "
+                "ORDER BY CASE level WHEN 'article' THEN 0 WHEN 'clause' THEN 1 ELSE 2 END, node_id "
+                "LIMIT :k"
+            ),
+            {"k": top_k},
+        ).all()
+        hits = []
+        for r in rows:
+            d = dict(r._mapping)
+            d["display"] = _display(d)
+            d["score"] = 0.0
+            hits.append(d)
+
     if not hits:
         return {"nodes": [], "edges": [], "query": query}
 
