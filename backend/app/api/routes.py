@@ -314,10 +314,10 @@ def graph_route(query: str, top_k: int = 20, db: Session = Depends(get_db)):
 
     # 2. Supersession links involving our nodes
     sup_rows = db.execute(
-        sa_select(NodeSupersession.old_node_id, NodeSupersession.new_node_id)
+        sa_select(NodeSupersession.old_id, NodeSupersession.new_id)
         .where(
-            NodeSupersession.old_node_id.in_(node_ids) |
-            NodeSupersession.new_node_id.in_(node_ids)
+            NodeSupersession.old_id.in_(node_ids) |
+            NodeSupersession.new_id.in_(node_ids)
         )
     ).all()
     for old_id, new_id in sup_rows:
