@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import json
+import threading
 import uuid
+from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -257,3 +261,71 @@ def chat(req: ChatRequest):
 def list_threads(db: Session = Depends(get_db)):
     rows = db.scalars(select(Thread).order_by(Thread.updated_at.desc())).all()
     return [{"id": t.id, "title": t.title} for t in rows]
+
+
+# ---------- Human-in-loop: Escalation (câu hỏi không đủ căn cứ) ----------
+_ESC_FILE = Path("/app/data/escalations.json")
+_esc_lock = threading.Lock()
+
+
+def _load_esc() -> list[dict]:
+    try:
+        if _ESC_FILE.exists():
+            return json.loads(_ESC_FILE.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        pass
+    return []
+
+
+def _save_esc(rows: list[dict]) -> None:
+    _ESC_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _ESC_FILE.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+class EscalateRequest(BaseModel):
+    question: str
+    thread_id: str | None = None
+
+
+class EscalateUpdate(BaseModel):
+    status: str  # "approved" | "denied"
+
+
+@router.post("/api/escalate")
+def escalate(req: EscalateRequest):
+    """Ghi nhận câu hỏi không đủ căn cứ để nhà phát hành xem xét."""
+    row = {
+        "id": uuid.uuid4().hex,
+        "question": req.question,
+        "thread_id": req.thread_id,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    with _esc_lock:
+        rows = _load_esc()
+        rows.insert(0, row)
+        _save_esc(rows)
+    return {"id": row["id"], "status": "pending"}
+
+
+@router.get("/api/escalations")
+def list_escalations():
+    """Lấy danh sách câu hỏi chờ phê duyệt."""
+    with _esc_lock:
+        return _load_esc()
+
+
+@router.patch("/api/escalations/{esc_id}")
+def update_escalation(esc_id: str, req: EscalateUpdate):
+    """Cập nhật trạng thái: approved / denied."""
+    with _esc_lock:
+        rows = _load_esc()
+        for r in rows:
+            if r["id"] == esc_id:
+                r["status"] = req.status
+                r["resolved_at"] = datetime.now(timezone.utc).isoformat()
+                break
+        else:
+            raise HTTPException(status_code=404, detail="Không tìm thấy escalation")
+        _save_esc(rows)
+    return {"id": esc_id, "status": req.status}
