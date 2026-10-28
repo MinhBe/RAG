@@ -17,6 +17,35 @@ from app.rag.search import search_nodes
 
 REFUSAL = "Không đủ căn cứ trong kho văn bản để trả lời chắc chắn câu này."
 
+REWRITE_SYSTEM = (
+    "Bạn là chuyên gia pháp luật lao động Việt Nam.\n"
+    "Người dùng đặt câu hỏi nhưng KHÔNG tìm được điều luật nào phù hợp trong kho BLLĐ 2019, "
+    "BLLĐ 2012 và NĐ 145/2020.\n"
+    "Nhiệm vụ: Phân tích câu hỏi gốc và đề xuất LẠI câu hỏi bằng ĐÚNG thuật ngữ pháp lý mà "
+    "Bộ luật Lao động sử dụng (ví dụ: 'thủ tiêu' → 'chấm dứt hợp đồng lao động', "
+    "'đuổi khỏi công ty' → 'sa thải', 'thôi việc tự nguyện' → 'đơn phương chấm dứt hợp đồng').\n"
+    "Chỉ trả về JSON: {\"suggested\": \"<câu hỏi chuẩn pháp lý>\", \"reason\": \"<1 câu giải thích ngắn>\"}.\n"
+    "Nếu câu hỏi hoàn toàn ngoài phạm vi pháp luật lao động: {\"suggested\": \"\", \"reason\": \"\"}.\n"
+    "KHÔNG thêm bất kỳ văn bản nào ngoài JSON."
+)
+
+
+def _suggest_rewrite(router, question: str) -> tuple[str, str] | None:
+    """Trả về (câu hỏi được viết lại, lý do) hoặc None nếu ngoài phạm vi."""
+    try:
+        msgs = [
+            {"role": "system", "content": REWRITE_SYSTEM},
+            {"role": "user", "content": f"Câu hỏi gốc: {question}"},
+        ]
+        result = router.extract_json(msgs, task="route")
+        suggested = (result.get("suggested") or "").strip()
+        reason = (result.get("reason") or "").strip()
+        if suggested and suggested.lower() != question.lower():
+            return suggested, reason
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Rewrite thất bại: {}", exc)
+    return None
+
 SYSTEM = (
     "Bạn là trợ lý pháp luật lao động Việt Nam. TRẢ LỜI CHỈ dựa trên các điều luật được "
     "cung cấp bên dưới, bằng tiếng Việt có dấu đầy đủ.\n"
@@ -45,7 +74,14 @@ def answer_with_citations(message: str, history: list[dict] | None = None) -> It
         db.close()
 
     if not hits:
-        yield ("token", {"text": REFUSAL})
+        # Thử viết lại câu hỏi bằng thuật ngữ pháp lý chuẩn
+        yield ("step", {"name": "rewrite", "label": "Phân tích và đề xuất câu hỏi pháp lý chuẩn hơn"})
+        rewrite = _suggest_rewrite(router, message)
+        if rewrite:
+            suggested, reason = rewrite
+            yield ("suggest_rewrite", {"original": message, "suggested": suggested, "reason": reason})
+        else:
+            yield ("token", {"text": REFUSAL})
         yield ("done", {})
         return
 
@@ -77,7 +113,14 @@ def answer_with_citations(message: str, history: list[dict] | None = None) -> It
     valid = [cid for cid in cited_ids if cid in by_id]
 
     if not answer or not valid:
-        yield ("token", {"text": REFUSAL})
+        # Có hits nhưng LLM không tìm ra căn cứ — thử rewrite
+        yield ("step", {"name": "rewrite", "label": "Phân tích và đề xuất câu hỏi pháp lý chuẩn hơn"})
+        rewrite = _suggest_rewrite(router, message)
+        if rewrite:
+            suggested, reason = rewrite
+            yield ("suggest_rewrite", {"original": message, "suggested": suggested, "reason": reason})
+        else:
+            yield ("token", {"text": REFUSAL})
         yield ("done", {})
         return
 

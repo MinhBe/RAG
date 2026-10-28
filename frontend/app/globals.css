@@ -290,6 +290,48 @@ html, body {
 .send:disabled { opacity: .45; cursor: default; }
 .hint { max-width: 760px; margin: 0 auto; padding: 0 20px 12px; font-size: 11px; color: var(--muted-foreground); text-align: center; }
 
+/* ---------- Suggest Rewrite card ---------- */
+.rewrite-card {
+  margin-top: 12px;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--card); overflow: hidden;
+}
+.rewrite-card.used {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; color: var(--muted-foreground); font-size: 13px;
+  background: var(--muted);
+}
+.rewrite-header {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 12px; border-bottom: 1px solid var(--border);
+  background: var(--muted);
+}
+.rewrite-icon { color: var(--muted-foreground); display: flex; }
+.rewrite-title { font-size: 12px; font-weight: 600; color: var(--foreground); }
+.rewrite-reason {
+  margin: 0; padding: 8px 12px 4px; font-size: 12px; color: var(--muted-foreground);
+}
+.rewrite-suggested {
+  margin: 4px 12px 10px; padding: 8px 12px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--muted); font-size: 13px; font-weight: 500;
+  color: var(--foreground); font-style: italic;
+}
+.rewrite-actions {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-top: 1px solid var(--border);
+  background: var(--muted);
+}
+.btn-use-rewrite {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; font-family: inherit;
+  padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer;
+  background: var(--primary); color: var(--primary-foreground);
+  transition: opacity 0.15s;
+}
+.btn-use-rewrite:hover { opacity: 0.85; }
+.rewrite-used-label { font-size: 12px; }
+
 /* ---------- Token counter ---------- */
 .token-counter {
   font-size: 11px; color: var(--muted-foreground); white-space: nowrap;

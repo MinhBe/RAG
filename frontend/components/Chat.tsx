@@ -20,6 +20,9 @@ type Msg = {
   refusal?: boolean;
   escalate_id?: string;
   escalate_status?: EscalateStatus;
+  suggested_query?: string;
+  suggest_reason?: string;
+  suggest_used?: boolean;
 };
 type Conversation = { id: string; title: string; messages: Msg[] };
 
@@ -204,6 +207,53 @@ function StepTimeline({ steps }: { steps: string[] }) {
   );
 }
 
+// ---------- SuggestRewrite — đề xuất câu hỏi pháp lý chuẩn hơn ----------
+const IconRefresh = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+  </svg>
+);
+
+function SuggestRewrite({
+  suggested,
+  reason,
+  used,
+  onUse,
+  onIgnore,
+}: {
+  suggested: string;
+  reason: string;
+  used?: boolean;
+  onUse: () => void;
+  onIgnore: () => void;
+}) {
+  if (used) {
+    return (
+      <div className="rewrite-card used">
+        <span className="rewrite-icon"><IconRefresh /></span>
+        <span className="rewrite-used-label">Đã tìm lại với câu hỏi chuẩn pháp lý.</span>
+      </div>
+    );
+  }
+  return (
+    <div className="rewrite-card">
+      <div className="rewrite-header">
+        <span className="rewrite-icon"><IconRefresh /></span>
+        <span className="rewrite-title">Đề xuất câu hỏi pháp lý chuẩn hơn</span>
+      </div>
+      {reason && <p className="rewrite-reason">{reason}</p>}
+      <div className="rewrite-suggested">"{suggested}"</div>
+      <div className="rewrite-actions">
+        <button className="btn-use-rewrite" onClick={onUse}>
+          <IconCheck /> Dùng câu này
+        </button>
+        <button className="btn-deny" onClick={onIgnore}>✕ Bỏ qua</button>
+      </div>
+    </div>
+  );
+}
+
 // ---------- CitationList — chip bấm toggle mở/đóng text ----------
 function CitationList({ citations }: { citations: Citation[] }) {
   const [open, setOpen] = useState<number | null>(null);
@@ -367,6 +417,8 @@ export default function Chat() {
         else if (event === "token") update((ai) => ({ ...ai, content: ai.content + (data.text ?? "") }));
         else if (event === "citation")
           update((ai) => ({ ...ai, citations: [...(ai.citations ?? []), data] }));
+        else if (event === "suggest_rewrite")
+          update((ai) => ({ ...ai, suggested_query: data.suggested, suggest_reason: data.reason }));
         else if (event === "error") update((ai) => ({ ...ai, content: ai.content + `\n\n⚠️ ${data.message}` }));
         else if (event === "done") {
           update((ai) => {
@@ -473,6 +525,26 @@ export default function Chat() {
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content || (m.step ? "" : "…")}</ReactMarkdown>
                     ) : (
                       m.content
+                    )}
+
+                    {/* Suggest rewrite card */}
+                    {m.suggested_query && m.role === "ai" && (
+                      <SuggestRewrite
+                        suggested={m.suggested_query}
+                        reason={m.suggest_reason || ""}
+                        used={m.suggest_used}
+                        onUse={() => {
+                          setMessages((msgs) =>
+                            msgs.map((x, idx) => idx === i ? { ...x, suggest_used: true } : x)
+                          );
+                          send(m.suggested_query!);
+                        }}
+                        onIgnore={() =>
+                          setMessages((msgs) =>
+                            msgs.map((x, idx) => idx === i ? { ...x, suggested_query: undefined } : x)
+                          )
+                        }
+                      />
                     )}
 
                     {/* Approval card — chỉ hiện khi bị từ chối */}
