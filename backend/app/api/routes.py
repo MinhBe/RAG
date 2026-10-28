@@ -265,21 +265,25 @@ def list_threads(db: Session = Depends(get_db)):
 
 # ---------- Knowledge Graph ----------
 @router.get("/api/graph")
-def graph_route(query: str = "", top_k: int = 20, db: Session = Depends(get_db)):
+def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)):
     """Trả về nodes + edges cho knowledge graph theo từ khóa.
-    Nếu query rỗng, trả về toàn bộ nodes (giới hạn top_k, ưu tiên Điều cấp article).
+    Sau khi lấy hits, tự mở rộng:
+      - thêm node cha (Điều) của mọi Khoản/Điểm trong kết quả
+      - thêm tất cả Khoản con của mọi Điều trong kết quả
+    → đảm bảo cạnh Điều–Khoản luôn hiện đầy đủ.
     """
     from app.rag.search import search_nodes, _display
-    from app.db.models import NodeSupersession
-    from sqlalchemy import select as sa_select2, text as sa_text
+    from app.db.models import LegalNode, NodeSupersession
+    from sqlalchemy import select as sa_select
+    from sqlalchemy import text as sa_text
 
+    # ── 1. Initial fetch ──────────────────────────────────────────────────────
     if query.strip():
         hits = search_nodes(db, query, top_k=top_k)
     else:
-        # Không có query → lấy tất cả nodes article-level trước, rồi clause
         rows = db.execute(
             sa_text(
-                "SELECT node_id, doc_id, article_no, clause_no, point_letter, heading, text, level "
+                "SELECT node_id, doc_id, article_no, clause_no, point_letter, heading, text, level, parent_id "
                 "FROM legal_node "
                 "ORDER BY CASE level WHEN 'article' THEN 0 WHEN 'clause' THEN 1 ELSE 2 END, node_id "
                 "LIMIT :k"
@@ -296,81 +300,109 @@ def graph_route(query: str = "", top_k: int = 20, db: Session = Depends(get_db))
     if not hits:
         return {"nodes": [], "edges": [], "query": query}
 
-    node_ids = [h["node_id"] for h in hits]
-    id_set = set(node_ids)
+    id_set: set[str] = {h["node_id"] for h in hits}
 
-    # --- Nodes ---
-    nodes = []
-    for h in hits:
-        nodes.append({
+    def _node_dict(n: LegalNode, score: float = 0.0, ghost: bool = False) -> dict:
+        row = {
+            "node_id": n.node_id, "doc_id": n.doc_id,
+            "article_no": n.article_no, "clause_no": n.clause_no,
+            "point_letter": n.point_letter,
+        }
+        label = _display(row)
+        return {
+            "id": n.node_id, "label": label, "doc_id": n.doc_id,
+            "level": n.level, "heading": n.heading or "",
+            "text": (n.text or "")[:300], "score": score, "ghost": ghost,
+        }
+
+    def _hit_dict(h: dict) -> dict:
+        return {
             "id": h["node_id"],
             "label": h.get("display") or h["node_id"],
             "doc_id": h["doc_id"],
             "level": h.get("level", "article"),
             "heading": h.get("heading", ""),
-            "text": h["text"][:300] if h.get("text") else "",
-            "score": round(h.get("score", 0), 3),
-        })
+            "text": (h.get("text") or "")[:300],
+            "score": round(h.get("score", 0.0), 3),
+        }
 
-    # --- Edges ---
+    nodes: list[dict] = [_hit_dict(h) for h in hits]
+
+    # ── 2. Expand: fetch parent articles of clauses/points ────────────────────
+    child_parent_rows = db.execute(
+        sa_select(LegalNode.node_id, LegalNode.parent_id)
+        .where(LegalNode.node_id.in_(list(id_set)))
+        .where(LegalNode.parent_id.isnot(None))
+    ).all()
+    missing_parents = {pid for _, pid in child_parent_rows if pid not in id_set}
+
+    if missing_parents:
+        parent_objs = db.execute(
+            sa_select(LegalNode).where(LegalNode.node_id.in_(list(missing_parents)))
+        ).scalars().all()
+        for p in parent_objs:
+            nodes.append(_node_dict(p, ghost=False))
+            id_set.add(p.node_id)
+
+    # ── 3. Expand: fetch children of article nodes in set ────────────────────
+    article_ids = [n["id"] for n in nodes if n["level"] == "article"]
+    if article_ids:
+        child_objs = db.execute(
+            sa_select(LegalNode)
+            .where(LegalNode.parent_id.in_(article_ids))
+            .where(~LegalNode.node_id.in_(list(id_set)))
+        ).scalars().all()
+        for c in child_objs:
+            nodes.append(_node_dict(c, ghost=False))
+            id_set.add(c.node_id)
+
+    all_ids = [n["id"] for n in nodes]
+
+    # ── 4. Edges ──────────────────────────────────────────────────────────────
     edges: list[dict] = []
     seen_edges: set[tuple] = set()
 
-    def add_edge(src: str, tgt: str, etype: str):
+    def add_edge(src: str, tgt: str, etype: str) -> None:
         key = (src, tgt)
-        if key not in seen_edges and src != tgt:
+        if key not in seen_edges and src != tgt and src in id_set and tgt in id_set:
             seen_edges.add(key)
             edges.append({"source": src, "target": tgt, "type": etype})
 
-    # 1. Parent → child hierarchy (parent_id field)
-    from app.db.models import LegalNode
-    from sqlalchemy import select as sa_select
-    parent_rows = db.execute(
+    # 4a. Parent → child (all nodes now in set)
+    all_parent_rows = db.execute(
         sa_select(LegalNode.node_id, LegalNode.parent_id)
-        .where(LegalNode.node_id.in_(node_ids))
+        .where(LegalNode.node_id.in_(all_ids))
         .where(LegalNode.parent_id.isnot(None))
     ).all()
-    for nid, pid in parent_rows:
-        if pid in id_set:
-            add_edge(pid, nid, "parent_child")
+    for nid, pid in all_parent_rows:
+        add_edge(pid, nid, "parent_child")
 
-    # 2. Supersession links involving our nodes
+    # 4b. Supersession
     sup_rows = db.execute(
         sa_select(NodeSupersession.old_id, NodeSupersession.new_id)
         .where(
-            NodeSupersession.old_id.in_(node_ids) |
-            NodeSupersession.new_id.in_(node_ids)
+            NodeSupersession.old_id.in_(all_ids) |
+            NodeSupersession.new_id.in_(all_ids)
         )
     ).all()
     for old_id, new_id in sup_rows:
-        # Add endpoint nodes if not already in result
         for nid in (old_id, new_id):
             if nid not in id_set:
-                node = db.get(LegalNode, nid)
-                if node:
-                    nodes.append({
-                        "id": node.node_id,
-                        "label": f"Điều {node.article_no}" + (f" K{node.clause_no}" if node.clause_no else ""),
-                        "doc_id": node.doc_id,
-                        "level": node.level,
-                        "heading": node.heading or "",
-                        "text": (node.text or "")[:300],
-                        "score": 0,
-                        "ghost": True,
-                    })
+                obj = db.get(LegalNode, nid)
+                if obj:
+                    nodes.append(_node_dict(obj, ghost=True))
                     id_set.add(nid)
         add_edge(old_id, new_id, "superseded_by")
 
-    # 3. Same-article siblings (connect clauses of same article)
-    article_groups: dict[str, list[str]] = {}
-    for nid in node_ids:
-        parts = nid.rsplit("-k", 1)
-        art = parts[0]
-        article_groups.setdefault(art, []).append(nid)
-    for art, siblings in article_groups.items():
-        if len(siblings) > 1:
-            for i in range(len(siblings) - 1):
-                add_edge(siblings[i], siblings[i + 1], "sibling")
+    # 4c. Siblings: clauses of same article not already connected via parent
+    art_children: dict[str, list[str]] = {}
+    for nid, pid in all_parent_rows:
+        if pid:
+            art_children.setdefault(pid, []).append(nid)
+    for siblings in art_children.values():
+        siblings.sort()
+        for i in range(len(siblings) - 1):
+            add_edge(siblings[i], siblings[i + 1], "sibling")
 
     return {"nodes": nodes, "edges": edges, "query": query}
 

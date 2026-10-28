@@ -44,7 +44,7 @@ export default function GraphPage() {
     setLoading(true);
     setSelected(null);
     try {
-      const res = await fetch(`${API_BASE}/api/graph?query=${encodeURIComponent(q)}&top_k=20`);
+      const res = await fetch(`${API_BASE}/api/graph?query=${encodeURIComponent(q)}&top_k=150`);
       const data = await res.json();
       drawGraph(data.nodes as GNode[], data.edges as GEdge[]);
     } catch (e) {
