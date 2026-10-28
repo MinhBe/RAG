@@ -204,6 +204,46 @@ function StepTimeline({ steps }: { steps: string[] }) {
   );
 }
 
+// ---------- CitationList — chip bấm toggle mở/đóng text ----------
+function CitationList({ citations }: { citations: Citation[] }) {
+  const [open, setOpen] = useState<number | null>(null);
+
+  return (
+    <div className="citations">
+      {/* Dãy chip */}
+      <div className="chip-row">
+        {citations.map((c, j) => {
+          const n = c.n ?? j + 1;
+          const isOpen = open === n;
+          return (
+            <button
+              key={j}
+              className={`chip ${isOpen ? "active" : ""}`}
+              onClick={() => setOpen(isOpen ? null : n)}
+              aria-expanded={isOpen}
+            >
+              <span className="n">[{n}]</span> {c.display || c.node_id}
+              <span className="chip-arrow">{isOpen ? "▲" : "▼"}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Panel mở rộng */}
+      {open !== null && (() => {
+        const c = citations.find((x, j) => (x.n ?? j + 1) === open);
+        if (!c) return null;
+        return (
+          <div className="citation-panel">
+            <div className="citation-panel-head">{c.display || c.node_id}</div>
+            <div className="citation-panel-body">{c.text || "Không có nội dung."}</div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
 export default function Chat() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [convos, setConvos] = useState<Conversation[]>([]);
@@ -458,20 +498,9 @@ export default function Chat() {
                       <StepTimeline steps={m.steps_log!} />
                     )}
 
-                    {/* Trích dẫn */}
+                    {/* Trích dẫn — bấm chip để mở/đóng nội dung */}
                     {m.citations && m.citations.length > 0 && (
-                      <div className="citations">
-                        {m.citations.map((c, j) => (
-                          <span
-                            key={j}
-                            className="chip"
-                            title={c.text || c.node_id}
-                            onClick={() => alert(`${c.display || c.node_id}\n\n${c.text || ""}`)}
-                          >
-                            <span className="n">[{c.n ?? j + 1}]</span> {c.display || c.node_id}
-                          </span>
-                        ))}
-                      </div>
+                      <CitationList citations={m.citations} />
                     )}
                   </div>
                 </div>
