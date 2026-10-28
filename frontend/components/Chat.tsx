@@ -10,6 +10,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 const REFUSAL = "Không đủ căn cứ trong kho văn bản để trả lời chắc chắn câu này.";
 
 type Citation = { n?: number; node_id: string; display?: string; text?: string };
+type Section = { title: string; detail: string; citations: Citation[] };
 type EscalateStatus = "pending" | "approved" | "denied" | null;
 type Msg = {
   role: "user" | "ai";
@@ -23,6 +24,7 @@ type Msg = {
   suggested_query?: string;
   suggest_reason?: string;
   suggest_used?: boolean;
+  sections?: Section[];
 };
 type Conversation = { id: string; title: string; messages: Msg[] };
 
@@ -203,6 +205,54 @@ function StepTimeline({ steps }: { steps: string[] }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------- SectionAccordion — từng ý thành toggle ----------
+function SectionAccordion({ sections }: { sections: Section[] }) {
+  const [open, setOpen] = useState<number | null>(null);
+  if (!sections || sections.length === 0) return null;
+  return (
+    <div className="section-accordion">
+      {sections.map((s, i) => {
+        const isOpen = open === i;
+        return (
+          <div key={i} className={`section-item ${isOpen ? "open" : ""}`}>
+            <button
+              className="section-toggle"
+              onClick={() => setOpen(isOpen ? null : i)}
+              aria-expanded={isOpen}
+            >
+              <IconChevron open={isOpen} />
+              <span className="section-num">{i + 1}.</span>
+              <span className="section-title">{s.title}</span>
+            </button>
+            {isOpen && (
+              <div className="section-body">
+                <div className="section-detail">{s.detail}</div>
+                {s.citations && s.citations.length > 0 && (
+                  <div className="section-sources">
+                    {s.citations.map((c, j) => (
+                      <span
+                        key={j}
+                        className="chip"
+                        title={c.text || c.node_id}
+                        onClick={() => {
+                          const el = document.getElementById(`cite-panel-${c.node_id}`);
+                          if (el) el.scrollIntoView({ behavior: "smooth" });
+                        }}
+                      >
+                        {c.display || c.node_id}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -417,6 +467,8 @@ export default function Chat() {
         else if (event === "token") update((ai) => ({ ...ai, content: ai.content + (data.text ?? "") }));
         else if (event === "citation")
           update((ai) => ({ ...ai, citations: [...(ai.citations ?? []), data] }));
+        else if (event === "section")
+          update((ai) => ({ ...ai, sections: [...(ai.sections ?? []), data as Section] }));
         else if (event === "suggest_rewrite")
           update((ai) => ({ ...ai, suggested_query: data.suggested, suggest_reason: data.reason }));
         else if (event === "error") update((ai) => ({ ...ai, content: ai.content + `\n\n⚠️ ${data.message}` }));
@@ -525,6 +577,11 @@ export default function Chat() {
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content || (m.step ? "" : "…")}</ReactMarkdown>
                     ) : (
                       m.content
+                    )}
+
+                    {/* Accordion sections */}
+                    {m.role === "ai" && (m.sections?.length ?? 0) > 0 && (
+                      <SectionAccordion sections={m.sections!} />
                     )}
 
                     {/* Suggest rewrite card */}
