@@ -17,24 +17,24 @@
   --ring: oklch(0.707 0.022 261.325);
   --chip: oklch(0.967 0.003 264.542);
   --destructive: oklch(0.577 0.245 27.325);
-  /* Approval card — amber, adapts per mode */
-  --appr-bg:     oklch(0.985 0.018 80);
-  --appr-border: oklch(0.78  0.13  75);
-  --appr-head:   oklch(0.975 0.022 80);
-  --appr-title:  oklch(0.52  0.16  75);
-  --appr-badge-bg: oklch(0.96 0.04 80);
-  --appr-badge-border: oklch(0.82 0.08 75);
-  --appr-badge-text:   oklch(0.52 0.16 75);
-  --appr-actions-bg:   oklch(0.975 0.022 80);
-  --appr-actions-border: oklch(0.88 0.06 75);
-  --appr-btn: oklch(0.62 0.17 75);
-  --appr-btn-hover: oklch(0.56 0.18 75);
-  /* Approved green */
-  --appr-ok-bg:     oklch(0.97 0.015 145);
-  --appr-ok-border: oklch(0.55 0.15 145);
-  --appr-ok-head:   oklch(0.96 0.02 145);
-  --appr-ok-title:  oklch(0.45 0.13 145);
-  --appr-ok-icon:   oklch(0.50 0.14 145);
+  /* Approval card — dùng tông trung tính đồng bộ với UI */
+  --appr-bg:     var(--card);
+  --appr-border: var(--border);
+  --appr-head:   var(--muted);
+  --appr-title:  var(--foreground);
+  --appr-badge-bg: var(--muted);
+  --appr-badge-border: var(--border);
+  --appr-badge-text:   var(--muted-foreground);
+  --appr-actions-bg:   var(--muted);
+  --appr-actions-border: var(--border);
+  --appr-btn: var(--primary);
+  --appr-btn-hover: oklch(from var(--primary) calc(l - 0.05) c h);
+  /* Approved */
+  --appr-ok-bg:     var(--muted);
+  --appr-ok-border: var(--border);
+  --appr-ok-head:   var(--accent);
+  --appr-ok-title:  var(--foreground);
+  --appr-ok-icon:   var(--muted-foreground);
 }
 
 /* Dark mode — via OS preference */
@@ -52,23 +52,7 @@
     --border: oklch(1 0 0 / 12%);
     --ring: oklch(0.551 0.027 264.364);
     --chip: oklch(0.278 0.033 256.848);
-    /* Approval card dark amber */
-    --appr-bg:     oklch(0.22 0.025 75);
-    --appr-border: oklch(0.55 0.14 75);
-    --appr-head:   oklch(0.20 0.028 75);
-    --appr-title:  oklch(0.82 0.14 75);
-    --appr-badge-bg: oklch(0.25 0.03 75);
-    --appr-badge-border: oklch(0.50 0.12 75);
-    --appr-badge-text: oklch(0.82 0.14 75);
-    --appr-actions-bg: oklch(0.20 0.028 75);
-    --appr-actions-border: oklch(0.40 0.08 75);
-    --appr-btn: oklch(0.68 0.17 75);
-    --appr-btn-hover: oklch(0.62 0.18 75);
-    --appr-ok-bg:     oklch(0.18 0.025 145);
-    --appr-ok-border: oklch(0.48 0.14 145);
-    --appr-ok-head:   oklch(0.16 0.022 145);
-    --appr-ok-title:  oklch(0.72 0.16 145);
-    --appr-ok-icon:   oklch(0.65 0.18 145);
+    /* Approval card inherits neutral tokens — no overrides needed */
   }
 }
 
@@ -95,13 +79,7 @@
   --appr-badge-text: oklch(0.82 0.14 75);
   --appr-actions-bg: oklch(0.20 0.028 75);
   --appr-actions-border: oklch(0.40 0.08 75);
-  --appr-btn: oklch(0.68 0.17 75);
-  --appr-btn-hover: oklch(0.62 0.18 75);
-  --appr-ok-bg:     oklch(0.18 0.025 145);
-  --appr-ok-border: oklch(0.48 0.14 145);
-  --appr-ok-head:   oklch(0.16 0.022 145);
-  --appr-ok-title:  oklch(0.72 0.16 145);
-  --appr-ok-icon:   oklch(0.65 0.18 145);
+  /* Approval card inherits neutral tokens — no overrides needed */
 }
 
 /* Light mode — via JS toggle (overrides OS dark) */
@@ -127,13 +105,7 @@
   --appr-badge-text: oklch(0.52 0.16 75);
   --appr-actions-bg: oklch(0.975 0.022 80);
   --appr-actions-border: oklch(0.88 0.06 75);
-  --appr-btn: oklch(0.62 0.17 75);
-  --appr-btn-hover: oklch(0.56 0.18 75);
-  --appr-ok-bg:     oklch(0.97 0.015 145);
-  --appr-ok-border: oklch(0.55 0.15 145);
-  --appr-ok-head:   oklch(0.96 0.02 145);
-  --appr-ok-title:  oklch(0.45 0.13 145);
-  --appr-ok-icon:   oklch(0.50 0.14 145);
+  /* Approval card inherits neutral tokens */
 }
 
 * { box-sizing: border-box; }
@@ -365,10 +337,10 @@ html, body {
   display: flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 700; letter-spacing: 0.06em; font-family: monospace;
   padding: 7px 16px; border-radius: 8px; border: none; cursor: pointer;
-  background: var(--appr-btn); color: #fff;
-  transition: background 0.15s;
+  background: var(--primary); color: var(--primary-foreground);
+  transition: opacity 0.15s;
 }
-.btn-approve:hover { background: var(--appr-btn-hover); }
+.btn-approve:hover { opacity: 0.85; }
 
 .btn-deny {
   font-size: 12px; font-weight: 600; letter-spacing: 0.04em; font-family: monospace;
