@@ -47,6 +47,8 @@ services:
     environment:
       # Trình duyệt gọi API qua localhost; SSR trong container gọi qua tên service.
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      # Bind mount trên Windows không bắn sự kiện file-watch -> bật polling để hot-reload.
+      WATCHPACK_POLLING: "true"
     ports:
       - "3000:3000"
     volumes:

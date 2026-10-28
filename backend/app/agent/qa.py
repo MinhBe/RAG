@@ -81,6 +81,11 @@ def answer_with_citations(message: str, history: list[dict] | None = None) -> It
         yield ("done", {})
         return
 
+    # Thay các mốc [node_id] trong câu trả lời bằng số [n] khớp với thẻ trích dẫn.
+    num = {cid: i for i, cid in enumerate(valid, 1)}
+    for cid, n in num.items():
+        answer = answer.replace(f"[{cid}]", f"[{n}]")
+
     # "Stream" câu trả lời theo từng câu để giao diện chạy chữ.
     for chunk in _chunks(answer):
         yield ("token", {"text": chunk})
