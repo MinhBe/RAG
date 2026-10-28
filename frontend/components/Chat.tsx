@@ -104,9 +104,15 @@ const IconMoon = () => (
   </svg>
 );
 const IconGraph = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="5" cy="12" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="19" cy="19" r="2"/>
     <line x1="7" y1="11.5" x2="17" y2="6.5"/><line x1="7" y1="12.5" x2="17" y2="17.5"/>
+  </svg>
+);
+const IconDash = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+    <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
   </svg>
 );
 const IconSearch = () => (
@@ -368,13 +374,26 @@ export default function Chat() {
   const showCounter = input.trim().length > 0;
 
   useEffect(() => {
-    setConvos(loadConvos());
-    // Khôi phục theme từ localStorage
+    const saved_convos = loadConvos();
+    setConvos(saved_convos);
+    // Khôi phục theme
     try {
       const saved = localStorage.getItem("llv_theme") as "light" | "dark" | "system" | null;
       if (saved && saved !== "system") {
         setTheme(saved);
         document.documentElement.setAttribute("data-theme", saved);
+      }
+    } catch { /* ignore */ }
+    // Khôi phục cuộc trò chuyện từ URL ?t=<id>
+    try {
+      const tid = new URLSearchParams(window.location.search).get("t");
+      if (tid) {
+        const match = saved_convos.find((c) => c.id === tid);
+        if (match) {
+          setMessages(match.messages);
+          setActiveId(match.id);
+          threadId.current = match.id;
+        }
       }
     } catch { /* ignore */ }
   }, []);
@@ -396,18 +415,31 @@ export default function Chat() {
     setMessages([]);
     setActiveId(null);
     threadId.current = null;
+    setUrl(null);
   }
 
   function openConvo(c: Conversation) {
     setMessages(c.messages);
     setActiveId(c.id);
     threadId.current = c.id;
+    setUrl(c.id);
     scrollDown();
   }
 
+  function genId(): string {
+    try { return crypto.randomUUID().replace(/-/g, "").slice(0, 12); }
+    catch { return Math.random().toString(16).slice(2, 14); }
+  }
+
+  function setUrl(id: string | null) {
+    const url = id ? `/?t=${id}` : "/";
+    window.history.replaceState(null, "", url);
+  }
+
   function persist(msgs: Msg[]) {
-    const id = threadId.current || Date.now().toString();
+    const id = threadId.current || genId();
     threadId.current = id;
+    setUrl(id);
     const title = msgs.find((m) => m.role === "user")?.content.slice(0, 48) || "Cuộc trò chuyện";
     setConvos((prev) => {
       const rest = prev.filter((c) => c.id !== id);
@@ -520,6 +552,15 @@ export default function Chat() {
           <IconPlus /> Cuộc trò chuyện mới
         </button>
 
+        <div className="side-quick-links">
+          <Link href="/graph" className="side-quick-btn">
+            <IconGraph /> Knowledge Graph
+          </Link>
+          <Link href="/dashboard" className="side-quick-btn">
+            <IconDash /> Dashboard
+          </Link>
+        </div>
+
         <div className="side-label">Gần đây</div>
         <div className="thread-list">
           {convos.length === 0 && <div className="thread-empty">Chưa có cuộc trò chuyện nào.</div>}
@@ -568,6 +609,9 @@ export default function Chat() {
                     </button>
                   ))}
                 </div>
+                <Link href="/graph" className="empty-graph-btn">
+                  <IconGraph /> Xem Knowledge Graph embedding
+                </Link>
               </div>
             </div>
           ) : (

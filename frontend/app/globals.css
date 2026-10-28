@@ -544,3 +544,97 @@ html, body {
   color: var(--muted-foreground); text-decoration: none;
 }
 .graph-nav-btn:hover { color: var(--foreground); background: var(--muted); }
+
+/* ---------- Sidebar quick links ---------- */
+.side-quick-links {
+  display: flex; flex-direction: column; gap: 4px; padding: 0 8px; margin-bottom: 4px;
+}
+.side-quick-btn {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  border-radius: var(--radius); font-size: 13px; text-decoration: none;
+  color: var(--muted-foreground); border: 1px solid var(--border);
+}
+.side-quick-btn:hover { background: var(--muted); color: var(--foreground); }
+
+/* ---------- Empty-state graph button ---------- */
+.empty-graph-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 16px; padding: 9px 18px;
+  border-radius: var(--radius); font-size: 13px; text-decoration: none;
+  color: var(--primary); border: 1px solid var(--border);
+  background: var(--card);
+}
+.empty-graph-btn:hover { background: var(--muted); }
+
+/* ---------- Dashboard ---------- */
+.dash-shell {
+  min-height: 100vh; background: var(--app-bg); color: var(--foreground);
+  display: flex; flex-direction: column;
+}
+.dash-header {
+  display: flex; align-items: center; gap: 12px; padding: 10px 20px;
+  background: var(--card); border-bottom: 1px solid var(--border);
+}
+.dash-back {
+  font-size: 13px; color: var(--muted-foreground); text-decoration: none;
+  padding: 4px 8px; border-radius: var(--radius); border: 1px solid var(--border);
+}
+.dash-back:hover { background: var(--muted); color: var(--foreground); }
+.dash-title { font-size: 15px; font-weight: 600; flex: 1; }
+.dash-graph-btn {
+  font-size: 13px; padding: 5px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border); color: var(--muted-foreground); text-decoration: none;
+}
+.dash-graph-btn:hover { background: var(--muted); color: var(--foreground); }
+
+.dash-body { padding: 24px 20px; display: flex; flex-direction: column; gap: 20px; }
+
+.dash-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 640px) { .dash-stats { grid-template-columns: repeat(2, 1fr); } }
+.stat-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.stat-num {
+  font-size: 28px; font-weight: 700; color: var(--primary); line-height: 1;
+}
+.stat-num.warn { color: oklch(0.65 0.2 45); }
+.stat-label { font-size: 12px; color: var(--muted-foreground); margin-top: 4px; }
+
+.dash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+@media (max-width: 640px) { .dash-grid { grid-template-columns: 1fr; } }
+.dash-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; overflow: hidden;
+}
+.dash-card.span2 { grid-column: span 2; }
+@media (max-width: 640px) { .dash-card.span2 { grid-column: span 1; } }
+.dash-card-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--foreground); }
+.dash-loading, .dash-empty, .dash-err { font-size: 13px; color: var(--muted-foreground); padding: 8px 0; }
+.dash-err { color: var(--destructive); }
+
+.dash-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dash-table td { padding: 5px 0; border-bottom: 1px solid var(--border); }
+.dash-table td:first-child { color: var(--muted-foreground); width: 40%; }
+.badge {
+  display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px;
+  font-weight: 600;
+}
+.badge.ok { background: oklch(0.9 0.1 145); color: oklch(0.3 0.1 145); }
+.badge.err { background: oklch(0.92 0.1 30); color: oklch(0.4 0.2 30); }
+.badge.warn { background: oklch(0.92 0.1 80); color: oklch(0.45 0.15 60); }
+
+.esc-list { display: flex; flex-direction: column; gap: 8px; }
+.esc-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; }
+.esc-q { flex: 1; color: var(--foreground); line-height: 1.4; }
+.esc-time { color: var(--muted-foreground); white-space: nowrap; }
+
+.convo-list { display: flex; flex-direction: column; gap: 4px; }
+.convo-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 10px; border-radius: var(--radius); text-decoration: none;
+  color: var(--foreground); font-size: 13px;
+}
+.convo-row:hover { background: var(--muted); }
+.convo-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.convo-meta { font-size: 11px; color: var(--muted-foreground); margin-left: 12px; white-space: nowrap; }
