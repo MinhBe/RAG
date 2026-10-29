@@ -13,6 +13,7 @@ from collections.abc import Iterator
 from loguru import logger
 from sqlalchemy import text
 
+from app.agent.guard import REDIRECT, looks_like_injection
 from app.db.base import SessionLocal
 from app.llm.router import LLMError, get_router
 
@@ -49,6 +50,12 @@ def run_chat(message: str, history: list[dict[str, str]] | None = None) -> Itera
             },
         )
         yield ("done", {})
+        return
+
+    if looks_like_injection(message):
+        logger.warning("Chặn câu chèn lệnh: {!r}", message[:200])
+        yield ("token", {"text": REDIRECT})
+        yield ("done", {"category": "injection"})
         return
 
     if _data_loaded():
