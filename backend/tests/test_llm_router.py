@@ -92,3 +92,42 @@ def test_losers_stop_retrying_once_a_model_won(monkeypatch):
     with pytest.raises(r.LLMError, match="model khác"):
         router._call_dahl("m", [], 0.2, None, None, won)
     assert len(calls) < r._DAHL_BUSY_RETRIES
+
+
+@pytest.fixture
+def hedged_router(monkeypatch):
+    monkeypatch.setattr(r.settings, "dahl_models", "slow")
+    monkeypatch.setattr(r.settings, "dahl_hedge_after", 0.2)
+    router = r.LLMRouter()
+    router._dahl_keys = ["k"]
+    monkeypatch.setattr(router, "_plan", lambda task: [("dahl", "*"), ("gemini", "g")])
+    backup_calls = []
+
+    def backup(*a):
+        backup_calls.append(a)
+        return r.LLMResult(text="{}", provider="gemini", model="g")
+
+    monkeypatch.setattr(router, "_call", backup)
+    return router, backup_calls
+
+
+def _dahl_after(seconds):
+    def fake(model, messages, temperature, max_tokens, parse, won):
+        time.sleep(seconds)
+        return r.LLMResult(text="{}", provider="dahl", model=model)
+    return fake
+
+
+def test_backup_joins_the_race_when_dahl_is_slow(hedged_router, monkeypatch):
+    router, backup_calls = hedged_router
+    monkeypatch.setattr(router, "_call_dahl", _dahl_after(1.0))
+    assert router.chat([{"role": "user", "content": "x"}]).provider == "gemini"
+    assert len(backup_calls) == 1
+
+
+def test_backup_is_not_called_when_dahl_answers_in_time(hedged_router, monkeypatch):
+    router, backup_calls = hedged_router
+    monkeypatch.setattr(router, "_call_dahl", _dahl_after(0.0))
+    assert router.chat([{"role": "user", "content": "x"}]).provider == "dahl"
+    time.sleep(0.4)  # quá hạn chờ của dự phòng: nó phải đã tự dừng
+    assert backup_calls == []

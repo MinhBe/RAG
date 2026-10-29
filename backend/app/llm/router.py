@@ -171,10 +171,16 @@ class LLMRouter:
                 "Chưa cấu hình nhà cung cấp LLM nào (thiếu key Dahl/Gemini/Claude/FPT trong .env)."
             )
         last_exc: Exception | None = None
-        for provider, model in plan:
+        tried: set[tuple[str, str]] = set()
+        for i, (provider, model) in enumerate(plan):
+            if (provider, model) in tried:
+                continue
             try:
                 if provider == "dahl":
-                    return self._race_dahl(messages, temperature, max_tokens, parse)
+                    backup = plan[i + 1] if i + 1 < len(plan) and settings.dahl_hedge_after > 0 else None
+                    if backup:
+                        tried.add(backup)  # đã chạy trong cuộc đua, lỗi thì không gọi lại
+                    return self._race_dahl(messages, temperature, max_tokens, parse, backup)
                 res = self._call(provider, model, messages, temperature, max_tokens)
                 if parse:
                     res.data = parse(res.text)
@@ -198,24 +204,53 @@ class LLMRouter:
         raise LLMError(f"Nhà cung cấp không hỗ trợ: {provider}")
 
     # ---- Dahl: đua song song ----
-    def _race_dahl(self, messages, temperature, max_tokens, parse) -> LLMResult:
-        won = threading.Event()
+    def _race_dahl(self, messages, temperature, max_tokens, parse, backup=None) -> LLMResult:
+        """Đua mọi model Dahl; `backup` (nhà cung cấp kế trong kế hoạch) vào đua muộn."""
+        won, dahl_failed = threading.Event(), threading.Event()
         t0 = time.monotonic()
+        models = settings.dahl_model_list
         futures = {
             _POOL.submit(self._call_dahl, m, messages, temperature, max_tokens, parse, won): m
-            for m in settings.dahl_model_list
+            for m in models
         }
+        if backup:
+            hedge = _POOL.submit(self._hedge, backup, messages, temperature, max_tokens, parse, won, dahl_failed)
+            futures[hedge] = f"{backup[0]} (dự phòng)"
         errors: list[str] = []
+        failed_dahl = 0
         for fut in as_completed(futures):
             try:
                 res = fut.result()
             except Exception as exc:  # noqa: BLE001 — model khác có thể vẫn thắng
                 errors.append(f"{futures[fut]}: {exc}")
+                if futures[fut] in models:
+                    failed_dahl += 1
+                    if failed_dahl == len(models):
+                        dahl_failed.set()  # dự phòng khỏi phải chờ hết giờ
                 continue
             won.set()
-            logger.info("Dahl: {} thắng sau {:.1f}s", res.model, time.monotonic() - t0)
+            logger.info("{}: {} thắng sau {:.1f}s", res.provider, res.model, time.monotonic() - t0)
             return res
         raise LLMError("Mọi model Dahl đều lỗi: " + " | ".join(errors))
+
+    def _hedge(self, backup, messages, temperature, max_tokens, parse, won, dahl_failed) -> LLMResult:
+        """Chỉ gọi dự phòng khi sau DAHL_HEDGE_AFTER giây Dahl vẫn chưa trả lời, hoặc đã lỗi hết.
+
+        Dahl miễn phí có lúc cả ba model cùng xếp hàng tới hơn một phút; gọi thêm
+        sau một khoảng chờ giới hạn được độ trễ đuôi mà không tốn quota dự phòng
+        cho phần lớn câu hỏi Dahl trả lời kịp.
+        """
+        deadline = time.monotonic() + settings.dahl_hedge_after
+        while time.monotonic() < deadline and not dahl_failed.is_set():
+            if won.wait(0.1):
+                raise LLMError("Dahl đã trả lời")
+        if won.is_set():
+            raise LLMError("Dahl đã trả lời")
+        provider, model = backup
+        res = self._call(provider, model, messages, temperature, max_tokens)
+        if parse:
+            res.data = parse(res.text)
+        return res
 
     def _call_dahl(self, model, messages, temperature, max_tokens, parse, won) -> LLMResult:
         client = self._openai_client(settings.dahl_base_url, self._next_dahl_key(), _DAHL_TIMEOUT)

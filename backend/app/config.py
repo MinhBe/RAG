@@ -27,6 +27,8 @@ class Settings(BaseSettings):
         "deepseek-ai/DeepSeek-V4-Flash-0731,zai-org/GLM-5.3-Flash,MiniMaxAI/MiniMax-M2.7"
     )
     dahl_reasoning_effort: str = "low"
+    # Sau ngần này giây Dahl chưa trả lời thì gọi thêm nhà cung cấp dự phòng vào đua; 0 = tắt
+    dahl_hedge_after: float = 10.0
 
     # Claude
     anthropic_api_key: str | None = None
