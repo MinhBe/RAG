@@ -40,3 +40,4 @@ pgdata/
 # Dữ liệu sinh lúc chạy
 data/escalations.json
 data/out_of_scope.jsonl
+.dahl.env
