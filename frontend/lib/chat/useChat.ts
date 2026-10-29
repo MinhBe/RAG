@@ -12,6 +12,7 @@ import { streamChat } from "@/lib/sse";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 const REFUSAL = "Không đủ căn cứ trong kho văn bản để trả lời chắc chắn câu này.";
+const ESCALATION_POLL_MS = 10_000;
 
 // deferred: replaceState during render makes the Next router warn
 function setUrl(id: string | null) {
@@ -88,8 +89,13 @@ export function useChat(mode: Mode = "law") {
     setActiveId(id);
   }
 
+  // saved right away, so a reload keeps the approval state of the card
   const patchMessage = (idx: number, patch: Partial<Msg>) =>
-    setMessages((msgs) => msgs.map((m, i) => (i === idx ? { ...m, ...patch } : m)));
+    setMessages((msgs) => {
+      const next = msgs.map((m, i) => (i === idx ? { ...m, ...patch } : m));
+      persist(next);
+      return next;
+    });
 
   async function escalate(question: string, msgIdx: number) {
     try {
@@ -98,13 +104,35 @@ export function useChat(mode: Mode = "law") {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, thread_id: threadId.current }),
       });
+      if (!res.ok) throw new Error(String(res.status));
       const data = await res.json();
-      patchMessage(msgIdx, { escalate_id: data.id, escalate_status: "approved" });
+      patchMessage(msgIdx, { escalate_id: data.id, escalate_status: "waiting" });
     } catch {
-      // API lỗi vẫn đánh dấu đã gửi trên giao diện: yêu cầu nằm ở phía người dùng
-      patchMessage(msgIdx, { escalate_status: "approved" });
+      // not sent: the card stays on its buttons so the user can try again
+      patchMessage(msgIdx, { escalate_status: "pending" });
     }
   }
+
+  /* cards waiting for the expert ask the API again until a human has decided */
+  const waitingKey = messages
+    .map((m, i) => (m.escalate_id && (m.escalate_status === "waiting" || m.escalate_status === "approved") ? `${i}:${m.escalate_id}` : ""))
+    .filter(Boolean).join(",");
+  useEffect(() => {
+    if (!waitingKey) return;
+    const check = () => waitingKey.split(",").forEach(async (pair) => {
+      const [idx, id] = pair.split(":");
+      try {
+        const r = await fetch(`${API_BASE}/api/escalations/${id}`);
+        if (!r.ok) return;
+        const e = await r.json();
+        if (e.status === "approved") patchMessage(+idx, { escalate_status: "answered", escalate_reply: e.reply });
+        else if (e.status === "denied") patchMessage(+idx, { escalate_status: "rejected", escalate_reply: e.reply });
+      } catch { /* API down: try again on the next tick */ }
+    });
+    check();
+    const t = setInterval(check, ESCALATION_POLL_MS);
+    return () => clearInterval(t);
+  }, [waitingKey]);
 
   const denyEscalate = (msgIdx: number) => patchMessage(msgIdx, { escalate_status: "denied" });
   const ignoreSuggestion = (msgIdx: number) => patchMessage(msgIdx, { suggested_query: undefined });

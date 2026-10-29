@@ -11,24 +11,49 @@ export function ApprovalCard({
   question,
   threadId,
   status,
+  reply,
   onApprove,
   onDeny,
 }: {
   question: string;
   threadId: string | null;
   status: EscalateStatus;
+  reply?: string;
   onApprove: () => void;
   onDeny: () => void;
 }) {
-  if (status === "approved") {
+  // "approved" is what cards sent before the expert step existed were saved as
+  if (status === "waiting" || status === "approved") {
+    return (
+      <div className="approval-card">
+        <div className="approval-header">
+          <span className="approval-icon"><IconLock /></span>
+          <span className="approval-title">ĐANG CHỜ CHUYÊN GIA DUYỆT</span>
+          <span className="approval-badge">human-in-the-loop</span>
+        </div>
+        <p className="approval-note">Câu hỏi đã được gửi. Câu trả lời của chuyên gia sẽ hiện ở đây khi được duyệt, không cần tải lại trang.</p>
+      </div>
+    );
+  }
+  if (status === "answered") {
     return (
       <div className="approval-card approved">
         <div className="approval-header">
           <span className="approval-icon"><IconCheck /></span>
-          <span className="approval-title">ĐÃ GỬI CHO NHÀ PHÁT HÀNH</span>
-          <span className="approval-badge">escalate_refusal</span>
+          <span className="approval-title">CHUYÊN GIA ĐÃ TRẢ LỜI</span>
+          <span className="approval-badge">human-in-the-loop</span>
         </div>
-        <p className="approval-note">Câu hỏi đã được ghi nhận. Nhà phát hành sẽ bổ sung dữ liệu hoặc trả lời trực tiếp.</p>
+        <p className="approval-note approval-reply">{reply}</p>
+      </div>
+    );
+  }
+  if (status === "rejected") {
+    return (
+      <div className="approval-card denied">
+        <div className="approval-header">
+          <span className="approval-title">CHUYÊN GIA TỪ CHỐI</span>
+        </div>
+        <p className="approval-note approval-reply">{reply || "Yêu cầu không được chuyên gia xử lý."}</p>
       </div>
     );
   }
@@ -50,7 +75,7 @@ export function ApprovalCard({
         <span className="approval-title">CẦN PHÊ DUYỆT</span>
         <span className="approval-badge">escalate_refusal</span>
       </div>
-      <p className="approval-desc">Trợ lý muốn gửi câu hỏi này cho <strong>nhà phát hành</strong> để xem xét bổ sung dữ liệu.</p>
+      <p className="approval-desc">Trợ lý muốn gửi câu hỏi này cho <strong>chuyên gia</strong> trả lời trực tiếp và bổ sung dữ liệu.</p>
       <div className="approval-fields">
         <div className="af-row">
           <div className="af-col">

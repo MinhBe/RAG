@@ -8,13 +8,49 @@ const STORE_KEY = "llv_conversations";
 
 type Escalation = {
   id: string; question: string; status: string;
-  created_at: string; thread_id?: string;
+  created_at: string; thread_id?: string; reply?: string;
 };
 type HealthData = {
   status: string; db: boolean; documents: number; nodes: number;
   data_loaded: boolean; llm: string[] | Record<string, unknown> | string;
 };
 type Convo = { id: string; title: string; messages: { role: string }[] };
+
+/* Người duyệt (human-in-the-loop): viết câu trả lời rồi duyệt, hoặc từ chối kèm lý do.
+   Kết quả hiện lại trong thẻ phê duyệt của người hỏi. */
+function EscalationReview({ esc, onDone }: { esc: Escalation; onDone: (e: Escalation) => void }) {
+  const [reply, setReply] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function decide(status: "approved" | "denied") {
+    if (status === "approved" && !reply.trim()) { setErr("Viết câu trả lời trước khi duyệt."); return; }
+    setBusy(true); setErr("");
+    try {
+      const r = await fetch(`${API_BASE}/api/escalations/${esc.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, reply }),
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      onDone(await r.json());
+    } catch { setErr("Không gửi được, thử lại."); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="esc-review">
+      <textarea className="esc-reply" rows={3} value={reply} disabled={busy}
+        placeholder="Câu trả lời của chuyên gia (bắt buộc khi duyệt) hoặc lý do từ chối…"
+        onChange={(e) => setReply(e.target.value)} />
+      <div className="esc-actions">
+        <button className="btn-approve" disabled={busy} onClick={() => decide("approved")}>Duyệt &amp; gửi trả lời</button>
+        <button className="btn-deny" disabled={busy} onClick={() => decide("denied")}>Từ chối</button>
+        {err && <span className="dash-err">{err}</span>}
+      </div>
+    </div>
+  );
+}
 
 function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
@@ -111,12 +147,20 @@ export default function DashboardPage() {
             ) : (
               <div className="esc-list">
                 {escalations.slice(0, 10).map((e) => (
-                  <div key={e.id} className="esc-row">
-                    <span className={`badge ${e.status === "pending" ? "warn" : e.status === "approved" ? "ok" : "err"}`}>
-                      {e.status}
-                    </span>
-                    <span className="esc-q">{e.question}</span>
-                    <span className="esc-time">{timeAgo(e.created_at)}</span>
+                  <div key={e.id} className="esc-item">
+                    <div className="esc-row">
+                      <span className={`badge ${e.status === "pending" ? "warn" : e.status === "approved" ? "ok" : "err"}`}>
+                        {e.status}
+                      </span>
+                      <span className="esc-q">{e.question}</span>
+                      <span className="esc-time">{timeAgo(e.created_at)}</span>
+                    </div>
+                    {e.status === "pending" ? (
+                      <EscalationReview esc={e}
+                        onDone={(u) => setEscalations((all) => all.map((x) => (x.id === u.id ? u : x)))} />
+                    ) : e.reply ? (
+                      <div className="esc-answer">{e.reply}</div>
+                    ) : null}
                   </div>
                 ))}
               </div>

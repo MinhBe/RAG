@@ -85,6 +85,7 @@ export default function MessageList({
                     question={questionBefore(i)}
                     threadId={threadId}
                     status={m.escalate_status ?? "pending"}
+                    reply={m.escalate_reply}
                     onApprove={() => onEscalate(questionBefore(i), i)}
                     onDeny={() => onDeny(i)}
                   />
