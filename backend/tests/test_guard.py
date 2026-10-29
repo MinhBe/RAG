@@ -111,9 +111,10 @@ def _run_qa(monkeypatch, tmp_path, verdict):
     hit = {"node_id": "blld2019-d25-k1", "display": "Điều 25 Khoản 1", "text": "..."}
 
     class Router:
-        def extract_json(self, msgs, task):
+        def chat(self, msgs, task, temperature=0.0, parse=None):
             answered.append(task)
-            return {"summary": "Tối đa 180 ngày.", "citation_node_ids": ["blld2019-d25-k1"]}
+            text = '{"summary": "Tối đa 180 ngày.", "citation_node_ids": ["blld2019-d25-k1"]}'
+            return type("R", (), {"data": parse(text)})()
 
     monkeypatch.setattr(qa, "get_router", Router)
     monkeypatch.setattr(qa, "SessionLocal", lambda: type("S", (), {"close": lambda self: None})())
@@ -151,3 +152,24 @@ def test_unclear_wording_suggests_a_legal_question(monkeypatch, tmp_path):
 def test_legal_question_is_answered(monkeypatch, tmp_path):
     events, _ = _run_qa(monkeypatch, tmp_path, _verdict(guard.LEGAL))
     assert [d["node_id"] for e, d in events if e == "citation"] == ["blld2019-d25-k1"]
+
+
+@pytest.mark.parametrize("reply", [
+    '{"summary": "", "sections": [], "citation_node_ids": []}',          # rỗng
+    '{"summary": "Có.", "citation_node_ids": ["blld2019-d999-k9"]}',     # chỉ trích node bịa
+])
+def test_answer_without_basis_cannot_win(reply):
+    """Câu trả lời rỗng (đã gặp thật: Gemini trả rỗng về trước) phải bị parse từ chối,
+    để cuộc đua chờ model khác; mọi model đều rỗng thì _generate trả {}."""
+    from app.agent import qa
+    from app.llm.router import LLMError
+
+    class Router:
+        def chat(self, msgs, task, temperature=0.0, parse=None):
+            try:
+                parse(reply)
+            except ValueError as exc:
+                raise LLMError(str(exc)) from exc
+            raise AssertionError("parse phải từ chối")
+
+    assert qa._generate(Router(), [], [{"node_id": "blld2019-d25-k1"}]) == {}

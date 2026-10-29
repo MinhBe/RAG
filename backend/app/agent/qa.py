@@ -15,7 +15,7 @@ from loguru import logger
 from app.agent import guard
 from app.agent.followup import history_block, search_with_history
 from app.db.base import SessionLocal
-from app.llm.router import LLMError, get_router
+from app.llm.router import LLMError, get_router, parse_json
 from app.rag.search import search_nodes
 
 REFUSAL = "Không đủ căn cứ trong kho văn bản để trả lời chắc chắn câu này."
@@ -117,6 +117,26 @@ def _answer_messages(hits: list[dict], convo: str, message: str) -> list[dict[st
     ]
 
 
+def _generate(router, messages: list[dict[str, str]], hits: list[dict]) -> dict:
+    """Gọi LLM trả lời. Câu trả lời rỗng hoặc chỉ trích node không có trong kết quả
+    truy hồi bị coi là hỏng, nên trong cuộc đua Dahl nó không thắng được model còn
+    đang soạn câu trả lời có căn cứ. Mọi model đều không tìm ra căn cứ -> {}."""
+    ids = {h["node_id"] for h in hits}
+
+    def parse(text: str) -> dict:
+        d = parse_json(text)
+        has_content = (d.get("summary") or d.get("answer") or "").strip() or d.get("sections")
+        if not has_content or not ids & set(d.get("citation_node_ids") or []):
+            raise ValueError("câu trả lời không có căn cứ")
+        return d
+
+    try:
+        return router.chat(messages, task="answer", temperature=0.0, parse=parse).data
+    except LLMError as exc:
+        logger.info("Không model nào trả lời có căn cứ: {}", exc)
+        return {}
+
+
 def answer_with_citations(message: str, history: list[dict] | None = None) -> Iterator[tuple[str, object]]:
     router = get_router()
     convo = history_block(history)
@@ -132,7 +152,7 @@ def answer_with_citations(message: str, history: list[dict] | None = None) -> It
 
     answer = None
     if hits:
-        answer = _POOL.submit(router.extract_json, _answer_messages(hits, convo, message), task="answer")
+        answer = _POOL.submit(_generate, router, _answer_messages(hits, convo, message), hits)
         yield ("step", {"name": "generate", "label": "Đang soạn câu trả lời có trích dẫn"})
 
     v = verdict.result()
@@ -153,12 +173,7 @@ def answer_with_citations(message: str, history: list[dict] | None = None) -> It
         yield ("done", {})
         return
 
-    try:
-        result = answer.result()
-    except LLMError as exc:
-        logger.error("QA lỗi: {}", exc)
-        yield ("error", {"message": str(exc)})
-        return
+    result = answer.result()
 
     # Hỗ trợ cả schema cũ (answer) lẫn schema mới (summary + sections)
     summary = (result.get("summary") or result.get("answer") or "").strip()
