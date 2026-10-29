@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     )
     dahl_reasoning_effort: str = "low"
     # Sau ngần này giây Dahl chưa trả lời thì gọi thêm nhà cung cấp dự phòng vào đua; 0 = tắt
-    dahl_hedge_after: float = 10.0
+    dahl_hedge_after: float = 15.0
 
     # Claude
     anthropic_api_key: str | None = None
