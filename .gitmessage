@@ -1,0 +1,43 @@
+
+# ── Dòng tóm tắt ───────────────────────────────────────────────────────────
+# <type>(<scope>): <làm gì, thể mệnh lệnh, có dấu tiếng Việt>
+#   - tối đa 72 ký tự, không chấm cuối câu
+#   - nói KẾT QUẢ, không nói chung chung: "sửa lỗi", "update", "final" bị chặn
+#
+# type : feat fix perf refactor harden test docs build ci chore data
+# scope: graph chat dashboard api rag ingest agent llm db report ui deploy
+#
+# ── Thân commit (bắt buộc khi đổi quá 30 dòng) ─────────────────────────────
+# Cách một dòng trống sau dòng tóm tắt. Mỗi dòng tối đa 100 ký tự.
+#
+# Vì sao:
+#   Vấn đề hoặc mục tiêu. Có số đo trước khi sửa thì ghi số.
+#
+# Thay đổi (nhóm theo khu vực, ghi đường dẫn file):
+# - backend/app/rag/search.py: ...
+# - frontend/app/graph/page.tsx: ...
+#
+# Kiểm chứng:
+#   Lệnh đã chạy và kết quả, dạng trước -> sau.
+#
+# Phạm vi / rủi ro:
+#   Cái gì KHÔNG đổi, cần chạy migrate/backfill gì, cách hoàn tác.
+#
+# ── Ví dụ ──────────────────────────────────────────────────────────────────
+# fix(rag): hiển thị tên văn bản thay cho mã blld2019
+#
+# Vì sao:
+#   Trích dẫn trong chat in "Điều 113 (blld2019)" — mã nội bộ, người dùng
+#   không đọc được.
+#
+# Thay đổi:
+# - backend/app/rag/search.py: _display lấy tên từ legal_document, có cache
+# - frontend/app/graph/page.tsx: badge chi tiết dùng doc_name
+#
+# Kiểm chứng:
+#   /api/graph?top_k=150: 0 nhãn còn chứa mã (trước: mọi nhãn).
+#
+# Phạm vi / rủi ro:
+#   Không đổi node_id; LLM vẫn nhận node_id để trích dẫn.
+#
+# Các dòng bắt đầu bằng # sẽ bị bỏ khi commit.

@@ -1,0 +1,4 @@
+# Hook và script shell phải giữ LF: CRLF làm bash đọc "\r" như một ký tự lệnh
+.githooks/* text eol=lf
+*.sh        text eol=lf
+.gitmessage text eol=lf

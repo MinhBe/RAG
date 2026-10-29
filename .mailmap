@@ -1,0 +1,5 @@
+# Gộp các danh tính cũ của cùng một tác giả về một tên để git log / shortlog nhất quán.
+# Chỉ đổi cách hiển thị cục bộ; không viết lại lịch sử, không đổi SHA.
+Pham Do Anh Minh <163382772+MinhBe@users.noreply.github.com> <365aminh2001@gmail.com>
+Pham Do Anh Minh <163382772+MinhBe@users.noreply.github.com> Minh Be <365aminh2001@example.com>
+Pham Do Anh Minh <163382772+MinhBe@users.noreply.github.com> Minh <65minhbe2001@gmail.com>

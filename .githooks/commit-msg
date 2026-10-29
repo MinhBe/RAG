@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Chặn commit không theo quy ước trong .gitmessage.
+# Bật một lần cho repo:  git config core.hooksPath .githooks
+set -u
+export LC_ALL=C.UTF-8   # đếm ký tự tiếng Việt theo chữ, không theo byte
+
+msg_file="$1"
+msg="$(grep -v '^#' "$msg_file" | sed 's/[[:space:]]*$//')"
+subject="$(printf '%s\n' "$msg" | sed -n '1p')"
+line2="$(printf '%s\n' "$msg" | sed -n '2p')"
+
+# commit do git tự sinh: bỏ qua
+case "$subject" in
+  Merge\ *|Revert\ *|fixup!*|squash!*|amend!*) exit 0 ;;
+esac
+
+types='feat|fix|perf|refactor|harden|test|docs|build|ci|chore|data'
+scopes='graph|chat|dashboard|api|rag|ingest|agent|llm|db|report|ui|deploy'
+errors=()
+
+if ! printf '%s' "$subject" | grep -Eq "^($types)(\(($scopes)(,($scopes))*\))?!?: .+"; then
+  errors+=("Dòng tóm tắt phải có dạng <type>(<scope>): <mô tả>.")
+  errors+=("  type : ${types//|/ }")
+  errors+=("  scope: ${scopes//|/ }")
+fi
+
+if (( ${#subject} > 72 )); then
+  errors+=("Dòng tóm tắt dài ${#subject} ký tự, tối đa 72.")
+fi
+
+case "$subject" in
+  *.) errors+=("Dòng tóm tắt không kết thúc bằng dấu chấm.") ;;
+esac
+
+desc="${subject#*: }"
+desc_lc="$(printf '%s' "$desc" | tr '[:upper:]' '[:lower:]')"
+if printf '%s' "$desc_lc" | grep -Eqx '(update|updates|fix|fix bug|fixes|final|wip|misc|changes|sửa lỗi|sửa|cập nhật|chỉnh sửa|thay đổi|hoàn thiện)'; then
+  errors+=("Mô tả \"$desc\" quá chung chung: nói thay đổi cụ thể là gì.")
+fi
+
+if [[ -n "$line2" ]]; then
+  errors+=("Dòng thứ hai phải để trống, ngăn cách tóm tắt với thân commit.")
+fi
+
+# thân commit: mọi dòng sau dòng 2, trừ dòng trống và trailer
+body="$(printf '%s\n' "$msg" | sed -n '3,$p' \
+  | grep -Ev '^(Co-Authored-By|Signed-off-by|Reviewed-by|Refs|Closes):' | grep -v '^$' || true)"
+
+changed="$(git diff --cached --numstat 2>/dev/null | awk '{s += ($1 == "-" ? 0 : $1) + ($2 == "-" ? 0 : $2)} END {print s + 0}')"
+if (( changed > 30 )) && [[ -z "$body" ]]; then
+  errors+=("Commit đổi $changed dòng nhưng không có thân: ghi Vì sao / Thay đổi / Kiểm chứng.")
+fi
+
+while IFS= read -r line; do
+  [[ "$line" == *http* ]] && continue   # link dài thì để nguyên
+  if (( ${#line} > 100 )); then
+    errors+=("Dòng thân dài ${#line} ký tự, tối đa 100: \"${line:0:40}…\"")
+  fi
+done <<< "$body"
+
+if (( ${#errors[@]} )); then
+  {
+    echo "✗ Commit bị từ chối — không theo quy ước (.gitmessage):"
+    for e in "${errors[@]}"; do echo "  $e"; done
+    echo
+    echo "Nội dung vẫn còn. Sửa rồi commit lại:"
+    echo "  git commit -e -F .git/COMMIT_EDITMSG"
+  } >&2
+  exit 1
+fi
+exit 0
