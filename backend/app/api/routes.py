@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -520,9 +520,7 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
 
         # văn bản → Chương, và văn bản → Điều cho Điều chưa có Chương
         for n in nodes:
-            if n.get("type") == "chapter":
-                add_edge(f"doc:{n['doc_id']}", n["id"], "contains")
-            elif n.get("type") == "article" and n.get("chapter_no") is None:
+            if n.get("type") == "chapter" or (n.get("type") == "article" and n.get("chapter_no") is None):
                 add_edge(f"doc:{n['doc_id']}", n["id"], "contains")
 
         # văn bản → văn bản (REPLACES / AMENDS / GUIDES)
@@ -580,7 +578,7 @@ def escalate(req: EscalateRequest):
         "question": req.question,
         "thread_id": req.thread_id,
         "status": "pending",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
     with _esc_lock:
         rows = _load_esc()
@@ -604,7 +602,7 @@ def update_escalation(esc_id: str, req: EscalateUpdate):
         for r in rows:
             if r["id"] == esc_id:
                 r["status"] = req.status
-                r["resolved_at"] = datetime.now(timezone.utc).isoformat()
+                r["resolved_at"] = datetime.now(UTC).isoformat()
                 break
         else:
             raise HTTPException(status_code=404, detail="Không tìm thấy escalation")

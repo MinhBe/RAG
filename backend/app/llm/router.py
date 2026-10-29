@@ -19,7 +19,7 @@ from __future__ import annotations
 import random
 import time
 from dataclasses import dataclass
-from typing import Any, Iterator
+from collections.abc import Iterator
 
 from loguru import logger
 
@@ -227,8 +227,7 @@ class LLMRouter:
             model=model, system=system or None, messages=conv,
             temperature=temperature, max_tokens=4096,
         ) as s:
-            for text in s.text_stream:
-                yield text
+            yield from s.text_stream
 
     # ---- retry ----
     def _with_retry(self, call, *, provider: str, rotate: bool) -> LLMResult:

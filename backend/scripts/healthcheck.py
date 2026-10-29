@@ -1,6 +1,5 @@
 """Gọi thử mọi endpoint để phát hiện chức năng hỏng."""
 
-import json
 
 import httpx
 

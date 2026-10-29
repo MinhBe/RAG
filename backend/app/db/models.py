@@ -41,7 +41,7 @@ class LegalDocument(Base):
     source_url: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    nodes: Mapped[list["LegalNode"]] = relationship(back_populates="document")
+    nodes: Mapped[list[LegalNode]] = relationship(back_populates="document")
 
 
 class LegalNode(Base):
@@ -66,7 +66,7 @@ class LegalNode(Base):
     effective_to: Mapped[date | None] = mapped_column(Date)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBED_DIM))
 
-    document: Mapped["LegalDocument"] = relationship(back_populates="nodes")
+    document: Mapped[LegalDocument] = relationship(back_populates="nodes")
 
 
 class NodeSupersession(Base):

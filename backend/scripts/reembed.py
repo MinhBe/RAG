@@ -35,7 +35,7 @@ def main() -> None:
     for i in range(0, len(nodes), batch):
         chunk = nodes[i : i + batch]
         vecs = embed([_ctx(n) for n in chunk])
-        for n, v in zip(chunk, vecs):
+        for n, v in zip(chunk, vecs, strict=True):
             db.execute(update(LegalNode).where(LegalNode.node_id == n.node_id).values(embedding=v))
         db.commit()
         done += len(chunk)

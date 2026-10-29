@@ -9,7 +9,6 @@ rồi cập nhật tại chỗ. Không đụng tới text hay embedding.
 
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 

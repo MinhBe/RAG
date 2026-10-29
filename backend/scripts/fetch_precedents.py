@@ -49,7 +49,7 @@ def _ensure_cache() -> None:
 def _as_date(v) -> date | None:
     if not v:
         return None
-    if isinstance(v, (date, datetime)):
+    if isinstance(v, date | datetime):
         return v.date() if isinstance(v, datetime) else v
     try:
         return date.fromisoformat(str(v)[:10])
@@ -82,11 +82,11 @@ def main() -> None:
     db.query(Precedent).delete()
     db.commit()
 
-    recs = [dict(zip(cols, r)) for r in rows]
+    recs = [dict(zip(cols, r, strict=True)) for r in rows]
     # Nhúng theo đoạn đầu bản án (tình huống + nhận định) cho gọn.
     summaries = [ (r["markdown"] or "")[:2000] for r in recs ]
     vecs = embed(summaries)
-    for r, v in zip(recs, vecs):
+    for r, v in zip(recs, vecs, strict=True):
         cl = r.get("citations_law")
         if not isinstance(cl, str):
             cl = json.dumps(cl, ensure_ascii=False) if cl is not None else None

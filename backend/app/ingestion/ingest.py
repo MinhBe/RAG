@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 from datetime import date
+from pathlib import Path
 
 from loguru import logger
 from sqlalchemy import delete
@@ -120,8 +121,8 @@ def ingest_document(
     rows = deduped
     logger.info("Nhúng {} node...", len(rows))
     vecs = embed([r["_ctx"] for r in rows])
-    for r, v in zip(rows, vecs):
-        ctx = r.pop("_ctx")
+    for r, v in zip(rows, vecs, strict=True):
+        r.pop("_ctx")
         db.add(LegalNode(**r, text_hash=_hash(r["text"]), embedding=v))
     db.commit()
 
@@ -144,7 +145,7 @@ def _cli() -> None:
     args = ap.parse_args()
 
     Base.metadata.create_all(bind=engine)
-    raw = open(args.file, encoding="utf-8").read()
+    raw = Path(args.file).read_text(encoding="utf-8")
     eff = date.fromisoformat(args.effective) if args.effective else None
     exp = date.fromisoformat(args.expired) if args.expired else None
 

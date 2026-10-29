@@ -46,8 +46,8 @@ def _normalize(raw_text: str) -> list[str]:
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = text.replace(" ", " ")  # no-break space -> space thường
     lines = []
-    for line in text.split("\n"):
-        line = re.sub(r"[ \t]+", " ", line).strip()
+    for raw_line in text.split("\n"):
+        line = re.sub(r"[ \t]+", " ", raw_line).strip()
         if line:
             lines.append(line)
     return lines
@@ -129,9 +129,7 @@ def _expected_content_length(text: str) -> int:
             continue
         if not started:
             continue
-        if match := RE_CLAUSE.match(line):
-            total += len(match.group(2).strip())
-        elif match := RE_POINT.match(line):
+        if (match := RE_CLAUSE.match(line)) or (match := RE_POINT.match(line)):
             total += len(match.group(2).strip())
         else:
             total += len(line)
