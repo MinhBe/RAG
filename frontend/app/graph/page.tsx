@@ -39,6 +39,21 @@ const NODE_R: Record<string, number> = {
    which keeps the cluster count near the reference demo's ~15 instead of 160+ */
 const HUB_TYPES = new Set(["document", "chapter"]);
 
+/* relationship map: a fixed 2-D arrangement, readable at a glance like the demo */
+const ONTO_R = 34;
+/* the map sits on a light stage, so the faint structural greys need more weight */
+const ONTO_EDGE_COLOR: Record<string, string> = { ...EDGE_COLOR, contains: "#64748b", sibling: "#94a3b8" };
+const ONTO_SLOT: Record<string, [number, number]> = {
+  document: [100, 90], chapter: [360, 90], article: [360, 280],
+  clause: [100, 280], point: [100, 490],
+};
+const ONTO_SPARE: [number, number][] = [[360, 490], [230, 610], [580, 280]];
+/* direction each type's self-loops open toward, chosen to point into free space */
+const ONTO_LOOP_DIR: Record<string, number> = {
+  document: -Math.PI / 2, chapter: -Math.PI / 2, article: 0,
+  clause: Math.PI, point: Math.PI / 2,
+};
+
 /* ── types ───────────────────────────────────────────────────────────────── */
 type GNode = {
   id: string; label: string; doc_id: string; doc_type: string;
@@ -92,6 +107,68 @@ export default function GraphPage() {
   const [panel,      setPanel]      = useState<Panel>("onto");
   const [lookup,     setLookup]     = useState("");
   const [lookupType, setLookupType] = useState<string>("");
+
+  /* resizable panel + zoomable relationship map */
+  const [sideW, setSideW] = useState(520);
+  const [ontoH, setOntoH] = useState(520);
+  const [ov,    setOv]    = useState({ k: 1, x: 0, y: 0 });
+  const ontoStageRef   = useRef<HTMLDivElement>(null);
+  const ontoContentRef = useRef<SVGGElement>(null);
+  const userZoomed     = useRef(false);
+
+  useEffect(() => {
+    try {
+      const w = Number(localStorage.getItem("kgv_sideW"));
+      const h = Number(localStorage.getItem("kgv_ontoH"));
+      if (w) setSideW(w);
+      // no saved height yet: size the map to the screen, not a fixed guess
+      setOntoH(h || Math.max(380, Math.min(760, window.innerHeight - 250)));
+    } catch { /* storage unavailable: keep defaults */ }
+  }, []);
+
+  const fitOnto = useCallback(() => {
+    const st = ontoStageRef.current, g = ontoContentRef.current;
+    if (!st || !g) return;
+    const b = g.getBBox();
+    if (!b.width || !b.height) return;
+    const top = 44, m = 14;
+    const W = st.clientWidth, H = st.clientHeight - top;
+    const k = Math.min((W - m * 2) / b.width, (H - m * 2) / b.height, 2.4);
+    setOv({ k, x: (W - b.width * k) / 2 - b.x * k, y: top + (H - b.height * k) / 2 - b.y * k });
+    userZoomed.current = false;
+  }, []);
+
+  const zoomOntoAt = useCallback((f: number, px: number, py: number) => {
+    userZoomed.current = true;
+    setOv((v) => {
+      const k = Math.min(5, Math.max(0.3, v.k * f));
+      const r = k / v.k;
+      return { k, x: px - (px - v.x) * r, y: py - (py - v.y) * r };
+    });
+  }, []);
+
+  const zoomOntoCenter = (f: number) => {
+    const st = ontoStageRef.current;
+    if (st) zoomOntoAt(f, st.clientWidth / 2, st.clientHeight / 2);
+  };
+
+  /* shared pointer-drag helper for panning and the two resize handles */
+  const startDrag = (e: React.PointerEvent, onMove: (dx: number, dy: number) => void, onEnd?: () => void) => {
+    e.preventDefault();
+    const sx = e.clientX, sy = e.clientY;
+    const move = (m: PointerEvent) => onMove(m.clientX - sx, m.clientY - sy);
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      document.body.style.userSelect = "";
+      onEnd?.();
+    };
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  const persist = (key: string, v: number) => { try { localStorage.setItem(key, String(Math.round(v))); } catch { /* ignore */ } };
 
   /* ── fetch ──────────────────────────────────────────────────────────────── */
   const fetchGraph = useCallback(async (q: string) => {
@@ -382,23 +459,35 @@ export default function GraphPage() {
     linkSel.current.attr("stroke-opacity", (e: GEdge) => (edgeMatches(e, highlight) ? 0.95 : 0.03));
   }, [highlight, view, edgeMatches, matchSet]);
 
-  /* ── ontology panel layout: deterministic tiers, no jitter ─────────────── */
-  const ontoLayout = useMemo(() => {
-    const ranks = [...new Set(ontology.types.map((t) => TYPE_RANK[t] ?? 9))].sort((a, b) => a - b);
-    const W = 268, rowH = 72, padTop = 24;
+  /* ── relationship map geometry ─────────────────────────────────────────── */
+  const ontoPos = useMemo(() => {
     const pos: Record<string, { x: number; y: number }> = {};
-    ranks.forEach((r, ri) => {
-      const row = ontology.types.filter((t) => (TYPE_RANK[t] ?? 9) === r);
-      // a lone type sits left of centre so its self-loops have room on the right
-      row.forEach((t, i) => {
-        pos[t] = {
-          x: row.length === 1 ? 90 : W * ((i + 1) / (row.length + 1)),
-          y: padTop + ri * rowH,
-        };
-      });
+    let spare = 0;
+    ontology.types.forEach((t) => {
+      const sl = ONTO_SLOT[t] || ONTO_SPARE[spare++ % ONTO_SPARE.length];
+      pos[t] = { x: sl[0], y: sl[1] };
     });
-    return { pos, width: W, height: padTop + Math.max(ranks.length - 1, 0) * rowH + 40 };
+    return pos;
   }, [ontology.types]);
+
+  /* refit on open, on new data, and on resize unless the user zoomed by hand */
+  useEffect(() => {
+    if (panel !== "onto") return;
+    const st = ontoStageRef.current;
+    if (!st) return;
+    const id = requestAnimationFrame(fitOnto);
+    const ro = new ResizeObserver(() => { if (!userZoomed.current) fitOnto(); });
+    ro.observe(st);
+    // wheel must be non-passive to stop the panel scrolling while zooming
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const r = st.getBoundingClientRect();
+      zoomOntoAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top);
+    };
+    st.addEventListener("wheel", onWheel, { passive: false });
+    return () => { cancelAnimationFrame(id); ro.disconnect(); st.removeEventListener("wheel", onWheel); };
+  }, [panel, ontology.types, fitOnto, zoomOntoAt]);
+
 
   /* an ontology item is dimmed when a hard filter excludes it */
   const ontoDim = useCallback((t: string, p?: string, o?: string) => {
@@ -561,120 +650,176 @@ export default function GraphPage() {
           </div>
 
           {/* ── collapsible right panels ───────────────────────────────── */}
-          {panel && (
-            <div className="kgv-side">
+          {panel && (<>
+            <div className="kgv-side-resize" title="Kéo để đổi chiều rộng"
+              onPointerDown={(e) => {
+                const w0 = sideW;
+                let w = w0;
+                userZoomed.current = false;
+                startDrag(e, (dx) => {
+                  w = Math.max(300, Math.min(window.innerWidth - 320, w0 - dx));
+                  setSideW(w);
+                }, () => persist("kgv_sideW", w));
+              }} />
+            <div className="kgv-side" style={{ width: sideW }}>
               {panel === "onto" && (
               <div className="kgv-onto-block" onPointerDown={(e) => e.stopPropagation()}>
                 <div className="kgv-onto-head">
                   <span className="kgv-onto-title">Bản đồ mối quan hệ</span>
-                  <span className="kgv-onto-hint">click = làm nổi · chuột phải = lọc / ẩn</span>
+                  <span className="kgv-onto-hint">
+                    Bấm để làm nổi · chuột phải để lọc / ẩn · cuộn để phóng to · kéo nền để di chuyển
+                  </span>
                 </div>
-  
-                <svg width={ontoLayout.width} height={ontoLayout.height} className="kgv-onto-svg">
-                  <defs>
-                    {Object.entries(EDGE_COLOR).map(([t, c]) => (
-                      <marker key={t} id={`oar-${t}`} markerWidth="6" markerHeight="6"
-                        refX="18" refY="3" orient="auto">
-                        <path d="M0,0 L0,6 L6,3 z" fill={c} />
-                      </marker>
-                    ))}
-                  </defs>
-  
-                  {ontology.edges.map((oe) => {
-                    const a = ontoLayout.pos[oe.subject], b = ontoLayout.pos[oe.object];
-                    if (!a || !b) return null;
-                    const off = hiddenEdgeTypes.has(oe.predicate) ||
-                      hiddenNodeTypes.has(oe.subject) || hiddenNodeTypes.has(oe.object);
-                    const dim = ontoDim(oe.subject, oe.predicate, oe.object);
-                    const c   = EDGE_COLOR[oe.predicate] || "#94a3b8";
-                    const key = `${oe.subject}|${oe.predicate}|${oe.object}`;
-                    const cls = `kgv-onto-edge${off ? " off" : ""}${dim ? " dim" : ""}`;
-                    const tip = `${TYPE_LABEL[oe.subject] || oe.subject} —${EDGE_LABEL[oe.predicate] || oe.predicate}→ ${TYPE_LABEL[oe.object] || oe.object} (${oe.count})`;
-                    const onClick = () => { if (!off) { setHighlight({ ...oe }); setMenu(null); } };
-                    const onCtx = (ev: React.MouseEvent) => {
-                      ev.preventDefault();
-                      const r = (ev.currentTarget as Element).closest(".kgv-onto-block")!.getBoundingClientRect();
-                      setMenu({ x: ev.clientX - r.left, y: ev.clientY - r.top, kind: "edge", edge: oe });
-                    };
-  
-                    /* same-type relation → self loop on the right of the node */
-                    if (oe.subject === oe.object) {
-                      const loops = ontology.edges.filter((x) => x.subject === x.object && x.subject === oe.subject);
-                      const rad = 16 + loops.indexOf(oe) * 9;
-                      const d = `M ${a.x + 13} ${a.y - 14} A ${rad} ${rad} 0 1 1 ${a.x + 13} ${a.y + 14}`;
-                      return (
-                        <g key={key} className={cls} onClick={onClick} onContextMenu={onCtx}>
-                          <path d={d} fill="none" stroke={c} strokeWidth={1.4}
-                            strokeDasharray={off ? "3,3" : undefined} markerEnd={`url(#oar-${oe.predicate})`} />
-                          <path d={d} fill="none" stroke="transparent" strokeWidth={10} />
-                          <text x={a.x + rad * 2 + 16} y={a.y + 3 + loops.indexOf(oe) * 11} fontSize="10" fill={c}>
-                            {EDGE_LABEL[oe.predicate] || oe.predicate}
-                          </text>
-                          <title>{tip}</title>
-                        </g>
-                      );
-                    }
-  
-                    /* several relations can join the same pair of types — bend each
-                       one aside so their labels do not sit on top of each other */
-                    const pairKey = [oe.subject, oe.object].sort().join("|");
-                    const para = ontology.edges.filter(
-                      (x) => x.subject !== x.object &&
-                             [x.subject, x.object].sort().join("|") === pairKey,
-                    );
-                    // first one runs straight with its label on the left; the rest
-                    // bend right, into the panel's free space
-                    const off2 = para.indexOf(oe) * 34;
-                    const dx = b.x - a.x, dy = b.y - a.y;
-                    const len = Math.hypot(dx, dy) || 1;
-                    const nx = -dy / len, ny = dx / len;
-                    const mx = (a.x + b.x) / 2 + nx * off2;
-                    const my = (a.y + b.y) / 2 + ny * off2;
-                    const d = `M${a.x},${a.y} Q${(a.x + b.x) / 2 + nx * off2 * 2},${(a.y + b.y) / 2 + ny * off2 * 2} ${b.x},${b.y}`;
-                    return (
-                      <g key={key} className={cls} onClick={onClick} onContextMenu={onCtx}>
-                        <path d={d} fill="none" stroke={c} strokeWidth={1.4}
-                          strokeDasharray={off ? "3,3" : undefined} markerEnd={`url(#oar-${oe.predicate})`} />
-                        <path d={d} fill="none" stroke="transparent" strokeWidth={12} />
-                        <text x={mx} y={my + 3} fontSize="9" fill={c}
-                          textAnchor={off2 > 0 ? "start" : "end"}
-                          dx={off2 > 0 ? 4 : -4}>
-                          {EDGE_LABEL[oe.predicate] || oe.predicate}
-                        </text>
-                        <title>{tip}</title>
+
+                <div className="kgv-onto-stage" ref={ontoStageRef} style={{ height: ontoH }}>
+                  <div className="kgv-onto-zoom">
+                    <button title="Thu nhỏ" onClick={() => zoomOntoCenter(1 / 1.25)}>−</button>
+                    <span>{Math.round(ov.k * 100)}%</span>
+                    <button title="Phóng to" onClick={() => zoomOntoCenter(1.25)}>+</button>
+                    <button title="Vừa khung" onClick={fitOnto}>⤢</button>
+                    <span className="kgv-tb-sep" />
+                    <button title="Đặt lại bộ lọc" onClick={resetAll} disabled={!activeFilter}>↺</button>
+                  </div>
+
+                  <svg className="kgv-onto-svg">
+                    <defs>
+                      {Object.entries(ONTO_EDGE_COLOR).map(([t, c]) => (
+                        <marker key={t} id={`oar-${t}`} viewBox="0 0 10 10" refX="9" refY="5"
+                          markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto">
+                          <path d="M0,0 L10,5 L0,10 z" fill={c} />
+                        </marker>
+                      ))}
+                    </defs>
+
+                    <rect className="kgv-onto-bg" width="100%" height="100%" fill="transparent"
+                      onClick={() => setMenu(null)}
+                      onPointerDown={(e) => {
+                        const v0 = ov;
+                        startDrag(e, (dx, dy) => {
+                          userZoomed.current = true;
+                          setOv({ ...v0, x: v0.x + dx, y: v0.y + dy });
+                        });
+                      }} />
+
+                    <g transform={`translate(${ov.x},${ov.y}) scale(${ov.k})`}>
+                      <g ref={ontoContentRef}>
+                        {ontology.edges.map((oe) => {
+                          const a = ontoPos[oe.subject], b = ontoPos[oe.object];
+                          if (!a || !b) return null;
+                          const R = ONTO_R;
+                          const off = hiddenEdgeTypes.has(oe.predicate) ||
+                            hiddenNodeTypes.has(oe.subject) || hiddenNodeTypes.has(oe.object);
+                          const dim = ontoDim(oe.subject, oe.predicate, oe.object);
+                          const hl  = !!highlight?.predicate && tripletKey(highlight) === tripletKey(oe);
+                          const c   = ONTO_EDGE_COLOR[oe.predicate] || "#94a3b8";
+                          const key = `${oe.subject}|${oe.predicate}|${oe.object}`;
+                          const cls = `kgv-onto-edge${off ? " off" : ""}${dim ? " dim" : ""}${hl ? " hl" : ""}`;
+                          const label = EDGE_LABEL[oe.predicate] || oe.predicate;
+                          const tip = `${TYPE_LABEL[oe.subject] || oe.subject} —${label}→ ${TYPE_LABEL[oe.object] || oe.object} (${oe.count})`;
+                          const onClick = () => { if (!off) { setHighlight({ ...oe }); setMenu(null); } };
+                          const onCtx = (ev: React.MouseEvent) => {
+                            ev.preventDefault();
+                            const r = (ev.currentTarget as Element).closest(".kgv-onto-block")!.getBoundingClientRect();
+                            setMenu({ x: ev.clientX - r.left, y: ev.clientY - r.top, kind: "edge", edge: oe });
+                          };
+
+                          let d: string, lx: number, ly: number;
+                          if (oe.subject === oe.object) {
+                            /* self-loop, opening toward the type's free side */
+                            const loops = ontology.edges.filter((x) => x.subject === x.object && x.subject === oe.subject);
+                            const i = loops.indexOf(oe);
+                            const th = (ONTO_LOOP_DIR[oe.subject] ?? 0) + [0, 0.95, -0.95, 1.9, -1.9][i % 5];
+                            const P = (ang: number, dist: number) => [a.x + Math.cos(ang) * dist, a.y + Math.sin(ang) * dist];
+                            const [sx, sy] = P(th - 0.42, R), [ex, ey] = P(th + 0.42, R);
+                            const [c1x, c1y] = P(th - 0.62, R + 72), [c2x, c2y] = P(th + 0.62, R + 72);
+                            d = `M${sx},${sy} C${c1x},${c1y} ${c2x},${c2y} ${ex},${ey}`;
+                            [lx, ly] = P(th, R + 62);
+                          } else {
+                            /* parallel relations between one pair of types bow apart, and their
+                               labels are staggered along the curve so none sit on another */
+                            const pair = [oe.subject, oe.object].sort();
+                            const para = ontology.edges.filter(
+                              (x) => x.subject !== x.object && [x.subject, x.object].sort().join("|") === pair.join("|"),
+                            );
+                            const i = para.indexOf(oe), n = para.length;
+                            const bend = (i - (n - 1) / 2) * 46;
+                            const A = ontoPos[pair[0]], B = ontoPos[pair[1]];
+                            const len = Math.hypot(B.x - A.x, B.y - A.y) || 1;
+                            const nx = -(B.y - A.y) / len, ny = (B.x - A.x) / len;
+                            const qx = (a.x + b.x) / 2 + nx * bend * 2, qy = (a.y + b.y) / 2 + ny * bend * 2;
+                            const unit = (fx: number, fy: number) => {
+                              const l = Math.hypot(qx - fx, qy - fy) || 1;
+                              return [(qx - fx) / l, (qy - fy) / l];
+                            };
+                            const [ux, uy] = unit(a.x, a.y), [vx, vy] = unit(b.x, b.y);
+                            const sx = a.x + ux * R, sy = a.y + uy * R, ex = b.x + vx * R, ey = b.y + vy * R;
+                            d = `M${sx},${sy} Q${qx},${qy} ${ex},${ey}`;
+                            const t = n > 1 ? 0.5 + (i - (n - 1) / 2) * 0.18 : 0.5;
+                            lx = (1 - t) ** 2 * sx + 2 * (1 - t) * t * qx + t * t * ex;
+                            ly = (1 - t) ** 2 * sy + 2 * (1 - t) * t * qy + t * t * ey;
+                          }
+
+                          const fs = 14, pw = label.length * fs * 0.56 + 18, ph = fs + 10;
+                          return (
+                            <g key={key} className={cls} onClick={onClick} onContextMenu={onCtx}>
+                              <path d={d} fill="none" stroke={c} strokeWidth={2.2}
+                                strokeDasharray={off ? "5,4" : undefined} markerEnd={`url(#oar-${oe.predicate})`} />
+                              <path d={d} fill="none" stroke="transparent" strokeWidth={14} />
+                              <rect x={lx - pw / 2} y={ly - ph / 2} width={pw} height={ph} rx={ph / 2}
+                                fill="var(--card,#fff)" stroke={c} strokeWidth={1.4} />
+                              <text x={lx} y={ly} dy="0.35em" textAnchor="middle" fontSize={fs}
+                                fontWeight={500} fill="var(--foreground,#0f172a)">{label}</text>
+                              <title>{tip}</title>
+                            </g>
+                          );
+                        })}
+
+                        {ontology.types.map((t) => {
+                          const p = ontoPos[t]; if (!p) return null;
+                          const off = hiddenNodeTypes.has(t);
+                          const dim = ontoDim(t);
+                          const hl  = !!highlight && !highlight.predicate && highlight.subject === t;
+                          const n = raw.nodes.filter((x) => x.type === t).length;
+                          const name = TYPE_LABEL[t] || t;
+                          const fs = 15, pw = name.length * fs * 0.6 + 14, ph = fs + 10;
+                          return (
+                            <g key={t} className={`kgv-onto-node${off ? " off" : ""}${dim ? " dim" : ""}${hl ? " hl" : ""}`}
+                               onClick={() => { if (!off) { setHighlight({ subject: t }); setMenu(null); } }}
+                               onContextMenu={(ev) => {
+                                 ev.preventDefault();
+                                 const r = (ev.currentTarget as Element).closest(".kgv-onto-block")!.getBoundingClientRect();
+                                 setMenu({ x: ev.clientX - r.left, y: ev.clientY - r.top, kind: "node", node: t });
+                               }}>
+                              <circle cx={p.x} cy={p.y} r={ONTO_R} fill={TYPE_COLOR[t] || "#64748b"}
+                                stroke="#fff" strokeWidth={3} strokeDasharray={off ? "6,4" : undefined} />
+                              <rect x={p.x - pw / 2} y={p.y - ph / 2} width={pw} height={ph} rx={ph / 2}
+                                fill="#fff" fillOpacity={0.94} pointerEvents="none" />
+                              <text x={p.x} y={p.y} dy="0.35em" textAnchor="middle" fontSize={fs}
+                                fontWeight={700} fill="#0f172a" pointerEvents="none">{name}</text>
+                              <text x={p.x} y={p.y + ONTO_R + 17} textAnchor="middle" fontSize={13}
+                                fill="var(--muted-foreground,#64748b)" pointerEvents="none">{n} node</text>
+                              <title>{`${name} — ${n} node`}</title>
+                            </g>
+                          );
+                        })}
                       </g>
-                    );
-                  })}
-  
-                  {ontology.types.map((t) => {
-                    const p = ontoLayout.pos[t]; if (!p) return null;
-                    const off = hiddenNodeTypes.has(t);
-                    const dim = ontoDim(t);
-                    const n = raw.nodes.filter((x) => x.type === t).length;
-                    return (
-                      <g key={t} className={`kgv-onto-node${off ? " off" : ""}${dim ? " dim" : ""}`}
-                         onClick={() => { if (!off) { setHighlight({ subject: t }); setMenu(null); } }}
-                         onContextMenu={(ev) => {
-                           ev.preventDefault();
-                           const r = (ev.currentTarget as Element).closest(".kgv-onto-block")!.getBoundingClientRect();
-                           setMenu({ x: ev.clientX - r.left, y: ev.clientY - r.top, kind: "node", node: t });
-                         }}>
-                        <circle cx={p.x} cy={p.y} r={20} fill={TYPE_COLOR[t] || "#64748b"}
-                          stroke="#fff" strokeWidth={1.5} strokeDasharray={off ? "3,2" : undefined} />
-                        <text x={p.x} y={p.y} dy="0.35em" textAnchor="middle" fontSize="10"
-                          fontWeight="600" fill="#fff" pointerEvents="none">
-                          {TYPE_LABEL[t] || t}
-                        </text>
-                        <text x={p.x} y={p.y + 32} textAnchor="middle" fontSize="9"
-                          fill="var(--muted-foreground,#94a3b8)" pointerEvents="none">{n}</text>
-                        <title>{`${TYPE_LABEL[t] || t} — ${n} node`}</title>
-                      </g>
-                    );
-                  })}
-                </svg>
+                    </g>
+                  </svg>
+                </div>
+
+                <div className="kgv-onto-hresize" title="Kéo để đổi chiều cao bản đồ"
+                  onPointerDown={(e) => {
+                    const h0 = ontoH;
+                    let h = h0;
+                    userZoomed.current = false;
+                    startDrag(e, (_, dy) => {
+                      h = Math.max(260, Math.min(1400, h0 + dy));
+                      setOntoH(h);
+                    }, () => persist("kgv_ontoH", h));
+                  }} />
   
                 {menu && (
-                  <div className="kgv-ctxmenu" style={{ left: Math.min(menu.x, 120), top: menu.y + 6 }}
+                  <div className="kgv-ctxmenu" style={{ left: Math.max(8, Math.min(menu.x, sideW - 230)), top: menu.y + 6 }}
                        onPointerDown={(e) => e.stopPropagation()}>
                     {menu.kind === "edge" && menu.edge && (() => {
                       const oe = menu.edge!;
@@ -796,7 +941,7 @@ export default function GraphPage() {
                 </>
               )}
             </div>
-          )}
+          </>)}
 
           {/* ── vertical tab strip ─────────────────────────────────────── */}
           <div className="kgv-tabs">

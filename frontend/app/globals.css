@@ -925,3 +925,61 @@ html, body {
   display: block; overflow: visible; width: 100%;
   background: var(--muted); border-radius: var(--radius); padding: 6px 0;
 }
+
+/* ── relationship map: stage, magnifier, resize handles ─────────────────── */
+.kgv-onto-hint { font-size: 11px; line-height: 1.5; }
+.kgv-onto-stage {
+  position: relative; overflow: hidden;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: radial-gradient(circle at 50% 40%, var(--background), var(--muted));
+}
+.kgv-onto-stage .kgv-onto-svg {
+  width: 100%; height: 100%; display: block;
+  background: none; padding: 0; border-radius: 0; overflow: hidden;
+}
+.kgv-onto-bg { cursor: grab; }
+.kgv-onto-bg:active { cursor: grabbing; }
+
+.kgv-onto-zoom {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 2;
+  display: flex; align-items: center; gap: 2px; padding: 3px 8px;
+  border-radius: 999px; background: var(--card); border: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  font-size: 11px; color: var(--muted-foreground);
+}
+.kgv-onto-zoom button {
+  width: 28px; height: 28px; border: none; border-radius: 50%; background: none;
+  cursor: pointer; color: var(--muted-foreground); font-size: 17px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.kgv-onto-zoom button:hover:not(:disabled) { background: var(--muted); color: var(--foreground); }
+.kgv-onto-zoom button:disabled { opacity: 0.3; cursor: default; }
+.kgv-onto-zoom span:not(.kgv-tb-sep) { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+.kgv-onto-zoom .kgv-tb-sep { margin: 0 4px; }
+
+.kgv-onto-node:hover circle { stroke: var(--primary); stroke-width: 4; }
+.kgv-onto-node.hl circle { stroke: var(--foreground, #0f172a); stroke-width: 4; }
+.kgv-onto-edge:hover path:first-child { stroke-width: 3.6; }
+.kgv-onto-edge.hl path:first-child { stroke-width: 4; }
+.kgv-onto-edge.hl rect { stroke-width: 2.4; }
+
+/* drag the bar under the map to change its height */
+.kgv-onto-hresize { height: 14px; cursor: row-resize; position: relative; touch-action: none; }
+.kgv-onto-hresize::after {
+  content: ""; position: absolute; left: 50%; top: 5px;
+  width: 48px; height: 4px; margin-left: -24px; border-radius: 2px; background: var(--border);
+}
+.kgv-onto-hresize:hover::after { background: var(--primary); }
+
+/* drag the strip left of the panel to change its width */
+.kgv-side-resize {
+  width: 7px; flex-shrink: 0; cursor: col-resize; touch-action: none;
+  border-left: 1px solid var(--border); background: var(--card);
+}
+.kgv-side-resize:hover { background: var(--primary); opacity: 0.35; }
+.kgv-side { border-left: none; }
+
+/* floating graph toolbar: wraps into a tidy card instead of a broken pill when the canvas narrows */
+.kgv-toolbar { border-radius: 16px; justify-content: center; row-gap: 4px; }
+.kgv-toolbar form { flex: 1 1 110px; min-width: 0; }
+.kgv-toolbar input { width: 100%; min-width: 80px; }
