@@ -2,21 +2,61 @@
 
 > AI Assistant for Vietnamese Labor Law — built from scratch with FastAPI, pgvector, and custom Vietnamese embeddings.
 
-**[🚀 Demo trực tuyến](#)** · **[📖 API Docs](https://lawvn-api.hf.space/docs)** · **[📋 Tổng quan kỹ thuật](docs/TONG-QUAN-DU-AN.md)**
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![pgvector](https://img.shields.io/badge/pgvector-hybrid%20search-336791)](https://github.com/pgvector/pgvector)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+**📖 API Docs:** `http://localhost:8000/docs` sau khi chạy cục bộ · **[📋 Tổng quan kỹ thuật](docs/TONG-QUAN-DU-AN.md)**
+
+<p align="center">
+  <img src="docs/images/demo-first-look.gif" alt="Demo: hỏi đáp pháp luật lao động có trích dẫn" width="760">
+</p>
 
 ---
 
 ## Dự án là gì
 
-Trợ lý AI hỏi đáp **pháp luật lao động Việt Nam** với 3 tính năng cốt lõi:
+Trợ lý AI hỏi đáp **pháp luật lao động Việt Nam**, với RAG có trích dẫn làm lõi và một vài tính năng pháp chế thực tế xoay quanh nó:
 
 | Tính năng | Mô tả |
 |---|---|
-| **Trả lời có trích dẫn** | Mỗi câu trả lời kèm Điều–Khoản–Điểm cụ thể; từ chối khi không đủ căn cứ |
+| **Trả lời có trích dẫn** | Mỗi câu trả lời kèm Điều–Khoản–Điểm cụ thể; từ chối khi không đủ căn cứ, không bịa trích dẫn |
+| **Đề xuất câu hỏi chuẩn hơn** | Câu hỏi dùng từ đời thường ("bị đuổi việc") được đề xuất lại bằng đúng thuật ngữ luật, một nút bấm để dùng |
+| **Chặn câu lạc đề / chèn lệnh** | Mẫu cố định + phân loại bằng LLM: câu ngoài phạm vi lao động, hoặc cố điều khiển trợ lý, đều bị chặn trước khi tới LLM trả lời |
+| **Phê duyệt có người thật** | Câu hỏi đúng phạm vi nhưng ngoài kho văn bản được chuyển cho chuyên gia duyệt và trả lời trực tiếp (human-in-the-loop) |
+| **Knowledge Graph 2 chiều** | Đồ thị quan hệ Văn bản → Chương → Điều → Khoản → Điểm, kèm bản đồ ontology để lọc theo triplet |
 | **Hiệu lực theo thời gian** | Hỏi "luật năm 2015" → ra BLLĐ 2012; hỏi "hiện tại" → ra BLLĐ 2019 + NĐ145 |
 | **Tác vụ pháp chế thực tế** | Soạn văn bản NĐ30, tổng hợp 150 bản án/án lệ lao động |
 
 Dự án tổng hợp ý tưởng từ 3 repo nguồn (agentailor, LexCompanion, LAWGIC) nhưng **backend được viết lại hoàn toàn** — gọn hơn, bỏ Neo4j, dùng PostgreSQL + pgvector.
+
+---
+
+## Xem trước
+
+### Đề xuất câu hỏi pháp lý chuẩn hơn
+Người dùng hỏi bằng từ ngữ đời thường — trợ lý nhận ra câu hỏi mơ hồ so với thuật ngữ luật, đề xuất lại đúng cách hỏi, một nút bấm để dùng ngay.
+
+<p align="center">
+  <img src="docs/images/demo-suggest-rewrite.gif" alt="Demo: đề xuất câu hỏi pháp lý chuẩn hơn" width="700">
+</p>
+
+### Phê duyệt có người thật (human-in-the-loop)
+Câu hỏi đúng phạm vi lao động nhưng cần văn bản chưa có trong kho (ví dụ hỏi về luật của một năm chưa ra) được ghi nhận và chờ chuyên gia duyệt trên trang Dashboard — chuyên gia viết câu trả lời hoặc từ chối kèm lý do, thẻ trong khung chat tự cập nhật kết quả.
+
+<p align="center">
+  <img src="docs/images/demo-approval.gif" alt="Demo: phê duyệt có người thật trên Dashboard" width="700">
+</p>
+
+### Knowledge Graph & bản đồ ontology
+Đồ thị quan hệ xoay quanh kết quả tra cứu (Văn bản — Chương — Điều — Khoản — Điểm), nhóm theo Chương hoặc theo Văn bản, cùng bản đồ ontology bên phải để lọc theo triplet (chủ ngữ – vị ngữ – tân ngữ) và làm nổi phần liên quan.
+
+<p align="center">
+  <img src="docs/images/demo-knowledge-graph.gif" alt="Demo: Knowledge Graph và bản đồ ontology" width="760">
+</p>
 
 ---
 
@@ -25,8 +65,13 @@ Dự án tổng hợp ý tưởng từ 3 repo nguồn (agentailor, LexCompanion,
 ```
 Browser (Next.js 15)  ──SSE stream──▶  FastAPI  ──▶  PostgreSQL 17 + pgvector
                                           │
-                         LLMRouter ◀──────┤
-                         (Gemini / Claude)│
+                          guard.py ◀──────┤   mẫu cố định (chèn lệnh) + phân loại
+                      (lọc trước LLM)     │   bằng LLM (lạc đề / ngoài kho / mơ hồ)
+                                          ▼
+                         LLMRouter: đua song song 3 model Dahl
+                         (DeepSeek-V4 / GLM-5.3 / MiniMax-M2),
+                         Gemini vào cuộc đua nếu Dahl chậm > 15s
+                                          │
                                           ▼
                          Vietnamese_Embedding_v2 (self-hosted)
                          AITeamVN/Vietnamese_Embedding_v2, 1024-dim
@@ -38,15 +83,26 @@ Browser (Next.js 15)  ──SSE stream──▶  FastAPI  ──▶  PostgreSQL 
 | **API** | FastAPI, Uvicorn, Pydantic v2, SQLAlchemy 2 | Async SSE via `POST /api/chat` |
 | **Database** | PostgreSQL 17 + pgvector + pg_trgm | Vector (1024d) + trigram hybrid search |
 | **Embedding** | AITeamVN/Vietnamese_Embedding_v2 (self-hosted) | Không gửi dữ liệu ra ngoài |
-| **LLM** | LLMRouter: Gemini Flash / Flash-lite / Claude | Retry + round-robin 10 keys |
+| **LLM** | `LLMRouter`: đua 3 model Dahl song song, Gemini/Claude dự phòng | Mỗi câu hỏi gửi đồng thời tới nhiều model, lấy câu trả lời hợp lệ sớm nhất |
+| **Guard** | `app/agent/guard.py` | Chặn chèn lệnh bằng mẫu + phân loại 5 nhóm câu hỏi bằng LLM |
 | **Deploy** | Docker Compose | `postgres` + `api` + `web` + `langfuse` (optional) |
 
 ### Điểm kỹ thuật đáng chú ý
 
 - **Hybrid RAG**: pgvector cosine + trigram/ILIKE + lọc `effective_from/to` — truy xuất chính xác không cần Elasticsearch
-- **Citation grounding**: LLM chỉ được trích dẫn node đã nằm trong kết quả retrieval; hallucinate citation → từ chối
+- **Citation grounding**: LLM chỉ được trích dẫn node đã nằm trong kết quả retrieval; hallucinate citation hoặc trả lời rỗng → không được thắng cuộc đua model
+- **Đua LLM song song (LLM racing)**: một câu hỏi gửi đồng thời tới 3 model nhỏ; model nào trả JSON hợp lệ, đúng tiếng Việt, có căn cứ sớm nhất thì thắng — vừa nhanh vừa né lỗi "hết chỗ" của API miễn phí
+- **Tình huống pháp lý dài**: câu hỏi trên 60 từ (kiểu án lệ, nhiều vấn đề cùng lúc) được tự tách thành 2–4 vấn đề pháp lý, tra riêng từng vấn đề rồi gộp kết quả
+- **Guard 2 lớp**: mẫu cố định chặn chèn lệnh không cần gọi LLM; lớp phân loại bằng LLM xử lý câu lạc đề, câu ngoài kho, câu dùng từ đời thường — chạy song song với bước trả lời nên không chậm câu hỏi hợp lệ
 - **Time-travel law**: `law_as_of(date)` dùng CTE trên `node_supersession` để theo chuỗi BLLĐ 2012 → BLLĐ 2019
 - **No external embedding API**: model tự host trong Docker container → 0 đồng gọi API, latency ổn định
+
+### Đo trên bộ 18 câu hỏi mẫu nội bộ
+
+| | Đúng Điều trích dẫn | Trung bình | Lâu nhất |
+|---|---|---|---|
+| Đua 3 model Dahl + Gemini dự phòng | 18/18 | ~15s | ~23s |
+| 146 test backend (pytest) | đều pass | — | — |
 
 ---
 
@@ -71,9 +127,9 @@ Mã node: `blld2019-d35-k2-a` = Bộ luật 2019, Điều 35, Khoản 2, Điểm
 # 1. Clone
 git clone https://github.com/MinhBe/RAG.git && cd RAG
 
-# 2. Cấu hình — chỉ cần điền ít nhất 1 khóa Gemini miễn phí
+# 2. Cấu hình — điền ít nhất 1 khóa LLM miễn phí (Gemini hoặc Dahl)
 cp .env.example .env
-# Mở .env, điền GEMINI_API_KEY_1=...
+# Mở .env, điền GEMINI_API_KEY_1=... (hoặc Dahl_token_1=... nếu có)
 
 # 3. Khởi động
 docker compose up -d --build
@@ -115,17 +171,18 @@ curl -X POST http://localhost:8000/api/draft/preview \
 RAG/
 ├── backend/
 │   ├── app/
-│   │   ├── agent/        # pipeline.py, qa.py (RAG + citations), precedent.py
+│   │   ├── agent/        # pipeline.py, qa.py (RAG + citations), guard.py (chặn chèn lệnh + phân loại), precedent.py
 │   │   ├── amend/        # diff.py (so sánh 2 phiên bản), store.py (node_supersession)
 │   │   ├── api/          # routes.py — toàn bộ endpoint
 │   │   ├── db/           # models.py (PostgreSQL schema), base.py
 │   │   ├── draft/        # nd30.py — soạn văn bản NĐ30 + xuất DOCX
+│   │   ├── graph/        # builder.py — dựng Knowledge Graph quanh kết quả tra cứu
 │   │   ├── ingestion/    # parser.py (Điều–Khoản–Điểm), ingest.py (Hugging Face → DB)
-│   │   ├── llm/          # router.py — LLMRouter (Gemini/Claude/FPT, retry, JSON coerce)
+│   │   ├── llm/          # router.py — LLMRouter (đua model Dahl, Gemini/Claude/FPT, retry, JSON coerce)
 │   │   ├── rag/          # embeddings.py, search.py (hybrid), text.py (Vietnamese tokenizer)
 │   │   └── report/       # multi_doc.py — báo cáo nhiều văn bản
 │   └── scripts/          # ingest, reembed, smoke tests
-├── frontend/             # Next.js 15, SSE client, citation chips
+├── frontend/             # Next.js 15, SSE client, citation chips, Knowledge Graph (d3)
 ├── db/init/              # PostgreSQL init SQL (pgvector, pg_trgm)
 ├── docker-compose.yml
 └── docs/
