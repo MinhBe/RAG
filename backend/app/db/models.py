@@ -134,6 +134,24 @@ class Precedent(Base):
     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBED_DIM))
 
 
+class PvChunk(Base):
+    """Đoạn câu hỏi phỏng vấn (app/pv/data) đã embedding, cho chế độ ẩn /pv.
+
+    Mỗi câu tách 3 đoạn (câu hỏi + chốt kỹ thuật / ví dụ tư vấn / ví dụ đàm phán),
+    xem app/pv/library.embedding_chunks. Tách khỏi legal_node để dữ liệu luật
+    không bị lẫn khi tra cứu.
+    """
+
+    __tablename__ = "pv_chunk"
+
+    chunk_id: Mapped[str] = mapped_column(String(64), primary_key=True)  # G06-A01#technical
+    item_id: Mapped[str] = mapped_column(String(32), index=True)
+    group_id: Mapped[str] = mapped_column(String(8))
+    section: Mapped[str] = mapped_column(String(16))
+    text: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBED_DIM))
+
+
 class Thread(Base):
     __tablename__ = "thread"
 
