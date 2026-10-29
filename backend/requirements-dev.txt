@@ -1,0 +1,2 @@
+# Chỉ cho môi trường phát triển / kiểm thử, không đưa vào image deploy.
+pytest==8.3.3

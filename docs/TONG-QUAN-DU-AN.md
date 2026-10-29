@@ -83,10 +83,20 @@ Quyết định kiến trúc: **bỏ Neo4j**, lưu quan hệ sửa đổi trong 
 | `agent/` | `pipeline.py` (chọn luồng chat), `qa.py` (hỏi đáp có trích dẫn), `precedent.py` (tổng hợp án lệ) |
 | `draft/nd30.py` | Soạn văn bản hành chính NĐ30 + kiểm tra thể thức + xuất DOCX |
 | `report/multi_doc.py` | Báo cáo nhiều văn bản |
+| `graph/builder.py` | Dựng knowledge graph cho `/api/graph`: gom node, rồi cạnh, tầng Chương và Văn bản |
+| `ingestion/references.py` | Trích dẫn chiếu "khoản 2 Điều 35" và đoán văn bản đích |
 | `api/routes.py` | Toàn bộ endpoint |
 | `sse.py` | Định dạng sự kiện SSE |
 
-`backend/scripts/` chứa script lấy dữ liệu HF (`fetch_*`, `find_ids_duckdb`), nạp lại embedding (`reembed`), chạy diff (`run_diff`), và các smoke test (`smoke_*`).
+`backend/scripts/` chứa script lấy dữ liệu HF (`fetch_*`, `find_ids_duckdb`), nạp lại embedding (`reembed`), chạy diff (`run_diff`), dựng tầng Chương (`backfill_chapters`) và cạnh dẫn chiếu (`backfill_references`).
+
+Test nằm ở `backend/tests/`, chạy trong container:
+
+```bash
+docker compose exec api sh -c "pip install -q -r requirements-dev.txt && python -m pytest"
+```
+
+Test cần DB (`@pytest.mark.db`) tự bỏ qua khi kho trống. Test gọi LLM thật (`@pytest.mark.llm`) chỉ chạy khi đặt `RUN_LLM_TESTS=1`.
 
 ---
 

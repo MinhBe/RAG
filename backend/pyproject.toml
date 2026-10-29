@@ -1,0 +1,8 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+markers = [
+    "db: cần Postgres đã nạp dữ liệu luật; tự bỏ qua khi không kết nối được hoặc kho trống",
+    "llm: gọi LLM thật và tốn quota; chỉ chạy khi đặt RUN_LLM_TESTS=1",
+]
