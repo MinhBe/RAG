@@ -864,7 +864,7 @@ html, body {
 
 
 /* ---------- Trang /pv: luyện phỏng vấn ---------- */
-.pv-shell { min-height: 100vh; background: var(--app-bg); color: var(--foreground); }
+.pv-shell { height: 100vh; display: flex; flex-direction: column; background: var(--app-bg); color: var(--foreground); overflow: hidden; }
 .pv-count { font-size: 12px; color: var(--muted-foreground); }
 .pv-body { max-width: 920px; margin: 0 auto; padding: 16px; }
 .pv-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
@@ -921,3 +921,53 @@ html, body {
 }
 .pv-files { margin-top: 10px; font-size: 12px; color: var(--muted-foreground); display: flex; flex-wrap: wrap; gap: 6px; }
 .pv-files code { background: var(--muted); padding: 1px 6px; border-radius: 4px; }
+
+/* ---------- /pv: màn hình bắt đầu ---------- */
+.pv-start {
+  max-width: 640px; margin: 60px auto; padding: 0 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center;
+}
+.pv-start-title { font-size: 22px; font-weight: 700; margin: 0; }
+.pv-start-sub { font-size: 14px; color: var(--muted-foreground); margin: 0; }
+.pv-start-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.pv-start-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted-foreground); }
+
+/* ---------- /pv: chat interface ---------- */
+.pv-chat-body {
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+  padding: 16px; max-width: 780px; margin: 0 auto; width: 100%;
+}
+.pv-chat-msg { display: flex; }
+.pv-chat-ai { justify-content: flex-start; }
+.pv-chat-user { justify-content: flex-end; }
+.pv-chat-bubble {
+  max-width: 80%; padding: 10px 14px; border-radius: 12px;
+  font-size: 14px; line-height: 1.65;
+}
+.pv-chat-ai .pv-chat-bubble {
+  background: var(--card); border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+.pv-chat-user .pv-chat-bubble {
+  background: var(--primary); color: var(--primary-foreground);
+  border-bottom-right-radius: 4px;
+}
+.pv-chat-bubble p { margin: 0 0 6px; }
+.pv-chat-bubble p:last-child { margin-bottom: 0; }
+.pv-chat-bubble ul, .pv-chat-bubble ol { margin: 4px 0 6px; padding-left: 20px; }
+.pv-chat-bubble code { font-size: 12px; background: var(--muted); padding: 1px 5px; border-radius: 4px; }
+.pv-chat-typing { opacity: 0.5; font-style: italic; }
+
+.pv-chat-composer {
+  display: flex; gap: 8px; align-items: flex-end;
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  max-width: 780px; margin: 0 auto; width: 100%;
+}
+.pv-chat-input {
+  flex: 1; resize: none; padding: 10px 12px; font-size: 14px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--background); color: var(--foreground); font-family: inherit;
+  line-height: 1.5;
+}
+.pv-chat-input:focus { outline: none; border-color: var(--primary); }
+.pv-chat-input:disabled { opacity: 0.6; }

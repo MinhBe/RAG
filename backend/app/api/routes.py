@@ -20,6 +20,7 @@ from app.db.models import LegalDocument, LegalNode, Thread
 from app.graph.builder import build_graph
 from app.llm.router import get_router
 from app.pv.library import LAYERS, load_library
+from app.pv.chat import run_pv_chat
 from app.sse import sse
 
 router = APIRouter()
@@ -277,6 +278,43 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
 def pv_library():
     """Thư viện câu hỏi phỏng vấn cho trang /pv. Nội dung: app/pv/data/*.md."""
     return {"layers": LAYERS, "groups": load_library()}
+
+
+class PvChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class PvChatRequest(BaseModel):
+    message: str
+    history: list[PvChatMessage] = []
+    system_prompt: str | None = None
+    group: str | None = None
+    n: int = 5
+
+
+@router.post("/api/pv/chat")
+def pv_chat(req: PvChatRequest):
+    """Chat phỏng vấn SSE. Lần đầu trả event 'system' kèm system_prompt để client lưu lại."""
+    history = [{"role": m.role, "content": m.content} for m in req.history]
+
+    def gen():
+        try:
+            for event, data in run_pv_chat(
+                req.message, history,
+                system_prompt=req.system_prompt,
+                group=req.group,
+                n=req.n,
+            ):
+                yield sse(event, data)
+        except Exception as exc:  # noqa: BLE001
+            yield sse("error", {"message": str(exc)})
+
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"},
+    )
 
 
 # ---------- Human-in-loop: Escalation (câu hỏi không đủ căn cứ) ----------
