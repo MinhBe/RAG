@@ -1,0 +1,233 @@
+"use client";
+
+/* Các phần gắn dưới một câu trả lời: thẻ phê duyệt khi từ chối, gợi ý câu hỏi
+   chuẩn hơn, luồng tra cứu, các mục trả lời, và trích dẫn. */
+import { useState } from "react";
+
+import { IconCheck, IconChevron, IconLock, IconRefresh, IconSearch } from "@/components/chat/icons";
+import type { Citation, EscalateStatus, Section } from "@/lib/chat/types";
+
+export function ApprovalCard({
+  question,
+  threadId,
+  status,
+  onApprove,
+  onDeny,
+}: {
+  question: string;
+  threadId: string | null;
+  status: EscalateStatus;
+  onApprove: () => void;
+  onDeny: () => void;
+}) {
+  if (status === "approved") {
+    return (
+      <div className="approval-card approved">
+        <div className="approval-header">
+          <span className="approval-icon"><IconCheck /></span>
+          <span className="approval-title">ĐÃ GỬI CHO NHÀ PHÁT HÀNH</span>
+          <span className="approval-badge">escalate_refusal</span>
+        </div>
+        <p className="approval-note">Câu hỏi đã được ghi nhận. Nhà phát hành sẽ bổ sung dữ liệu hoặc trả lời trực tiếp.</p>
+      </div>
+    );
+  }
+  if (status === "denied") {
+    return (
+      <div className="approval-card denied">
+        <div className="approval-header">
+          <span className="approval-title">ĐÃ TỪ CHỐI</span>
+        </div>
+        <p className="approval-note">Câu hỏi không được gửi đi.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="approval-card">
+      <div className="approval-header">
+        <span className="approval-icon"><IconLock /></span>
+        <span className="approval-title">CẦN PHÊ DUYỆT</span>
+        <span className="approval-badge">escalate_refusal</span>
+      </div>
+      <p className="approval-desc">Trợ lý muốn gửi câu hỏi này cho <strong>nhà phát hành</strong> để xem xét bổ sung dữ liệu.</p>
+      <div className="approval-fields">
+        <div className="af-row">
+          <div className="af-col">
+            <div className="af-label">CÂU HỎI</div>
+            <div className="af-val">{question}</div>
+          </div>
+          <div className="af-col">
+            <div className="af-label">HÀNH ĐỘNG</div>
+            <div className="af-val">Ghi nhận &amp; thông báo</div>
+          </div>
+        </div>
+        <div className="af-row">
+          <div className="af-col">
+            <div className="af-label">THREAD</div>
+            <div className="af-val">{threadId || "—"}</div>
+          </div>
+          <div className="af-col">
+            <div className="af-label">TRẠNG THÁI</div>
+            <div className="af-val">Chờ phê duyệt</div>
+          </div>
+        </div>
+      </div>
+      <div className="approval-actions">
+        <button className="btn-approve" onClick={onApprove}><IconCheck /> PHÊ DUYỆT</button>
+        <button className="btn-deny" onClick={onDeny}>✕ TỪ CHỐI</button>
+        <span className="approval-footer-note">câu hỏi chưa được gửi cho đến khi bạn phê duyệt</span>
+      </div>
+    </div>
+  );
+}
+
+export function StepTimeline({ steps }: { steps: string[] }) {
+  const [open, setOpen] = useState(false);
+  if (!steps || steps.length === 0) return null;
+  return (
+    <div className="step-timeline">
+      <button className="step-toggle" onClick={() => setOpen((v) => !v)}>
+        <IconChevron open={open} />
+        <IconSearch />
+        <span>Luồng tra cứu ({steps.length} bước)</span>
+      </button>
+      {open && (
+        <div className="step-list">
+          {steps.map((s, i) => (
+            <div key={i} className="step-row">
+              <span className="step-dot-done"><IconCheck /></span>
+              <span>{s}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* từng ý của câu trả lời thành một mục đóng/mở */
+export function SectionAccordion({ sections }: { sections: Section[] }) {
+  const [open, setOpen] = useState<number | null>(null);
+  if (!sections || sections.length === 0) return null;
+  return (
+    <div className="section-accordion">
+      {sections.map((s, i) => {
+        const isOpen = open === i;
+        return (
+          <div key={i} className={`section-item ${isOpen ? "open" : ""}`}>
+            <button
+              className="section-toggle"
+              onClick={() => setOpen(isOpen ? null : i)}
+              aria-expanded={isOpen}
+            >
+              <IconChevron open={isOpen} />
+              <span className="section-num">{i + 1}.</span>
+              <span className="section-title">{s.title}</span>
+            </button>
+            {isOpen && (
+              <div className="section-body">
+                <div className="section-detail">{s.detail}</div>
+                {s.citations && s.citations.length > 0 && (
+                  <div className="section-sources">
+                    {s.citations.map((c, j) => (
+                      <span
+                        key={j}
+                        className="chip"
+                        title={c.text || c.node_id}
+                        onClick={() => {
+                          const el = document.getElementById(`cite-panel-${c.node_id}`);
+                          if (el) el.scrollIntoView({ behavior: "smooth" });
+                        }}
+                      >
+                        {c.display || c.node_id}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* đề xuất câu hỏi pháp lý chuẩn hơn khi không tìm được căn cứ */
+export function SuggestRewrite({
+  suggested,
+  reason,
+  used,
+  onUse,
+  onIgnore,
+}: {
+  suggested: string;
+  reason: string;
+  used?: boolean;
+  onUse: () => void;
+  onIgnore: () => void;
+}) {
+  if (used) {
+    return (
+      <div className="rewrite-card used">
+        <span className="rewrite-icon"><IconRefresh /></span>
+        <span className="rewrite-used-label">Đã tìm lại với câu hỏi chuẩn pháp lý.</span>
+      </div>
+    );
+  }
+  return (
+    <div className="rewrite-card">
+      <div className="rewrite-header">
+        <span className="rewrite-icon"><IconRefresh /></span>
+        <span className="rewrite-title">Đề xuất câu hỏi pháp lý chuẩn hơn</span>
+      </div>
+      {reason && <p className="rewrite-reason">{reason}</p>}
+      <div className="rewrite-suggested">"{suggested}"</div>
+      <div className="rewrite-actions">
+        <button className="btn-use-rewrite" onClick={onUse}>
+          <IconCheck /> Dùng câu này
+        </button>
+        <button className="btn-deny" onClick={onIgnore}>✕ Bỏ qua</button>
+      </div>
+    </div>
+  );
+}
+
+/* chip trích dẫn, bấm để mở/đóng nguyên văn */
+export function CitationList({ citations }: { citations: Citation[] }) {
+  const [open, setOpen] = useState<number | null>(null);
+
+  return (
+    <div className="citations">
+      <div className="chip-row">
+        {citations.map((c, j) => {
+          const n = c.n ?? j + 1;
+          const isOpen = open === n;
+          return (
+            <button
+              key={j}
+              className={`chip ${isOpen ? "active" : ""}`}
+              onClick={() => setOpen(isOpen ? null : n)}
+              aria-expanded={isOpen}
+            >
+              <span className="n">[{n}]</span> {c.display || c.node_id}
+              <span className="chip-arrow">{isOpen ? "▲" : "▼"}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {open !== null && (() => {
+        const c = citations.find((x, j) => (x.n ?? j + 1) === open);
+        if (!c) return null;
+        return (
+          <div className="citation-panel">
+            <div className="citation-panel-head">{c.display || c.node_id}</div>
+            <div className="citation-panel-body">{c.text || "Không có nội dung."}</div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
