@@ -144,6 +144,20 @@ docker compose up -d --build
 
 Dừng: `docker compose down` (thêm `-v` nếu muốn xóa cả dữ liệu DB).
 
+### Chạy bản đóng gói v1.0 (final)
+
+Image `<dockerhub-user>/lawvn-api:1.0` đã có sẵn khóa Dahl, chỉ cần chạy:
+
+```bash
+docker run -p 7860:7860 <dockerhub-user>/lawvn-api:1.0
+# Thêm Gemini làm dự phòng (tùy chọn):
+docker run -p 7860:7860 -e GEMINI_API_KEY_1=... <dockerhub-user>/lawvn-api:1.0
+```
+
+API nằm tại http://localhost:7860 (Swagger tại `/docs`). Giao diện web chạy riêng qua `docker compose` như phần trên.
+
+Để tự đóng gói lại từ mã nguồn: tạo `backend/.dahl.env` (đã gitignore) với `DAHL_TOKEN_1=...`, rồi chạy `docker build -f backend/Dockerfile.demo -t <dockerhub-user>/lawvn-api:1.0 backend`.
+
 ---
 
 ## Demo nhanh qua API
