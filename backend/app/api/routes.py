@@ -272,7 +272,7 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
       - thêm tất cả Khoản con của mọi Điều trong kết quả
     → đảm bảo cạnh Điều–Khoản luôn hiện đầy đủ.
     """
-    from app.rag.search import search_nodes, _display
+    from app.rag.search import search_nodes, _display, doc_name
     from app.db.models import (
         LegalNode, NodeSupersession, LegalDocument, DocumentRelation, NodeReference,
     )
@@ -510,7 +510,7 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
         for d in doc_objs:
             did = f"doc:{d.doc_id}"
             nodes.append({
-                "id": did, "label": d.doc_id, "doc_id": d.doc_id,
+                "id": did, "label": doc_name(d.doc_id), "doc_id": d.doc_id,
                 "level": "document", "type": "document",
                 "doc_type": d.doc_type or "",
                 "heading": d.title or d.doc_id,
@@ -536,9 +536,10 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
         for f_doc, t_doc, rel in rel_rows:
             add_edge(f"doc:{f_doc}", f"doc:{t_doc}", (rel or "related").lower())
 
-    # doc_type trên mọi node để gom cụm
+    # doc_type để gom cụm, doc_name để hiển thị thay cho mã văn bản
     for n in nodes:
         n.setdefault("doc_type", doc_type_by_id.get(n.get("doc_id", ""), ""))
+        n["doc_name"] = doc_name(n.get("doc_id", ""))
 
     return {"nodes": nodes, "edges": edges, "query": query}
 

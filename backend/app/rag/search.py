@@ -14,6 +14,34 @@ from sqlalchemy.orm import Session
 from app.rag.embeddings import embed_one
 
 
+_DOC_KIND = {"nghi_dinh": "Nghị định", "thong_tu": "Thông tư", "nghi_quyet": "Nghị quyết"}
+_doc_names: dict[str, str] = {}
+
+
+def _load_doc_names() -> None:
+    from app.db.base import engine
+
+    with engine.connect() as c:
+        rows = c.execute(text("SELECT doc_id, title, number, doc_type FROM legal_document")).all()
+    for doc_id, title, number, doc_type in rows:
+        # luật có tiêu đề ngắn sẵn; văn bản dưới luật thì tiêu đề dài, dùng loại + số hiệu
+        if doc_type in _DOC_KIND and number:
+            _doc_names[doc_id] = f"{_DOC_KIND[doc_type]} {number}"
+        else:
+            _doc_names[doc_id] = title or doc_id
+
+
+def doc_name(doc_id: str) -> str:
+    """Tên văn bản để hiển thị, ví dụ "Bộ luật Lao động 2019" thay cho mã blld2019."""
+    if doc_id not in _doc_names:
+        try:
+            _load_doc_names()   # lần đầu, hoặc vừa nạp thêm văn bản mới
+        except Exception:
+            return doc_id
+        _doc_names.setdefault(doc_id, doc_id)   # mã lạ: không truy vấn lại mỗi lần
+    return _doc_names[doc_id]
+
+
 def _display(row: dict[str, Any]) -> str:
     parts = []
     if row.get("article_no"):
@@ -23,7 +51,7 @@ def _display(row: dict[str, Any]) -> str:
     if row.get("point_letter"):
         parts.append(f"Điểm {row['point_letter']}")
     head = " ".join(parts) if parts else row["node_id"]
-    return f"{head} ({row['doc_id']})"
+    return f"{head} ({doc_name(row['doc_id'])})"
 
 
 def search_nodes(
@@ -60,7 +88,7 @@ def search_nodes(
         params["vec"] = str(qvec)
         sql = text(
             f"""
-            SELECT node_id, doc_id, article_no, clause_no, point_letter, heading, text,
+            SELECT node_id, doc_id, level, article_no, clause_no, point_letter, heading, text,
                    1 - (embedding <=> CAST(:vec AS vector)) AS score
             FROM legal_node
             WHERE embedding IS NOT NULL {eff_clause}
@@ -72,7 +100,7 @@ def search_nodes(
     else:
         sql = text(
             f"""
-            SELECT node_id, doc_id, article_no, clause_no, point_letter, heading, text,
+            SELECT node_id, doc_id, level, article_no, clause_no, point_letter, heading, text,
                    similarity(text, :q) AS score
             FROM legal_node
             WHERE text ILIKE '%' || :q || '%' {eff_clause}

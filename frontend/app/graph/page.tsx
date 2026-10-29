@@ -56,7 +56,7 @@ const ONTO_LOOP_DIR: Record<string, number> = {
 
 /* ── types ───────────────────────────────────────────────────────────────── */
 type GNode = {
-  id: string; label: string; doc_id: string; doc_type: string;
+  id: string; label: string; doc_id: string; doc_type: string; doc_name?: string;
   level: string; type: string; heading: string; text: string;
   score: number; ghost?: boolean;
   x?: number; y?: number; fx?: number | null; fy?: number | null;
@@ -861,7 +861,7 @@ export default function GraphPage() {
                         {TYPE_LABEL[selected.type] || selected.type}
                       </span>
                       <span className="kgv-ctx-badge" style={{ background: DOC_COLOR[selected.doc_id] || "#64748b" }}>
-                        {selected.doc_id}
+                        {selected.doc_name || selected.doc_id}
                       </span>
                     </div>
                     <div className="kgv-ctx-id">{selected.id}</div>
