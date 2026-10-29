@@ -1,16 +1,13 @@
-/* Chế độ ẩn: gõ "/pv" trong ô chat để chuyển giữa trợ lý luật và trợ lý ôn phỏng vấn.
-   Giao diện giữ nguyên; chỉ đổi nguồn dữ liệu phía API (mode) và các dòng chữ dưới đây.
-   Lựa chọn lưu trong localStorage nên trang /graph cũng theo cùng chế độ. */
+/* Cùng một frontend phục vụ hai trợ lý, chọn theo cổng:
+     localhost:3000 -> trợ lý pháp luật lao động
+     localhost:3001 -> trợ lý ôn phỏng vấn AI (docker-compose map cả hai cổng vào web)
+   Giao diện giữ nguyên; chỉ đổi nguồn dữ liệu phía API (mode) và các dòng chữ dưới đây. */
 export type Mode = "law" | "pv";
 
-const KEY = "llv_mode";
+const PV_PORT = "3001";
 
-export function loadMode(): Mode {
-  try { return localStorage.getItem(KEY) === "pv" ? "pv" : "law"; } catch { return "law"; }
-}
-
-export function saveMode(m: Mode) {
-  try { localStorage.setItem(KEY, m); } catch { /* storage blocked: mode lasts for this page only */ }
+export function currentMode(): Mode {
+  try { return window.location.port === PV_PORT ? "pv" : "law"; } catch { return "law"; }
 }
 
 export const MODE_TEXT: Record<Mode, {

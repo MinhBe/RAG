@@ -4,13 +4,14 @@
    ở lib/chat/useChat.ts. */
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import Composer from "@/components/chat/Composer";
 import { IconGraph, IconMenu, IconMoon, IconSun } from "@/components/chat/icons";
 import MessageList from "@/components/chat/MessageList";
 import Sidebar from "@/components/chat/Sidebar";
 import { useChat, useTheme } from "@/lib/chat/useChat";
-import { loadMode, type Mode, MODE_TEXT, saveMode } from "@/lib/mode";
+import { currentMode, type Mode, MODE_TEXT } from "@/lib/mode";
 
 export default function Chat() {
   const [mode, setMode] = useState<Mode>("law");
@@ -20,18 +21,14 @@ export default function Chat() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const text = MODE_TEXT[mode];
 
-  useEffect(() => { setMode(loadMode()); }, []);
+  useEffect(() => { setMode(currentMode()); }, []);
+
+  const router = useRouter();
 
   // every accepted question clears the composer, whichever button sent it;
-  // "/pv" is not a question: it switches the hidden interview mode on and off
+  // "/pv" is not a question: it opens the hidden interview-practice page
   const ask = (q: string) => {
-    if (q.trim().toLowerCase() === "/pv") {
-      const next: Mode = mode === "pv" ? "law" : "pv";
-      saveMode(next);
-      setMode(next);
-      setInput("");
-      return;
-    }
+    if (q.trim().toLowerCase() === "/pv") { setInput(""); router.push("/pv"); return; }
     if (chat.send(q)) setInput("");
   };
 

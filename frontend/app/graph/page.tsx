@@ -17,7 +17,7 @@ import {
   buildView, type ColorBy, deriveOntology, type GNode, type GraphData, type GroupBy, lookupNodes,
   ontoPositions, type Panel, type Triplet,
 } from "@/lib/graph/model";
-import { loadMode, type Mode, MODE_TEXT } from "@/lib/mode";
+import { currentMode, type Mode, MODE_TEXT } from "@/lib/mode";
 import { loadNumber, saveNumber, startDrag } from "@/lib/ui/drag";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -52,20 +52,20 @@ export default function GraphPage() {
   const [lookup, setLookup] = useState("");
   const [lookupType, setLookupType] = useState<string>("");
   const [sideW, setSideW] = useState(520);
-  // chế độ ẩn /pv bật từ ô chat; fetchGraph đọc thẳng loadMode() nên không phải chờ state này
+  // cổng 3001 = chế độ ôn phỏng vấn; fetchGraph đọc thẳng currentMode() nên không phải chờ state này
   const [mode, setMode] = useState<Mode>("law");
 
   useEffect(() => {
     const w = loadNumber("kgv_sideW");
     if (w) setSideW(w);
-    setMode(loadMode());
+    setMode(currentMode());
   }, []);
 
   /* ── fetch ──────────────────────────────────────────────────────────────── */
   const fetchGraph = useCallback(async (q: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/graph?query=${encodeURIComponent(q)}&top_k=150&mode=${loadMode()}`);
+      const res = await fetch(`${API_BASE}/api/graph?query=${encodeURIComponent(q)}&top_k=150&mode=${currentMode()}`);
       const data = await res.json();
       setRaw({ nodes: data.nodes || [], edges: data.edges || [] });
       setHiddenNodeTypes(new Set()); setHiddenEdgeTypes(new Set());
