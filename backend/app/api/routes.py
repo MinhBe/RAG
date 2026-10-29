@@ -273,7 +273,9 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
     → đảm bảo cạnh Điều–Khoản luôn hiện đầy đủ.
     """
     from app.rag.search import search_nodes, _display
-    from app.db.models import LegalNode, NodeSupersession
+    from app.db.models import (
+        LegalNode, NodeSupersession, LegalDocument, DocumentRelation,
+    )
     from sqlalchemy import select as sa_select
     from sqlalchemy import text as sa_text
 
@@ -311,16 +313,18 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
         label = _display(row)
         return {
             "id": n.node_id, "label": label, "doc_id": n.doc_id,
-            "level": n.level, "heading": n.heading or "",
+            "level": n.level, "type": n.level, "heading": n.heading or "",
             "text": (n.text or "")[:300], "score": score, "ghost": ghost,
         }
 
     def _hit_dict(h: dict) -> dict:
+        lvl = h.get("level") or "article"
         return {
             "id": h["node_id"],
             "label": h.get("display") or h["node_id"],
             "doc_id": h["doc_id"],
-            "level": h.get("level", "article"),
+            "level": lvl,
+            "type": lvl,
             "heading": h.get("heading", ""),
             "text": (h.get("text") or "")[:300],
             "score": round(h.get("score", 0.0), 3),
@@ -375,24 +379,27 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
         .where(LegalNode.parent_id.isnot(None))
     ).all()
     for nid, pid in all_parent_rows:
-        add_edge(pid, nid, "parent_child")
+        add_edge(pid, nid, "contains")
 
-    # 4b. Supersession
+    # 4b. Supersession — cạnh mang đúng loại thay đổi (reworded/tightened/…)
     sup_rows = db.execute(
-        sa_select(NodeSupersession.old_id, NodeSupersession.new_id)
-        .where(
+        sa_select(
+            NodeSupersession.old_id,
+            NodeSupersession.new_id,
+            NodeSupersession.change_type,
+        ).where(
             NodeSupersession.old_id.in_(all_ids) |
             NodeSupersession.new_id.in_(all_ids)
         )
     ).all()
-    for old_id, new_id in sup_rows:
+    for old_id, new_id, change_type in sup_rows:
         for nid in (old_id, new_id):
             if nid not in id_set:
                 obj = db.get(LegalNode, nid)
                 if obj:
                     nodes.append(_node_dict(obj, ghost=True))
                     id_set.add(nid)
-        add_edge(old_id, new_id, "superseded_by")
+        add_edge(old_id, new_id, change_type or "superseded_by")
 
     # 4c. Siblings: clauses of same article not already connected via parent
     art_children: dict[str, list[str]] = {}
@@ -403,6 +410,46 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
         siblings.sort()
         for i in range(len(siblings) - 1):
             add_edge(siblings[i], siblings[i + 1], "sibling")
+
+    # ── 5. Document nodes: type thứ 4 của ontology ───────────────────────────
+    doc_ids = sorted({n["doc_id"] for n in nodes if n.get("doc_id")})
+    doc_type_by_id: dict[str, str] = {}
+    if doc_ids:
+        doc_objs = db.execute(
+            sa_select(LegalDocument).where(LegalDocument.doc_id.in_(doc_ids))
+        ).scalars().all()
+        doc_type_by_id = {d.doc_id: (d.doc_type or "") for d in doc_objs}
+
+        for d in doc_objs:
+            did = f"doc:{d.doc_id}"
+            nodes.append({
+                "id": did, "label": d.doc_id, "doc_id": d.doc_id,
+                "level": "document", "type": "document",
+                "doc_type": d.doc_type or "",
+                "heading": d.title or d.doc_id,
+                "text": d.title or "", "score": 0.0, "ghost": False,
+            })
+            id_set.add(did)
+
+        # văn bản → Điều
+        for n in nodes:
+            if n.get("type") == "article":
+                add_edge(f"doc:{n['doc_id']}", n["id"], "contains")
+
+        # văn bản → văn bản (REPLACES / AMENDS / GUIDES)
+        rel_rows = db.execute(
+            sa_select(
+                DocumentRelation.from_doc, DocumentRelation.to_doc, DocumentRelation.rel,
+            )
+            .where(DocumentRelation.from_doc.in_(doc_ids))
+            .where(DocumentRelation.to_doc.in_(doc_ids))
+        ).all()
+        for f_doc, t_doc, rel in rel_rows:
+            add_edge(f"doc:{f_doc}", f"doc:{t_doc}", (rel or "related").lower())
+
+    # doc_type trên mọi node để gom cụm
+    for n in nodes:
+        n.setdefault("doc_type", doc_type_by_id.get(n.get("doc_id", ""), ""))
 
     return {"nodes": nodes, "edges": edges, "query": query}
 

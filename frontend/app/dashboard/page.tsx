@@ -12,7 +12,7 @@ type Escalation = {
 };
 type HealthData = {
   status: string; db: boolean; documents: number; nodes: number;
-  data_loaded: boolean; llm: string[];
+  data_loaded: boolean; llm: string[] | Record<string, unknown> | string;
 };
 type Convo = { id: string; title: string; messages: { role: string }[] };
 
@@ -95,7 +95,7 @@ export default function DashboardPage() {
                   <tr><td>Database</td><td><span className={`badge ${health.db ? "ok" : "err"}`}>{health.db ? "connected" : "error"}</span></td></tr>
                   <tr><td>Văn bản</td><td>{health.documents} tài liệu</td></tr>
                   <tr><td>Nodes</td><td>{health.nodes.toLocaleString()}</td></tr>
-                  <tr><td>LLM providers</td><td>{health.llm?.join(", ") || "—"}</td></tr>
+                  <tr><td>LLM providers</td><td>{Array.isArray(health.llm) ? health.llm.join(", ") : (health.llm ? JSON.stringify(health.llm) : "—")}</td></tr>
                 </tbody>
               </table>
             ) : (

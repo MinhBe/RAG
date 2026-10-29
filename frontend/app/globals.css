@@ -649,3 +649,183 @@ html, body {
 }
 .thread-item:hover .thread-del { opacity: 1; }
 .thread-del:hover { background: var(--border); color: var(--destructive); }
+
+/* ================================================================
+   Knowledge Graph Viewer (kgv-*)  –  yFiles-style layout
+   ================================================================ */
+.kgv-shell {
+  display: flex; flex-direction: column; height: 100vh;
+  background: var(--background); overflow: hidden;
+}
+
+/* ── top bar ────────────────────────────────────────────────────── */
+.kgv-topbar {
+  display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+  background: var(--card); border-bottom: 1px solid var(--border);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.kgv-back {
+  font-size: 13px; color: var(--muted-foreground); text-decoration: none;
+  padding: 4px 8px; border-radius: var(--radius); border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.kgv-back:hover { background: var(--muted); color: var(--foreground); }
+.kgv-title { font-size: 14px; font-weight: 600; flex: 1; min-width: 120px; }
+
+.kgv-search {
+  display: flex; gap: 6px; align-items: center; flex: 2; min-width: 200px;
+}
+.kgv-search input {
+  flex: 1; padding: 5px 10px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--background);
+  color: var(--foreground); font-size: 13px;
+}
+.kgv-search input:focus { outline: none; border-color: var(--primary); }
+.kgv-search button {
+  padding: 5px 12px; border-radius: var(--radius); border: none;
+  background: var(--primary); color: var(--primary-foreground);
+  font-size: 13px; cursor: pointer; white-space: nowrap;
+}
+.kgv-search button:disabled { opacity: 0.5; cursor: default; }
+
+.kgv-group-label { font-size: 12px; color: var(--muted-foreground); white-space: nowrap; }
+.kgv-select {
+  padding: 5px 8px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--background); color: var(--foreground); font-size: 13px;
+  cursor: pointer;
+}
+.kgv-reset-btn {
+  padding: 5px 10px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--muted);
+  color: var(--foreground); font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+.kgv-reset-btn:hover { background: var(--border); }
+
+/* ── stat bar ────────────────────────────────────────────────────── */
+.kgv-statbar {
+  display: flex; align-items: center; padding: 4px 16px;
+  font-size: 12px; color: var(--muted-foreground);
+  background: var(--card); border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.kgv-focus-note {
+  margin-left: 20px; color: var(--foreground); font-style: italic;
+}
+
+/* ── body ────────────────────────────────────────────────────────── */
+.kgv-body {
+  flex: 1; display: flex; overflow: hidden; position: relative;
+}
+
+/* ── main canvas ─────────────────────────────────────────────────── */
+.kgv-canvas-wrap {
+  flex: 1; position: relative; overflow: hidden;
+}
+.kgv-loading {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px; color: var(--muted-foreground); pointer-events: none; z-index: 5;
+}
+.kgv-svg { width: 100%; height: 100%; display: block; }
+
+/* ── right context panel ─────────────────────────────────────────── */
+.kgv-ctx {
+  width: 280px; flex-shrink: 0; border-left: 1px solid var(--border);
+  background: var(--card); overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 8px; position: relative;
+}
+@media (max-width: 600px) {
+  .kgv-ctx {
+    position: absolute; right: 0; top: 0; bottom: 0; z-index: 20;
+    box-shadow: -4px 0 16px rgba(0,0,0,0.15);
+  }
+}
+.kgv-ctx-close {
+  position: absolute; top: 10px; right: 10px;
+  background: none; border: none; cursor: pointer;
+  color: var(--muted-foreground); font-size: 16px; line-height: 1;
+  padding: 2px 6px; border-radius: var(--radius);
+}
+.kgv-ctx-close:hover { background: var(--muted); }
+.kgv-ctx-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 700; color: #fff; width: fit-content;
+}
+.kgv-ctx-id { font-size: 10px; color: var(--muted-foreground); font-family: monospace; }
+.kgv-ctx-heading {
+  font-size: 14px; font-weight: 600; color: var(--foreground); line-height: 1.4;
+}
+.kgv-ctx-text {
+  font-size: 12px; color: var(--muted-foreground); line-height: 1.6;
+  max-height: 260px; overflow-y: auto; padding-right: 4px;
+}
+.kgv-ctx-score { font-size: 11px; color: var(--muted-foreground); }
+.kgv-ctx-focus-btn {
+  margin-top: 4px; padding: 7px 12px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--background);
+  color: var(--foreground); font-size: 12px; cursor: pointer; text-align: center;
+}
+.kgv-ctx-focus-btn:hover { background: var(--muted); }
+.kgv-ctx-focus-btn.active { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+
+/* ── Interactive Ontology View (overlay, bottom-left) ───────────────────── */
+.kgv-onto-panel {
+  position: absolute; bottom: 16px; left: 16px; z-index: 10;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 8px 10px 6px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.14);
+  user-select: none;
+}
+.kgv-onto-head { display: flex; flex-direction: column; gap: 1px; margin-bottom: 2px; }
+.kgv-onto-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--foreground);
+}
+.kgv-onto-hint { font-size: 9px; color: var(--muted-foreground); }
+.kgv-onto-svg { display: block; overflow: visible; }
+
+.kgv-onto-node, .kgv-onto-edge { cursor: pointer; transition: opacity 0.15s; }
+.kgv-onto-node:hover circle { stroke: var(--primary); stroke-width: 2.5; }
+.kgv-onto-edge:hover line, .kgv-onto-edge:hover path { stroke-width: 2.6; }
+.kgv-onto-node.off { opacity: 0.3; cursor: default; }
+.kgv-onto-edge.off { opacity: 0.25; cursor: default; }
+.kgv-onto-node.dim, .kgv-onto-edge.dim { opacity: 0.22; }
+
+/* ── ontology context menu ──────────────────────────────────────────────── */
+.kgv-ctxmenu {
+  position: absolute; z-index: 30; min-width: 170px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 4px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.22);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.kgv-ctxmenu button {
+  text-align: left; padding: 6px 9px; border: none; border-radius: 5px;
+  background: none; color: var(--foreground); font-size: 12px; cursor: pointer;
+  white-space: nowrap;
+}
+.kgv-ctxmenu button:hover:not(:disabled) { background: var(--muted); }
+.kgv-ctxmenu button:disabled { opacity: 0.4; cursor: default; }
+
+/* ── active-filter chips in the stat bar ────────────────────────────────── */
+.kgv-statbar { gap: 14px; flex-wrap: wrap; padding: 5px 16px; }
+.kgv-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 4px 2px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 500; line-height: 1.6;
+}
+.kgv-chip button {
+  border: none; background: none; cursor: pointer; padding: 0 3px;
+  font-size: 11px; color: inherit; opacity: 0.65; line-height: 1;
+}
+.kgv-chip button:hover { opacity: 1; }
+.kgv-chip-filter { background: oklch(0.92 0.09 265); color: oklch(0.38 0.16 265); }
+.kgv-chip-hl     { background: oklch(0.93 0.1 80);  color: oklch(0.42 0.14 60); }
+.kgv-chip-hidden { background: var(--muted); color: var(--muted-foreground); }
+.kgv-chip-focus  { background: oklch(0.92 0.09 170); color: oklch(0.35 0.12 170); }
+
+.kgv-reset-btn:disabled { opacity: 0.4; cursor: default; }
+.kgv-reset-btn:disabled:hover { background: var(--muted); }
+
+/* ── detail panel badges ────────────────────────────────────────────────── */
+.kgv-ctx-badges { display: flex; gap: 5px; flex-wrap: wrap; }
