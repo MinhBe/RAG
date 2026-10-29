@@ -19,6 +19,7 @@ from app.db.base import get_db
 from app.db.models import LegalDocument, LegalNode, Thread
 from app.graph.builder import build_graph
 from app.llm.router import get_router
+from app.pv.library import LAYERS, load_library
 from app.sse import sse
 
 router = APIRouter()
@@ -269,6 +270,13 @@ def list_threads(db: Session = Depends(get_db)):
 def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)):
     """Knowledge graph quanh kết quả tra cứu. Cách dựng: app/graph/builder.py."""
     return build_graph(db, query, top_k)
+
+
+# ---------- Câu hỏi phỏng vấn (/pv) ----------
+@router.get("/api/pv")
+def pv_library():
+    """Thư viện câu hỏi phỏng vấn cho trang /pv. Nội dung: app/pv/data/*.md."""
+    return {"layers": LAYERS, "groups": load_library()}
 
 
 # ---------- Human-in-loop: Escalation (câu hỏi không đủ căn cứ) ----------
