@@ -98,9 +98,12 @@ export default function GraphPage() {
     return () => fg?.stop();
   }, [view, groupBy, colorBy, d3Ready]);
 
+  // Re-apply after every redraw too: drawing builds fresh elements at full
+  // opacity, so a highlight would silently vanish on a Group By / colour change.
+  // Declared after the draw effect, so it always runs on the new elements.
   useEffect(() => {
     applyHighlight(graphRef.current, ontology, view, highlight);
-  }, [highlight, view, ontology]);
+  }, [highlight, view, ontology, groupBy, colorBy, d3Ready]);
 
   /* ── actions ────────────────────────────────────────────────────────────── */
   const activeFilter = !!(hiddenNodeTypes.size || hiddenEdgeTypes.size || filterTriplet || highlight || focusId);
