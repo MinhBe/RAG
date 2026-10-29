@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import threading
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -23,7 +25,21 @@ async def lifespan(app: FastAPI):
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
     Base.metadata.create_all(bind=engine)
     logger.info("DB sẵn sàng, bảng đã tạo.")
+    # Model embedding nạp lười mất ~12 giây, dồn hết vào câu hỏi đầu tiên sau mỗi
+    # lần khởi động; nạp sẵn ở luồng nền để API vẫn lên ngay.
+    threading.Thread(target=_warm_up, name="warm-up", daemon=True).start()
     yield
+
+
+def _warm_up() -> None:
+    from app.rag.embeddings import embed_one
+
+    t0 = time.monotonic()
+    try:
+        embed_one("khởi động")
+        logger.info("Model embedding sẵn sàng sau {:.1f}s.", time.monotonic() - t0)
+    except Exception as exc:  # noqa: BLE001 — không nạp được thì câu hỏi đầu tự nạp
+        logger.warning("Nạp sẵn model embedding lỗi: {}", exc)
 
 
 app = FastAPI(title="Trợ lý pháp luật lao động", version="0.1.0", lifespan=lifespan)

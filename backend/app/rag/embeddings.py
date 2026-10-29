@@ -11,6 +11,7 @@ Mọi chế độ trả vector đúng EMBED_DIM để cột pgvector không đ�
 from __future__ import annotations
 
 import hashlib
+import threading
 
 from loguru import logger
 
@@ -21,6 +22,8 @@ settings = get_settings()
 DIM = settings.embed_dim
 
 _MODEL = None
+# Luồng nạp sẵn lúc khởi động và câu hỏi đầu tiên có thể cùng gọi _load_model.
+_LOAD_LOCK = threading.Lock()
 
 
 def _hash_embed(texts: list[str]) -> list[list[float]]:
@@ -41,14 +44,17 @@ def _load_model():
     global _MODEL
     if _MODEL is not None:
         return _MODEL
-    from sentence_transformers import SentenceTransformer
+    with _LOAD_LOCK:
+        if _MODEL is not None:
+            return _MODEL
+        from sentence_transformers import SentenceTransformer
 
-    name = {
-        "vie-v2": "AITeamVN/Vietnamese_Embedding_v2",
-        "bge-m3": "BAAI/bge-m3",
-    }.get(settings.embedder, settings.embedder)
-    logger.info("Tải model embedding: {}", name)
-    _MODEL = SentenceTransformer(name)
+        name = {
+            "vie-v2": "AITeamVN/Vietnamese_Embedding_v2",
+            "bge-m3": "BAAI/bge-m3",
+        }.get(settings.embedder, settings.embedder)
+        logger.info("Tải model embedding: {}", name)
+        _MODEL = SentenceTransformer(name)
     return _MODEL
 
 
