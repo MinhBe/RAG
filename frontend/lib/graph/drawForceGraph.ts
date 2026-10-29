@@ -64,7 +64,12 @@ export function drawForceGraph(
   const simEdges = edges.filter((e) => simIds.has(sid(e)) && simIds.has(tid(e)));
 
   const g = svg.append("g");
-  const zoom = d3.zoom().scaleExtent([0.05, 8]).on("zoom", (ev: any) => g.attr("transform", ev.transform));
+  // a zoom or pan by the user (sourceEvent set) stops the automatic fit below
+  let userMoved = false;
+  const zoom = d3.zoom().scaleExtent([0.05, 8]).on("zoom", (ev: any) => {
+    g.attr("transform", ev.transform);
+    if (ev.sourceEvent) userMoved = true;
+  });
   svg.call(zoom);
 
   const defs = svg.append("defs");
@@ -194,11 +199,22 @@ export function drawForceGraph(
     return `M${sx},${sy}Q${mx + (CX - mx) * 0.4},${my + (CY - my) * 0.4} ${tx},${ty}`;
   };
 
+  /* The fans of a large graph reach far past the viewport, so without a fit
+     most of it sits off-screen and the canvas looks empty. Fit once the layout
+     has spread out, and again when it settles, unless the user has moved it. */
+  const autoFit = () => {
+    if (userMoved) return;
+    const t = fitTransform(svgEl, g.node());
+    if (t) svg.call(zoom.transform, t);
+  };
+  let ticks = 0;
   sim.on("tick", () => {
     if (radialMode) layoutFans();
     link.attr("d", edgePath);
     node.attr("transform", (d: GNode) => `translate(${d.x ?? 0},${d.y ?? 0})`);
+    if (++ticks === 30) autoFit();
   });
+  sim.on("end", autoFit);
 
   return { node, link, zoom, svg, stop: () => sim.stop() };
 }
@@ -220,15 +236,19 @@ export function zoomBy(fg: ForceGraph | null, k: number) {
   fg?.svg.transition().duration(220).call(fg.zoom.scaleBy, k);
 }
 
-export function zoomFit(fg: ForceGraph | null, svgEl: SVGSVGElement | null) {
-  if (!fg || !svgEl) return;
-  const g = svgEl.querySelector("g");
-  if (!g) return;
-  const b = (g as SVGGElement).getBBox();
-  if (!b.width || !b.height) return;
+/* zoom transform that fits everything inside `g` into the svg, or null when empty */
+function fitTransform(svgEl: SVGSVGElement, g: SVGGElement | null) {
+  if (!g) return null;
+  const b = g.getBBox();
+  if (!b.width || !b.height) return null;
   const k = Math.min(svgEl.clientWidth / b.width, svgEl.clientHeight / b.height) * 0.9;
   const tx = svgEl.clientWidth / 2 - k * (b.x + b.width / 2);
   const ty = svgEl.clientHeight / 2 - k * (b.y + b.height / 2);
-  fg.svg.transition().duration(350)
-    .call(fg.zoom.transform, window.d3.zoomIdentity.translate(tx, ty).scale(k));
+  return window.d3.zoomIdentity.translate(tx, ty).scale(k);
+}
+
+export function zoomFit(fg: ForceGraph | null, svgEl: SVGSVGElement | null) {
+  if (!fg || !svgEl) return;
+  const t = fitTransform(svgEl, svgEl.querySelector("g"));
+  if (t) fg.svg.transition().duration(350).call(fg.zoom.transform, t);
 }
