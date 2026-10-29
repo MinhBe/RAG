@@ -57,6 +57,8 @@ class LegalNode(Base):
         ForeignKey("legal_node.node_id", ondelete="CASCADE")
     )
     heading: Mapped[str | None] = mapped_column(Text)  # tiêu đề Điều
+    chapter_no: Mapped[int | None] = mapped_column(Integer)  # Chương (số thứ tự)
+    chapter_title: Mapped[str | None] = mapped_column(Text)  # tiêu đề Chương
     text: Mapped[str] = mapped_column(Text)
     text_hash: Mapped[str | None] = mapped_column(String(64))
     seq: Mapped[int | None] = mapped_column(Integer)  # thứ tự trong văn bản

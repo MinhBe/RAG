@@ -360,6 +360,43 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
             nodes.append(_node_dict(c, ghost=False))
             id_set.add(c.node_id)
 
+    # ── 3b. Node đối ứng của quan hệ thay thế ────────────────────────────────
+    # Phải thêm TRƯỚC khi dựng cạnh, nếu không chúng mồ côi (không có cạnh
+    # "contains" nào) và bố cục phân cấp sẽ văng chúng ra xa.
+    sup_rows = db.execute(
+        sa_select(
+            NodeSupersession.old_id,
+            NodeSupersession.new_id,
+            NodeSupersession.change_type,
+        ).where(
+            NodeSupersession.old_id.in_(list(id_set)) |
+            NodeSupersession.new_id.in_(list(id_set))
+        )
+    ).all()
+    for old_id, new_id, _ in sup_rows:
+        for nid in (old_id, new_id):
+            if nid not in id_set:
+                obj = db.get(LegalNode, nid)
+                if obj:
+                    nodes.append(_node_dict(obj, ghost=True))
+                    id_set.add(nid)
+
+    # ── 3c. Khép kín cây cha: mọi node đều phải lần được về văn bản ──────────
+    for _ in range(4):   # Điểm → Khoản → Điều, thừa một vòng cho chắc
+        missing = db.execute(
+            sa_select(LegalNode.parent_id)
+            .where(LegalNode.node_id.in_(list(id_set)))
+            .where(LegalNode.parent_id.isnot(None))
+            .where(~LegalNode.parent_id.in_(list(id_set)))
+        ).scalars().all()
+        if not missing:
+            break
+        for p in db.execute(
+            sa_select(LegalNode).where(LegalNode.node_id.in_(list(set(missing))))
+        ).scalars().all():
+            nodes.append(_node_dict(p, ghost=True))
+            id_set.add(p.node_id)
+
     all_ids = [n["id"] for n in nodes]
 
     # ── 4. Edges ──────────────────────────────────────────────────────────────
@@ -382,23 +419,7 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
         add_edge(pid, nid, "contains")
 
     # 4b. Supersession — cạnh mang đúng loại thay đổi (reworded/tightened/…)
-    sup_rows = db.execute(
-        sa_select(
-            NodeSupersession.old_id,
-            NodeSupersession.new_id,
-            NodeSupersession.change_type,
-        ).where(
-            NodeSupersession.old_id.in_(all_ids) |
-            NodeSupersession.new_id.in_(all_ids)
-        )
-    ).all()
     for old_id, new_id, change_type in sup_rows:
-        for nid in (old_id, new_id):
-            if nid not in id_set:
-                obj = db.get(LegalNode, nid)
-                if obj:
-                    nodes.append(_node_dict(obj, ghost=True))
-                    id_set.add(nid)
         add_edge(old_id, new_id, change_type or "superseded_by")
 
     # 4c. Siblings: clauses of same article not already connected via parent
@@ -411,7 +432,45 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
         for i in range(len(siblings) - 1):
             add_edge(siblings[i], siblings[i + 1], "sibling")
 
-    # ── 5. Document nodes: type thứ 4 của ontology ───────────────────────────
+    # ── 5. Chương: tầng chủ đề giữa Văn bản và Điều ──────────────────────────
+    # legal_node lưu chapter_no/chapter_title (xem scripts/backfill_chapters.py);
+    # node Chương được dựng tại đây chứ không nằm trong bảng.
+    chap_rows = db.execute(
+        sa_select(LegalNode.node_id, LegalNode.doc_id,
+                  LegalNode.chapter_no, LegalNode.chapter_title)
+        .where(LegalNode.node_id.in_(all_ids))
+    ).all()
+    chap_of: dict[str, tuple[str, int, str]] = {}
+    for nid, d_id, ch_no, ch_title in chap_rows:
+        if ch_no is not None:
+            chap_of[nid] = (d_id, ch_no, ch_title or "")
+
+    for n in nodes:
+        info = chap_of.get(n["id"])
+        if info:
+            n["chapter_no"], n["chapter_title"] = info[1], info[2]
+
+    seen_chaps: set[str] = set()
+    for d_id, ch_no, ch_title in chap_of.values():
+        cid = f"chap:{d_id}:{ch_no}"
+        if cid in seen_chaps:
+            continue
+        seen_chaps.add(cid)
+        nodes.append({
+            "id": cid, "label": f"Chương {ch_no}", "doc_id": d_id,
+            "level": "chapter", "type": "chapter",
+            "chapter_no": ch_no, "chapter_title": ch_title,
+            "heading": ch_title or f"Chương {ch_no}",
+            "text": ch_title or "", "score": 0.0, "ghost": False,
+        })
+        id_set.add(cid)
+
+    # Chương → Điều
+    for n in nodes:
+        if n.get("type") == "article" and n.get("chapter_no") is not None:
+            add_edge(f"chap:{n['doc_id']}:{n['chapter_no']}", n["id"], "contains")
+
+    # ── 6. Document nodes ────────────────────────────────────────────────────
     doc_ids = sorted({n["doc_id"] for n in nodes if n.get("doc_id")})
     doc_type_by_id: dict[str, str] = {}
     if doc_ids:
@@ -431,9 +490,11 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
             })
             id_set.add(did)
 
-        # văn bản → Điều
+        # văn bản → Chương, và văn bản → Điều cho Điều chưa có Chương
         for n in nodes:
-            if n.get("type") == "article":
+            if n.get("type") == "chapter":
+                add_edge(f"doc:{n['doc_id']}", n["id"], "contains")
+            elif n.get("type") == "article" and n.get("chapter_no") is None:
                 add_edge(f"doc:{n['doc_id']}", n["id"], "contains")
 
         # văn bản → văn bản (REPLACES / AMENDS / GUIDES)
