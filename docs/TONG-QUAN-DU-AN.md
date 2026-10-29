@@ -28,12 +28,12 @@ Dự án ghép ý tưởng từ 3 repo nguồn (agentailor — giao diện agent
 | ORM / DB | SQLAlchemy 2 + psycopg3, **PostgreSQL 17 + pgvector** | Một DB cho cả luật, hiệu lực, sửa đổi, án lệ, hội thoại |
 | Tìm kiếm | pgvector (cosine) + trigram/ILIKE, lọc theo hiệu lực | Rerank BGE sẵn sàng bật sau |
 | Embedding | **AITeamVN/Vietnamese_Embedding_v2** (1024 chiều), tự host trong container | Chế độ `hashing` dự phòng khi chưa tải model |
-| LLM | **LLMRouter** tự viết: Gemini / Claude / FPT theo loại việc | Retry 429/5xx + xoay vòng 10 key Gemini |
+| LLM | **LLMRouter** tự viết: Dahl (chính) rồi Gemini / Claude / FPT theo loại việc | Đua song song 3 model Dahl, retry 429/5xx, xoay vòng 10 key Gemini |
 | Soạn thảo | python-docx (thể thức NĐ 30) | Xuất `.docx` |
 | Xử lý dữ liệu | duckdb đọc parquet Hugging Face | Tải 1 lần, cache cục bộ |
 | Triển khai | Docker Compose: `postgres` + `api` + `web` (+ `langfuse` theo profile `obs`) | Mở `localhost:3000` và `:8000/docs` |
 
-**Nhà cung cấp LLM theo việc** (`app/llm/router.py`): định tuyến/viết lại truy vấn → Gemini flash-lite; hỏi đáp → Gemini flash; soạn thảo/báo cáo → Claude (dự phòng Gemini); xử lý hàng loạt → FPT. Hiện chỉ có khóa Gemini; Claude/FPT để trống trong `.env`.
+**Nhà cung cấp LLM theo việc** (`app/llm/router.py`): mọi việc gọi Dahl trước — gửi song song tới cả 3 model (DeepSeek-V4-Flash, GLM-5.3-Flash, MiniMax-M2.7), lấy câu trả lời hợp lệ (parse được JSON nếu cần) về sớm nhất, bỏ phần `<think>`. Dahl lỗi hết thì lùi về: định tuyến/viết lại truy vấn → Gemini flash-lite; hỏi đáp → Gemini flash; soạn thảo/báo cáo → Claude (dự phòng Gemini); xử lý hàng loạt → FPT. Hiện chỉ có khóa Gemini; Claude/FPT để trống trong `.env`.
 
 ---
 

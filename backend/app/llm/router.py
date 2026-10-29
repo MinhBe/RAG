@@ -4,22 +4,31 @@
 backoff + jitter, ép trả JSON theo schema. Thêm: chọn model theo loại việc
 (task) và xoay vòng nhiều key Gemini khi một key lỗi.
 
-Các task:
+Nhà cung cấp chính là Dahl: một key dùng được nhiều model nhỏ. Mỗi lời gọi gửi
+song song tới mọi model Dahl và lấy kết quả hợp lệ về sớm nhất (hedging) — vừa
+nhanh nhất, vừa né lỗi 429 "hết chỗ" của tài khoản miễn phí.
+
+Các task (sau Dahl là dự phòng theo thứ tự):
   route  / lite  -> Gemini flash-lite  (định tuyến, viết lại truy vấn, tóm tắt ngắn)
   answer         -> Gemini flash       (hỏi đáp có trích dẫn)
   draft / report -> Claude             (soạn thảo, báo cáo dài)  — fallback Gemini
   judge          -> Gemini flash       (chấm eval)
   bulk           -> FPT                 (xử lý dữ liệu hàng loạt) — fallback Gemini
 
-Nhà cung cấp dùng SDK tương thích OpenAI (Gemini, FPT) hoặc Anthropic (Claude).
+Nhà cung cấp dùng SDK tương thích OpenAI (Dahl, Gemini, FPT) hoặc Anthropic (Claude).
 """
 
 from __future__ import annotations
 
+import json
 import random
+import re
+import threading
 import time
+from collections.abc import Callable, Iterator
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-from collections.abc import Iterator
+from typing import Any
 
 from loguru import logger
 
@@ -31,68 +40,117 @@ _RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 _MAX_ATTEMPTS = 4
 _BASE_DELAY = 1.0
 
+# Dahl trả 429 ngay (dưới 1 giây) khi model hết chỗ, nên thử lại dày và lâu hơn
+# các nhà cung cấp khác: model nào có chỗ trước thì thắng.
+_DAHL_BUSY_RETRIES = 10
+_DAHL_BUSY_DELAY = 2.0
+_DAHL_TIMEOUT = 180.0
+# Mô hình suy luận cần chỗ cho phần nghĩ trước câu trả lời.
+_DAHL_MIN_TOKENS = 8192
+# Model thua cuộc đua vẫn chạy nốt trong pool; đủ chỗ cho vài người hỏi cùng lúc.
+_POOL = ThreadPoolExecutor(max_workers=24, thread_name_prefix="llm-race")
+
+_THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL)
+
 
 @dataclass
 class LLMResult:
     text: str
     provider: str
     model: str
+    data: Any = None  # kết quả parse (extract_json), nếu có
 
 
 class LLMError(RuntimeError):
     pass
 
 
+def strip_think(text: str) -> str:
+    """Bỏ phần suy nghĩ <think>…</think> một số model để lẫn vào câu trả lời.
+
+    Chỉ còn thẻ đóng (thẻ mở nằm trong template) thì lấy phần sau nó; thẻ mở
+    chưa đóng nghĩa là model hết token khi còn đang nghĩ -> không có câu trả lời.
+    """
+    text = _THINK_BLOCK.sub("", text)
+    if "</think>" in text:
+        text = text.rsplit("</think>", 1)[1]
+    if "<think>" in text:
+        text = text.split("<think>", 1)[0]
+    return text.strip()
+
+
+def parse_json(text: str) -> dict:
+    """Lấy object JSON từ câu trả lời (bỏ rào ```json nếu có). Hỏng -> ValueError."""
+    raw = text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```", 2)[1]
+        raw = raw[4:] if raw.lower().startswith("json") else raw
+        raw = raw.strip()
+    start, end = raw.find("{"), raw.rfind("}")
+    if start == -1 or end == -1:
+        raise ValueError("không có JSON")
+    return json.loads(raw[start : end + 1])
+
+
+def _status(exc: Exception) -> int | None:
+    return getattr(exc, "status_code", None) or getattr(
+        getattr(exc, "response", None), "status_code", None
+    )
+
+
 class LLMRouter:
     def __init__(self) -> None:
         self._gemini_keys = settings.gemini_keys
         self._gemini_idx = 0
+        self._dahl_keys = settings.dahl_keys
+        self._dahl_idx = 0
 
     # ---- chọn nhà cung cấp + model theo task ----
     def _plan(self, task: str) -> list[tuple[str, str]]:
+        dahl = ("dahl", "*")  # "*" = đua mọi model Dahl
         g_flash = ("gemini", settings.gemini_model)
         g_lite = ("gemini", settings.gemini_model_lite)
         claude = ("claude", settings.anthropic_model)
         fpt = ("fpt", settings.fpt_model)
 
         table: dict[str, list[tuple[str, str]]] = {
-            "route": [g_lite, g_flash],
-            "lite": [g_lite, g_flash],
-            "answer": [g_flash, g_lite],
-            "draft": [claude, g_flash],
-            "report": [claude, g_flash],
-            "judge": [g_flash, g_lite],
-            "bulk": [fpt, g_flash],
+            "route": [dahl, g_lite, g_flash],
+            "lite": [dahl, g_lite, g_flash],
+            "answer": [dahl, g_flash, g_lite],
+            "draft": [dahl, claude, g_flash],
+            "report": [dahl, claude, g_flash],
+            "judge": [dahl, g_flash, g_lite],
+            "bulk": [dahl, fpt, g_flash],
         }
-        plan = table.get(task, [g_flash, g_lite])
+        plan = table.get(task, [dahl, g_flash, g_lite])
         # Lọc nhà cung cấp chưa cấu hình.
         return [(p, m) for (p, m) in plan if self._available(p)]
 
     def _available(self, provider: str) -> bool:
-        if provider == "gemini":
-            return bool(self._gemini_keys)
-        if provider == "claude":
-            return bool(settings.anthropic_api_key)
-        if provider == "fpt":
-            return bool(settings.fpt_api_key)
-        return False
+        return self.available_providers().get(provider, False)
 
     def available_providers(self) -> dict[str, bool]:
         return {
+            "dahl": bool(self._dahl_keys and settings.dahl_model_list),
             "gemini": bool(self._gemini_keys),
             "claude": bool(settings.anthropic_api_key),
             "fpt": bool(settings.fpt_api_key),
         }
 
     # ---- client ----
-    def _openai_client(self, base_url: str, api_key: str):
+    def _openai_client(self, base_url: str, api_key: str, timeout: float = 60.0):
         from openai import OpenAI
 
-        return OpenAI(base_url=base_url, api_key=api_key, max_retries=0, timeout=60.0)
+        return OpenAI(base_url=base_url, api_key=api_key, max_retries=0, timeout=timeout)
 
     def _next_gemini_key(self) -> str:
         key = self._gemini_keys[self._gemini_idx % len(self._gemini_keys)]
         self._gemini_idx += 1
+        return key
+
+    def _next_dahl_key(self) -> str:
+        key = self._dahl_keys[self._dahl_idx % len(self._dahl_keys)]
+        self._dahl_idx += 1
         return key
 
     # ---- gọi chính ----
@@ -103,16 +161,24 @@ class LLMRouter:
         task: str = "answer",
         temperature: float = 0.2,
         max_tokens: int | None = None,
+        parse: Callable[[str], Any] | None = None,
     ) -> LLMResult:
+        """Gọi theo kế hoạch của task. `parse` (nếu có) chạy trên câu trả lời; lỗi
+        parse tính như lỗi nhà cung cấp, nên cuộc đua Dahl chỉ nhận kết quả parse được."""
         plan = self._plan(task)
         if not plan:
             raise LLMError(
-                "Chưa cấu hình nhà cung cấp LLM nào (thiếu key Gemini/Claude/FPT trong .env)."
+                "Chưa cấu hình nhà cung cấp LLM nào (thiếu key Dahl/Gemini/Claude/FPT trong .env)."
             )
         last_exc: Exception | None = None
         for provider, model in plan:
             try:
-                return self._call(provider, model, messages, temperature, max_tokens)
+                if provider == "dahl":
+                    return self._race_dahl(messages, temperature, max_tokens, parse)
+                res = self._call(provider, model, messages, temperature, max_tokens)
+                if parse:
+                    res.data = parse(res.text)
+                return res
             except Exception as exc:  # noqa: BLE001 — thử nhà cung cấp kế tiếp
                 logger.warning("LLM {} ({}) lỗi: {}", provider, model, exc)
                 last_exc = exc
@@ -130,6 +196,53 @@ class LLMRouter:
         if provider == "fpt":
             return settings.fpt_base_url, settings.fpt_api_key or ""
         raise LLMError(f"Nhà cung cấp không hỗ trợ: {provider}")
+
+    # ---- Dahl: đua song song ----
+    def _race_dahl(self, messages, temperature, max_tokens, parse) -> LLMResult:
+        won = threading.Event()
+        t0 = time.monotonic()
+        futures = {
+            _POOL.submit(self._call_dahl, m, messages, temperature, max_tokens, parse, won): m
+            for m in settings.dahl_model_list
+        }
+        errors: list[str] = []
+        for fut in as_completed(futures):
+            try:
+                res = fut.result()
+            except Exception as exc:  # noqa: BLE001 — model khác có thể vẫn thắng
+                errors.append(f"{futures[fut]}: {exc}")
+                continue
+            won.set()
+            logger.info("Dahl: {} thắng sau {:.1f}s", res.model, time.monotonic() - t0)
+            return res
+        raise LLMError("Mọi model Dahl đều lỗi: " + " | ".join(errors))
+
+    def _call_dahl(self, model, messages, temperature, max_tokens, parse, won) -> LLMResult:
+        client = self._openai_client(settings.dahl_base_url, self._next_dahl_key(), _DAHL_TIMEOUT)
+        extra = {"reasoning_effort": settings.dahl_reasoning_effort} if settings.dahl_reasoning_effort else {}
+        for attempt in range(_DAHL_BUSY_RETRIES):
+            if won.is_set():
+                raise LLMError("đã có model khác trả lời")
+            try:
+                resp = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max(max_tokens or 0, _DAHL_MIN_TOKENS),
+                    extra_body=extra,
+                )
+            except Exception as exc:  # noqa: BLE001
+                if _status(exc) != 429 or attempt == _DAHL_BUSY_RETRIES - 1:
+                    raise
+                time.sleep(random.uniform(0.5, _DAHL_BUSY_DELAY))
+                continue
+            text = strip_think(resp.choices[0].message.content or "")
+            if not text:
+                raise LLMError("câu trả lời rỗng (hết token khi đang nghĩ?)")
+            return LLMResult(
+                text=text, provider="dahl", model=model, data=parse(text) if parse else None
+            )
+        raise LLMError("hết lượt chờ chỗ")
 
     def _call_openai(
         self, provider, base_url, api_key, model, messages, temperature, max_tokens
@@ -170,25 +283,15 @@ class LLMRouter:
         self, messages: list[dict[str, str]], *, task: str = "answer", temperature: float = 0.0
     ) -> dict:
         """Gọi LLM và parse JSON. Retry nhích nhiệt độ khi JSON hỏng."""
-        import json
-
         for attempt in range(3):
             temp = temperature if attempt == 0 else 0.5
-            res = self.chat(messages, task=task, temperature=temp)
-            raw = res.text.strip()
-            if raw.startswith("```"):
-                raw = raw.split("```", 2)[1]
-                raw = raw[4:] if raw.lower().startswith("json") else raw
-                raw = raw.strip()
-            start, end = raw.find("{"), raw.rfind("}")
-            if start != -1 and end != -1:
-                try:
-                    return json.loads(raw[start : end + 1])
-                except json.JSONDecodeError:
-                    continue
+            try:
+                return self.chat(messages, task=task, temperature=temp, parse=parse_json).data
+            except LLMError as exc:
+                logger.warning("JSON lần {} hỏng: {}", attempt + 1, exc)
         raise LLMError("Không parse được JSON từ LLM sau 3 lần.")
 
-    # ---- streaming (chỉ Gemini/FPT, OpenAI-compatible) ----
+    # ---- streaming (Gemini/FPT/Claude stream thật; Dahl trả một lần sau cuộc đua) ----
     def stream(
         self,
         messages: list[dict[str, str]],
@@ -199,6 +302,10 @@ class LLMRouter:
         plan = self._plan(task)
         for provider, model in plan:
             try:
+                if provider == "dahl":
+                    # phần <think> chỉ bỏ được khi đã có trọn câu trả lời
+                    yield self._race_dahl(messages, temperature, None, None).text
+                    return
                 if provider == "claude":
                     yield from self._stream_claude(model, messages, temperature)
                     return
@@ -235,9 +342,7 @@ class LLMRouter:
             try:
                 return call()
             except Exception as exc:  # noqa: BLE001
-                status = getattr(exc, "status_code", None) or getattr(
-                    getattr(exc, "response", None), "status_code", None
-                )
+                status = _status(exc)
                 transient = status in _RETRYABLE_STATUS or status is None
                 if not transient or attempt == _MAX_ATTEMPTS - 1:
                     raise

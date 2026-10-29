@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash"
     gemini_model_lite: str = "gemini-3.1-flash-lite"
 
+    # Dahl (OpenAI-compatible): một key dùng được nhiều model, gọi song song lấy kết quả nhanh nhất
+    dahl_base_url: str = "https://inference.dahl.global/v1"
+    dahl_models: str = (
+        "deepseek-ai/DeepSeek-V4-Flash-0731,zai-org/GLM-5.3-Flash,MiniMaxAI/MiniMax-M2.7"
+    )
+    dahl_reasoning_effort: str = "low"
+
     # Claude
     anthropic_api_key: str | None = None
     anthropic_model: str = "claude-opus-5-5"
@@ -59,6 +66,18 @@ class Settings(BaseSettings):
         if single:
             keys.append(single)
         return keys
+
+    @property
+    def dahl_keys(self) -> list[str]:
+        """Gom Dahl_token_1..10 từ môi trường, không phân biệt hoa thường (DAHL_TOKEN_1 cũng được)."""
+        import os
+
+        env = {k.upper(): v.strip() for k, v in os.environ.items()}
+        return [env[f"DAHL_TOKEN_{i}"] for i in range(1, 11) if env.get(f"DAHL_TOKEN_{i}")]
+
+    @property
+    def dahl_model_list(self) -> list[str]:
+        return [m.strip() for m in self.dahl_models.split(",") if m.strip()]
 
     @property
     def sqlalchemy_url(self) -> str:
