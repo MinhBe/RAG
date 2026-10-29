@@ -162,6 +162,7 @@ html, body {
   padding: 8px 10px; border-radius: 8px; cursor: pointer;
   color: var(--muted-foreground); font-size: 13.5px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; justify-content: space-between;
 }
 .thread-item:hover { background: var(--muted); color: var(--foreground); }
 .thread-item.active { background: var(--muted); color: var(--foreground); font-weight: 500; }
@@ -467,77 +468,7 @@ html, body {
   display: grid; place-items: center; flex-shrink: 0;
 }
 
-/* ---------- Knowledge Graph page ---------- */
-.graph-shell {
-  display: flex; flex-direction: column; height: 100vh; background: var(--app-bg); color: var(--foreground);
-}
-.graph-header {
-  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
-  background: var(--card); border-bottom: 1px solid var(--border); flex-shrink: 0;
-}
-.graph-back {
-  font-size: 13px; color: var(--muted-foreground); text-decoration: none;
-  padding: 4px 8px; border-radius: var(--radius); border: 1px solid var(--border);
-}
-.graph-back:hover { color: var(--foreground); background: var(--muted); }
-.graph-title { font-size: 14px; font-weight: 600; flex: 1; }
-.graph-search { display: flex; gap: 6px; }
-.graph-search input {
-  padding: 5px 10px; font-size: 13px; border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--background); color: var(--foreground);
-  width: 220px;
-}
-.graph-search button {
-  padding: 5px 12px; font-size: 13px; border: none; border-radius: var(--radius);
-  background: var(--primary); color: var(--primary-foreground); cursor: pointer;
-}
-.graph-search button:hover { opacity: 0.88; }
-.graph-search button:disabled { opacity: 0.5; cursor: default; }
-
-.graph-legend {
-  display: flex; align-items: center; gap: 16px; padding: 6px 16px;
-  background: var(--muted); border-bottom: 1px solid var(--border); flex-shrink: 0;
-  font-size: 12px; color: var(--muted-foreground); flex-wrap: wrap;
-}
-.legend-item { display: flex; align-items: center; gap: 5px; }
-.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.legend-line { width: 20px; height: 2px; flex-shrink: 0; }
-.legend-line.amber { background: #f59e0b; }
-.legend-line.gray { background: #94a3b8; }
-
-.graph-body { display: flex; flex: 1; min-height: 0; }
-.graph-canvas-wrap { position: relative; flex: 1; }
-.graph-svg { width: 100%; height: 100%; display: block; }
-.graph-loading {
-  position: absolute; inset: 0; display: grid; place-items: center;
-  font-size: 14px; color: var(--muted-foreground); pointer-events: none;
-}
-
-.graph-panel {
-  width: 300px; flex-shrink: 0; border-left: 1px solid var(--border);
-  background: var(--card); padding: 16px; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 10px; font-size: 13px;
-  position: relative;
-}
-.graph-panel-close {
-  position: absolute; top: 10px; right: 12px;
-  background: none; border: none; cursor: pointer;
-  color: var(--muted-foreground); font-size: 16px; line-height: 1;
-}
-.graph-panel-close:hover { color: var(--foreground); }
-.gp-doc-badge {
-  display: inline-block; padding: 2px 8px; border-radius: 999px;
-  color: #fff; font-size: 11px; font-weight: 600; width: fit-content;
-}
-.gp-id { font-size: 11px; color: var(--muted-foreground); word-break: break-all; }
-.gp-heading { font-weight: 600; font-size: 14px; line-height: 1.4; }
-.gp-text {
-  color: var(--muted-foreground); font-size: 12px; line-height: 1.6;
-  border-top: 1px solid var(--border); padding-top: 8px; white-space: pre-wrap;
-}
-.gp-score { font-size: 11px; color: var(--muted-foreground); }
-
-/* Graph nav button in Chat header */
+/* ---------- Graph nav button in Chat header ---------- */
 .graph-nav-btn {
   display: flex; align-items: center; justify-content: center;
   padding: 5px 8px; border-radius: var(--radius); border: 1px solid var(--border);
@@ -640,7 +571,6 @@ html, body {
 .convo-meta { font-size: 11px; color: var(--muted-foreground); margin-left: 12px; white-space: nowrap; }
 
 /* ---------- Sidebar conversation delete button ---------- */
-.thread-item { display: flex; align-items: center; justify-content: space-between; }
 .thread-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .thread-del {
   flex-shrink: 0; opacity: 0; padding: 2px 5px; margin-left: 4px;
@@ -672,44 +602,12 @@ html, body {
 .kgv-back:hover { background: var(--muted); color: var(--foreground); }
 .kgv-title { font-size: 14px; font-weight: 600; flex: 1; min-width: 120px; }
 
-.kgv-search {
-  display: flex; gap: 6px; align-items: center; flex: 2; min-width: 200px;
-}
-.kgv-search input {
-  flex: 1; padding: 5px 10px; border-radius: var(--radius);
-  border: 1px solid var(--border); background: var(--background);
-  color: var(--foreground); font-size: 13px;
-}
-.kgv-search input:focus { outline: none; border-color: var(--primary); }
-.kgv-search button {
-  padding: 5px 12px; border-radius: var(--radius); border: none;
-  background: var(--primary); color: var(--primary-foreground);
-  font-size: 13px; cursor: pointer; white-space: nowrap;
-}
-.kgv-search button:disabled { opacity: 0.5; cursor: default; }
-
-.kgv-group-label { font-size: 12px; color: var(--muted-foreground); white-space: nowrap; }
-.kgv-select {
-  padding: 5px 8px; border-radius: var(--radius); border: 1px solid var(--border);
-  background: var(--background); color: var(--foreground); font-size: 13px;
-  cursor: pointer;
-}
-.kgv-reset-btn {
-  padding: 5px 10px; border-radius: var(--radius);
-  border: 1px solid var(--border); background: var(--muted);
-  color: var(--foreground); font-size: 12px; cursor: pointer; white-space: nowrap;
-}
-.kgv-reset-btn:hover { background: var(--border); }
-
 /* ── stat bar ────────────────────────────────────────────────────── */
 .kgv-statbar {
-  display: flex; align-items: center; padding: 4px 16px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 5px 16px;
   font-size: 12px; color: var(--muted-foreground);
   background: var(--card); border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-}
-.kgv-focus-note {
-  margin-left: 20px; color: var(--foreground); font-style: italic;
 }
 
 /* ── body ────────────────────────────────────────────────────────── */
@@ -728,24 +626,17 @@ html, body {
 }
 .kgv-svg { width: 100%; height: 100%; display: block; }
 
-/* ── Interactive Ontology View (overlay, bottom-left) ───────────────────── */
-.kgv-onto-panel {
-  position: absolute; bottom: 16px; left: 16px; z-index: 10;
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 8px 10px 6px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.14);
-  user-select: none;
-}
+/* ── relationship map: header, nodes, edges and their states ────────────── */
 .kgv-onto-head { display: flex; flex-direction: column; gap: 1px; margin-bottom: 2px; }
 .kgv-onto-title {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--foreground);
 }
-.kgv-onto-hint { font-size: 9px; color: var(--muted-foreground); }
+.kgv-onto-hint { font-size: 11px; line-height: 1.5; color: var(--muted-foreground); }
 .kgv-onto-svg { display: block; overflow: visible; }
 
 .kgv-onto-node, .kgv-onto-edge { cursor: pointer; transition: opacity 0.15s; }
-.kgv-onto-node:hover circle { stroke: var(--primary); stroke-width: 2.5; }
+.kgv-onto-node:hover circle { stroke: var(--primary); stroke-width: 4; }
 .kgv-onto-edge:hover line, .kgv-onto-edge:hover path { stroke-width: 2.6; }
 .kgv-onto-node.off { opacity: 0.3; cursor: default; }
 .kgv-onto-edge.off { opacity: 0.25; cursor: default; }
@@ -768,7 +659,6 @@ html, body {
 .kgv-ctxmenu button:disabled { opacity: 0.4; cursor: default; }
 
 /* ── active-filter chips in the stat bar ────────────────────────────────── */
-.kgv-statbar { gap: 14px; flex-wrap: wrap; padding: 5px 16px; }
 .kgv-chip {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 2px 4px 2px 9px; border-radius: 999px;
@@ -784,12 +674,6 @@ html, body {
 .kgv-chip-hidden { background: var(--muted); color: var(--muted-foreground); }
 .kgv-chip-focus  { background: oklch(0.92 0.09 170); color: oklch(0.35 0.12 170); }
 
-.kgv-reset-btn:disabled { opacity: 0.4; cursor: default; }
-.kgv-reset-btn:disabled:hover { background: var(--muted); }
-
-/* ── detail panel badges ────────────────────────────────────────────────── */
-.kgv-ctx-badges { display: flex; gap: 5px; flex-wrap: wrap; }
-
 /* ── header counts ──────────────────────────────────────────────────────── */
 .kgv-counts { font-size: 11px; color: var(--muted-foreground); white-space: nowrap; }
 
@@ -797,10 +681,12 @@ html, body {
 .kgv-toolbar {
   position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
   z-index: 12; display: flex; align-items: center; gap: 7px;
-  padding: 6px 12px; border-radius: 999px;
+  padding: 6px 12px; border-radius: 16px;
   background: var(--card); border: 1px solid var(--border);
   box-shadow: 0 4px 20px rgba(0,0,0,0.13);
-  font-size: 12px; max-width: calc(100% - 32px); flex-wrap: wrap;
+  font-size: 12px; max-width: calc(100% - 32px);
+  /* wraps into a tidy card instead of a broken pill when the canvas narrows */
+  flex-wrap: wrap; justify-content: center; row-gap: 4px;
 }
 .kgv-toolbar button {
   width: 26px; height: 26px; flex-shrink: 0;
@@ -815,10 +701,10 @@ html, body {
   border: none; background: var(--muted); color: var(--foreground);
   border-radius: 999px; padding: 4px 8px; font-size: 12px; cursor: pointer;
 }
-.kgv-toolbar form { display: flex; }
+.kgv-toolbar form { display: flex; flex: 1 1 110px; min-width: 0; }
 .kgv-toolbar input {
   border: none; border-bottom: 1px solid var(--border); background: none;
-  color: var(--foreground); font-size: 12px; padding: 3px 4px; width: 150px;
+  color: var(--foreground); font-size: 12px; padding: 3px 4px; width: 100%; min-width: 80px;
 }
 .kgv-toolbar input:focus { outline: none; border-bottom-color: var(--primary); }
 .kgv-tb-sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
@@ -839,7 +725,7 @@ html, body {
 
 /* ── collapsible right panel ────────────────────────────────────────────── */
 .kgv-side {
-  width: 300px; flex-shrink: 0; border-left: 1px solid var(--border);
+  width: 300px; flex-shrink: 0;
   background: var(--card); overflow-y: auto; padding: 16px;
   display: flex; flex-direction: column; gap: 9px;
 }
@@ -891,7 +777,7 @@ html, body {
 .kgv-leg-line { width: 15px; height: 3px; border-radius: 2px; flex-shrink: 0; }
 .kgv-leg-count { margin-left: auto; opacity: 0.6; }
 
-/* ── detail panel bits (reused inside .kgv-side) ────────────────────────── */
+/* ── detail panel (inside .kgv-side) ────────────────────────────────────── */
 .kgv-ctx-badges { display: flex; gap: 5px; flex-wrap: wrap; }
 .kgv-ctx-badge {
   display: inline-block; padding: 2px 8px; border-radius: 999px;
@@ -927,7 +813,6 @@ html, body {
 }
 
 /* ── relationship map: stage, magnifier, resize handles ─────────────────── */
-.kgv-onto-hint { font-size: 11px; line-height: 1.5; }
 .kgv-onto-stage {
   position: relative; overflow: hidden;
   border: 1px solid var(--border); border-radius: var(--radius);
@@ -957,7 +842,6 @@ html, body {
 .kgv-onto-zoom span:not(.kgv-tb-sep) { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
 .kgv-onto-zoom .kgv-tb-sep { margin: 0 4px; }
 
-.kgv-onto-node:hover circle { stroke: var(--primary); stroke-width: 4; }
 .kgv-onto-node.hl circle { stroke: var(--foreground, #0f172a); stroke-width: 4; }
 .kgv-onto-edge:hover path:first-child { stroke-width: 3.6; }
 .kgv-onto-edge.hl path:first-child { stroke-width: 4; }
@@ -977,9 +861,4 @@ html, body {
   border-left: 1px solid var(--border); background: var(--card);
 }
 .kgv-side-resize:hover { background: var(--primary); opacity: 0.35; }
-.kgv-side { border-left: none; }
 
-/* floating graph toolbar: wraps into a tidy card instead of a broken pill when the canvas narrows */
-.kgv-toolbar { border-radius: 16px; justify-content: center; row-gap: 4px; }
-.kgv-toolbar form { flex: 1 1 110px; min-width: 0; }
-.kgv-toolbar input { width: 100%; min-width: 80px; }
