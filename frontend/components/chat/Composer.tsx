@@ -1,8 +1,9 @@
 import { IconSend } from "@/components/chat/icons";
 import { estimateTokens } from "@/lib/chat/storage";
 
-export default function Composer({ value, onChange, onSubmit, busy }: {
+export default function Composer({ value, placeholder, onChange, onSubmit, busy }: {
   value: string;
+  placeholder: string;
   onChange: (v: string) => void;
   onSubmit: () => void;
   busy: boolean;
@@ -15,7 +16,7 @@ export default function Composer({ value, onChange, onSubmit, busy }: {
         <div className="box">
           <textarea
             value={value}
-            placeholder="Nhập câu hỏi về luật lao động…"
+            placeholder={placeholder}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {

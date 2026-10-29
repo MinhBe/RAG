@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { genId, loadConvos, saveConvos } from "@/lib/chat/storage";
 import type { Conversation, Msg, Section } from "@/lib/chat/types";
+import type { Mode } from "@/lib/mode";
 import { streamChat } from "@/lib/sse";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
@@ -18,7 +19,7 @@ function setUrl(id: string | null) {
   setTimeout(() => window.history.replaceState(null, "", url), 0);
 }
 
-export function useChat() {
+export function useChat(mode: Mode = "law") {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [convos, setConvos] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -26,9 +27,13 @@ export function useChat() {
   const threadId = useRef<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  // switching mode opens that mode's own history, starting from an empty chat
   useEffect(() => {
-    const saved = loadConvos();
+    const saved = loadConvos(mode);
     setConvos(saved);
+    setMessages([]);
+    setActiveId(null);
+    threadId.current = null;
     // reopen the conversation named in the URL, so a reload lands where it was
     try {
       const tid = new URLSearchParams(window.location.search).get("t");
@@ -39,7 +44,7 @@ export function useChat() {
         threadId.current = match.id;
       }
     } catch { /* ignore */ }
-  }, []);
+  }, [mode]);
 
   function scrollDown() {
     requestAnimationFrame(() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight }));
@@ -63,7 +68,7 @@ export function useChat() {
   function deleteConvo(id: string) {
     setConvos((prev) => {
       const next = prev.filter((x) => x.id !== id);
-      saveConvos(next);
+      saveConvos(next, mode);
       return next;
     });
     if (activeId === id) newChat();
@@ -77,7 +82,7 @@ export function useChat() {
     setConvos((prev) => {
       const rest = prev.filter((c) => c.id !== id);
       const next = [{ id, title, messages: msgs }, ...rest];
-      saveConvos(next);
+      saveConvos(next, mode);
       return next;
     });
     setActiveId(id);
@@ -135,7 +140,7 @@ export function useChat() {
       setMessages((m) => m.map((x, i) => (i === m.length - 1 && x.role === "ai" ? fn(x) : x)));
 
     try {
-      await streamChat(API_BASE, { message: q, thread_id: threadId.current, history }, (event, data) => {
+      await streamChat(API_BASE, { message: q, thread_id: threadId.current, history, mode }, (event, data) => {
         if (event === "start") threadId.current = threadId.current || data.thread_id;
         else if (event === "step")
           update((ai) => ({

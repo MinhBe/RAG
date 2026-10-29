@@ -2,9 +2,11 @@ import Link from "next/link";
 
 import { IconDash, IconGraph, IconPlus } from "@/components/chat/icons";
 import type { Conversation } from "@/lib/chat/types";
+import type { MODE_TEXT } from "@/lib/mode";
 
-export default function Sidebar({ open, convos, activeId, onNew, onOpen, onDelete }: {
+export default function Sidebar({ open, text, convos, activeId, onNew, onOpen, onDelete }: {
   open: boolean;
+  text: (typeof MODE_TEXT)["law"];
   convos: Conversation[];
   activeId: string | null;
   onNew: () => void;
@@ -16,8 +18,8 @@ export default function Sidebar({ open, convos, activeId, onNew, onOpen, onDelet
       <div className="brand">
         <div className="logo">L</div>
         <div>
-          <div className="name">Trợ lý Luật Lao động</div>
-          <div className="sub">Hỏi đáp có trích dẫn</div>
+          <div className="name">{text.brand}</div>
+          <div className="sub">{text.brandSub}</div>
         </div>
       </div>
 
@@ -50,7 +52,7 @@ export default function Sidebar({ open, convos, activeId, onNew, onOpen, onDelet
       </div>
 
       <div className="side-foot">
-        Nguồn: BLLĐ 2019 · 2012 · NĐ 145/2020 · án lệ lao động. Câu trả lời kèm trích dẫn Điều–Khoản.
+        {text.source}
       </div>
     </aside>
   );

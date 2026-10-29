@@ -1,21 +1,23 @@
 /* Hội thoại lưu trong localStorage, tối đa 30 cái gần nhất. */
 import type { Conversation } from "@/lib/chat/types";
+import type { Mode } from "@/lib/mode";
 
-const STORE_KEY = "llv_conversations";
 const MAX_CONVERSATIONS = 30;
+// each mode keeps its own history, so interview chats never show up under the law assistant
+const storeKey = (mode: Mode) => (mode === "pv" ? "llv_conversations_pv" : "llv_conversations");
 
-export function loadConvos(): Conversation[] {
+export function loadConvos(mode: Mode = "law"): Conversation[] {
   try {
-    const raw = localStorage.getItem(STORE_KEY);
+    const raw = localStorage.getItem(storeKey(mode));
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-export function saveConvos(c: Conversation[]) {
+export function saveConvos(c: Conversation[], mode: Mode = "law") {
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(c.slice(0, MAX_CONVERSATIONS)));
+    localStorage.setItem(storeKey(mode), JSON.stringify(c.slice(0, MAX_CONVERSATIONS)));
   } catch {
     /* storage blocked or full: the conversation just isn't kept */
   }

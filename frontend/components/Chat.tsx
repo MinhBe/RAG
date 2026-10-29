@@ -2,34 +2,42 @@
 
 /* Khung chat: lắp thanh bên, danh sách tin nhắn và ô nhập. Logic hội thoại nằm
    ở lib/chat/useChat.ts. */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import Composer from "@/components/chat/Composer";
 import { IconGraph, IconMenu, IconMoon, IconSun } from "@/components/chat/icons";
 import MessageList from "@/components/chat/MessageList";
 import Sidebar from "@/components/chat/Sidebar";
 import { useChat, useTheme } from "@/lib/chat/useChat";
+import { loadMode, type Mode, MODE_TEXT, saveMode } from "@/lib/mode";
 
 export default function Chat() {
-  const chat = useChat();
+  const [mode, setMode] = useState<Mode>("law");
+  const chat = useChat(mode);
   const { theme, toggleTheme } = useTheme();
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const text = MODE_TEXT[mode];
 
-  const router = useRouter();
+  useEffect(() => { setMode(loadMode()); }, []);
 
   // every accepted question clears the composer, whichever button sent it;
-  // "/pv" is not a question: it opens the hidden interview-practice page
+  // "/pv" is not a question: it switches the hidden interview mode on and off
   const ask = (q: string) => {
-    if (q.trim().toLowerCase() === "/pv") { setInput(""); router.push("/pv"); return; }
+    if (q.trim().toLowerCase() === "/pv") {
+      const next: Mode = mode === "pv" ? "law" : "pv";
+      saveMode(next);
+      setMode(next);
+      setInput("");
+      return;
+    }
     if (chat.send(q)) setInput("");
   };
 
   return (
     <div className="shell">
-      <Sidebar open={sidebarOpen} convos={chat.convos} activeId={chat.activeId}
+      <Sidebar open={sidebarOpen} text={text} convos={chat.convos} activeId={chat.activeId}
         onNew={chat.newChat} onOpen={chat.openConvo} onDelete={chat.deleteConvo} />
 
       <main className="main">
@@ -37,7 +45,7 @@ export default function Chat() {
           <button className="icon-btn" onClick={() => setSidebarOpen((v) => !v)} aria-label="Ẩn/hiện thanh bên">
             <IconMenu />
           </button>
-          <span className="title">Trợ lý pháp luật lao động</span>
+          <span className="title">{text.title}</span>
           <Link href="/graph" className="graph-nav-btn" title="Knowledge Graph">
             <IconGraph />
           </Link>
@@ -47,14 +55,14 @@ export default function Chat() {
         </header>
 
         <MessageList
-          messages={chat.messages} threadId={chat.threadId.current} listRef={chat.listRef}
+          messages={chat.messages} threadId={chat.threadId.current} listRef={chat.listRef} text={text}
           onAsk={ask}
           onUseSuggestion={(i, q) => { if (chat.applySuggestion(i, q)) setInput(""); }}
           onIgnoreSuggestion={chat.ignoreSuggestion}
           onEscalate={chat.escalate}
           onDeny={chat.denyEscalate} />
 
-        <Composer value={input} onChange={setInput} onSubmit={() => ask(input)} busy={chat.busy} />
+        <Composer value={input} placeholder={text.placeholder} onChange={setInput} onSubmit={() => ask(input)} busy={chat.busy} />
       </main>
     </div>
   );
