@@ -2,8 +2,7 @@
 # Core (mặc định): postgres (pgvector) + api + web.
 # Quan sát (profile "obs"): langfuse. Bật bằng:  docker compose --profile obs up -d
 #
-#   Web UI   : http://localhost:3000   (trợ lý pháp luật lao động)
-#              http://localhost:3001   (cùng giao diện, chế độ ôn phỏng vấn — chọn theo cổng)
+#   Web UI   : http://localhost:3000
 #   API docs : http://localhost:8000/docs
 #   Langfuse : http://localhost:3002   (chỉ khi bật profile obs)
 
@@ -52,8 +51,7 @@ services:
       WATCHPACK_POLLING: "true"
     ports:
       - "3000:3000"
-      # cùng một Next dev server; frontend/lib/mode.ts đọc cổng để chọn chế độ ôn phỏng vấn
-      - "3001:3000"
+      - "3001:3000"   # xem frontend/lib/mode.ts
     volumes:
       - ./frontend:/app
       - /app/node_modules
