@@ -57,9 +57,39 @@ export function drawForceGraph(
 
   const radialMode = groupBy === "radial" || groupBy === "doc";
   // only nodes that are not fanned out around a parent take part in the simulation
-  const simNodes = radialMode
+  let simNodes = radialMode
     ? nodes.filter((n) => HUB_TYPES.has(n.type) || !parentOf.has(n.id))
     : nodes;
+
+  /* A node linked only to fanned nodes (the interview graph's topics and layers)
+     has no edge inside the simulation, so nothing holds it and it drifts alone.
+     Take it out and park it at the centre of the nodes it links instead. */
+  const anchors = new Map<string, GNode[]>();
+  if (radialMode) {
+    const inSim = new Set(simNodes.map((n) => n.id));
+    const linked = new Set<string>();
+    edges.forEach((e) => {
+      if (inSim.has(sid(e)) && inSim.has(tid(e))) { linked.add(sid(e)); linked.add(tid(e)); }
+    });
+    simNodes.forEach((n) => {
+      if (HUB_TYPES.has(n.type) || linked.has(n.id)) return;
+      const nb = edges
+        .map((e) => (sid(e) === n.id ? byId.get(tid(e)) : tid(e) === n.id ? byId.get(sid(e)) : undefined))
+        .filter((x): x is GNode => !!x);
+      if (nb.length) anchors.set(n.id, nb);
+    });
+    simNodes = simNodes.filter((n) => !anchors.has(n.id));
+  }
+  const placeAnchors = () => {
+    let i = 0;
+    anchors.forEach((nb, id) => {
+      const n = byId.get(id)!;
+      // small fixed offset so nodes sharing the same neighbours do not stack
+      const a = (i++ * 2.4) % (2 * Math.PI);
+      n.x = nb.reduce((s, k) => s + (k.x ?? CX), 0) / nb.length + 14 * Math.cos(a);
+      n.y = nb.reduce((s, k) => s + (k.y ?? CY), 0) / nb.length + 14 * Math.sin(a);
+    });
+  };
   const simIds = new Set(simNodes.map((n) => n.id));
   const simEdges = edges.filter((e) => simIds.has(sid(e)) && simIds.has(tid(e)));
 
@@ -209,7 +239,7 @@ export function drawForceGraph(
   };
   let ticks = 0;
   sim.on("tick", () => {
-    if (radialMode) layoutFans();
+    if (radialMode) { layoutFans(); placeAnchors(); }
     link.attr("d", edgePath);
     node.attr("transform", (d: GNode) => `translate(${d.x ?? 0},${d.y ?? 0})`);
     if (++ticks === 30) autoFit();

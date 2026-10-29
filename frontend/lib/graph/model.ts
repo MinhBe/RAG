@@ -5,6 +5,8 @@
 export const TYPE_COLOR: Record<string, string> = {
   document: "#8b5cf6", chapter: "#ec4899", article: "#3b82f6",
   clause: "#10b981", point: "#f59e0b",
+  // chế độ ẩn /pv: bộ câu hỏi phỏng vấn
+  group: "#ec4899", item: "#3b82f6", layer: "#8b5cf6", tag: "#10b981",
 };
 export const DOC_COLOR: Record<string, string> = {
   blld2019: "#3b82f6", blld2012: "#94a3b8", nd145_2020: "#10b981",
@@ -12,27 +14,30 @@ export const DOC_COLOR: Record<string, string> = {
 export const EDGE_COLOR: Record<string, string> = {
   contains: "#cbd5e1", sibling: "#e2e8f0", reworded: "#f59e0b",
   tightened: "#ef4444", replaces: "#8b5cf6", superseded_by: "#f59e0b",
-  references: "#06b6d4",
+  references: "#06b6d4", in_layer: "#a78bfa", tagged: "#06b6d4",
 };
 export const TYPE_LABEL: Record<string, string> = {
   document: "Văn bản", chapter: "Chương", article: "Điều",
   clause: "Khoản", point: "Điểm",
+  group: "Nhóm", item: "Câu hỏi", layer: "Lớp", tag: "Chủ đề",
 };
 export const EDGE_LABEL: Record<string, string> = {
   contains: "chứa", sibling: "kế tiếp", reworded: "sửa lời",
   tightened: "siết chặt", replaces: "thay thế", superseded_by: "thay thế",
-  references: "dẫn chiếu",
+  references: "dẫn chiếu", in_layer: "thuộc lớp", tagged: "gắn thẻ",
 };
 export const TYPE_RANK: Record<string, number> = {
   document: 0, chapter: 1, article: 2, clause: 3, point: 4,
+  group: 1, item: 2, layer: 3, tag: 4,
 };
 /* leaves stay tiny dots, like the satellites in the reference demo */
 export const NODE_R: Record<string, number> = {
   document: 20, chapter: 13, article: 4.5, clause: 2.8, point: 2.2,
+  group: 13, item: 4.5, layer: 10, tag: 3,
 };
 /* only these take part in the force simulation; everything else fans around them,
    which keeps the cluster count near the reference demo's ~15 instead of 160+ */
-export const HUB_TYPES = new Set(["document", "chapter"]);
+export const HUB_TYPES = new Set(["document", "chapter", "group"]);
 
 /* relationship map: a fixed 2-D arrangement, readable at a glance like the demo */
 export const ONTO_R = 34;
@@ -41,12 +46,14 @@ export const ONTO_EDGE_COLOR: Record<string, string> = { ...EDGE_COLOR, contains
 const ONTO_SLOT: Record<string, [number, number]> = {
   document: [100, 90], chapter: [360, 90], article: [360, 280],
   clause: [100, 280], point: [100, 490],
+  group: [100, 90], item: [360, 90], layer: [360, 280], tag: [100, 280],
 };
 const ONTO_SPARE: [number, number][] = [[360, 490], [230, 610], [580, 280]];
 /* direction each type's self-loops open toward, chosen to point into free space */
 export const ONTO_LOOP_DIR: Record<string, number> = {
   document: -Math.PI / 2, chapter: -Math.PI / 2, article: 0,
   clause: Math.PI, point: Math.PI / 2,
+  group: -Math.PI / 2, item: -Math.PI / 2, layer: 0, tag: Math.PI,
 };
 
 /* ── types ───────────────────────────────────────────────────────────────── */

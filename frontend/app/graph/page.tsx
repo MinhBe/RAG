@@ -17,6 +17,7 @@ import {
   buildView, type ColorBy, deriveOntology, type GNode, type GraphData, type GroupBy, lookupNodes,
   ontoPositions, type Panel, type Triplet,
 } from "@/lib/graph/model";
+import { loadMode, type Mode, MODE_TEXT } from "@/lib/mode";
 import { loadNumber, saveNumber, startDrag } from "@/lib/ui/drag";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -51,17 +52,20 @@ export default function GraphPage() {
   const [lookup, setLookup] = useState("");
   const [lookupType, setLookupType] = useState<string>("");
   const [sideW, setSideW] = useState(520);
+  // chế độ ẩn /pv bật từ ô chat; fetchGraph đọc thẳng loadMode() nên không phải chờ state này
+  const [mode, setMode] = useState<Mode>("law");
 
   useEffect(() => {
     const w = loadNumber("kgv_sideW");
     if (w) setSideW(w);
+    setMode(loadMode());
   }, []);
 
   /* ── fetch ──────────────────────────────────────────────────────────────── */
   const fetchGraph = useCallback(async (q: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/graph?query=${encodeURIComponent(q)}&top_k=150`);
+      const res = await fetch(`${API_BASE}/api/graph?query=${encodeURIComponent(q)}&top_k=150&mode=${loadMode()}`);
       const data = await res.json();
       setRaw({ nodes: data.nodes || [], edges: data.edges || [] });
       setHiddenNodeTypes(new Set()); setHiddenEdgeTypes(new Set());
@@ -124,7 +128,7 @@ export default function GraphPage() {
       <div className="kgv-shell">
         <div className="kgv-topbar">
           <Link href="/" className="kgv-back">← Chat</Link>
-          <span className="kgv-title">Knowledge Graph · Luật Lao động</span>
+          <span className="kgv-title">{MODE_TEXT[mode].graphTitle}</span>
           <span className="kgv-counts">
             <b>{view.nodes.length}</b>/{raw.nodes.length} nodes · <b>{view.edges.length}</b>/{raw.edges.length} edges
           </span>
