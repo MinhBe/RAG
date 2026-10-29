@@ -51,7 +51,7 @@ type GEdge = { source: any; target: any; type: string };
 type Triplet = { subject?: string; predicate?: string; object?: string };
 type OntoEdge = { subject: string; predicate: string; object: string; count: number };
 type Menu = { x: number; y: number; kind: "node" | "edge"; node?: string; edge?: OntoEdge };
-type Panel = "detail" | "filter" | "help" | null;
+type Panel = "onto" | "detail" | "filter" | "help" | null;
 
 declare global { interface Window { d3: any } }
 
@@ -89,7 +89,7 @@ export default function GraphPage() {
   const [menu,            setMenu]            = useState<Menu | null>(null);
 
   /* right-hand collapsible panels */
-  const [panel,      setPanel]      = useState<Panel>(null);
+  const [panel,      setPanel]      = useState<Panel>("onto");
   const [lookup,     setLookup]     = useState("");
   const [lookupType, setLookupType] = useState<string>("");
 
@@ -385,14 +385,14 @@ export default function GraphPage() {
   /* ── ontology panel layout: deterministic tiers, no jitter ─────────────── */
   const ontoLayout = useMemo(() => {
     const ranks = [...new Set(ontology.types.map((t) => TYPE_RANK[t] ?? 9))].sort((a, b) => a - b);
-    const W = 250, rowH = 58, padTop = 24;
+    const W = 268, rowH = 72, padTop = 24;
     const pos: Record<string, { x: number; y: number }> = {};
     ranks.forEach((r, ri) => {
       const row = ontology.types.filter((t) => (TYPE_RANK[t] ?? 9) === r);
       // a lone type sits left of centre so its self-loops have room on the right
       row.forEach((t, i) => {
         pos[t] = {
-          x: row.length === 1 ? 62 : W * ((i + 1) / (row.length + 1)),
+          x: row.length === 1 ? 90 : W * ((i + 1) / (row.length + 1)),
           y: padTop + ri * rowH,
         };
       });
@@ -558,154 +558,155 @@ export default function GraphPage() {
               </form>
             </div>
 
-            {/* ── Interactive Ontology View ─────────────────────────────── */}
-            <div className="kgv-onto-panel" onPointerDown={(e) => e.stopPropagation()}>
-              <div className="kgv-onto-head">
-                <span className="kgv-onto-title">Interactive Ontology View</span>
-                <span className="kgv-onto-hint">click = làm nổi · chuột phải = lọc / ẩn</span>
-              </div>
-
-              <svg width={ontoLayout.width} height={ontoLayout.height} className="kgv-onto-svg">
-                <defs>
-                  {Object.entries(EDGE_COLOR).map(([t, c]) => (
-                    <marker key={t} id={`oar-${t}`} markerWidth="6" markerHeight="6"
-                      refX="13" refY="3" orient="auto">
-                      <path d="M0,0 L0,6 L6,3 z" fill={c} />
-                    </marker>
-                  ))}
-                </defs>
-
-                {ontology.edges.map((oe) => {
-                  const a = ontoLayout.pos[oe.subject], b = ontoLayout.pos[oe.object];
-                  if (!a || !b) return null;
-                  const off = hiddenEdgeTypes.has(oe.predicate) ||
-                    hiddenNodeTypes.has(oe.subject) || hiddenNodeTypes.has(oe.object);
-                  const dim = ontoDim(oe.subject, oe.predicate, oe.object);
-                  const c   = EDGE_COLOR[oe.predicate] || "#94a3b8";
-                  const key = `${oe.subject}|${oe.predicate}|${oe.object}`;
-                  const cls = `kgv-onto-edge${off ? " off" : ""}${dim ? " dim" : ""}`;
-                  const tip = `${TYPE_LABEL[oe.subject] || oe.subject} —${EDGE_LABEL[oe.predicate] || oe.predicate}→ ${TYPE_LABEL[oe.object] || oe.object} (${oe.count})`;
-                  const onClick = () => { if (!off) { setHighlight({ ...oe }); setMenu(null); } };
-                  const onCtx = (ev: React.MouseEvent) => {
-                    ev.preventDefault();
-                    const r = (ev.currentTarget as SVGGElement).ownerSVGElement!.getBoundingClientRect();
-                    setMenu({ x: ev.clientX - r.left, y: ev.clientY - r.top, kind: "edge", edge: oe });
-                  };
-
-                  /* same-type relation → self loop on the right of the node */
-                  if (oe.subject === oe.object) {
-                    const loops = ontology.edges.filter((x) => x.subject === x.object && x.subject === oe.subject);
-                    const rad = 13 + loops.indexOf(oe) * 8;
-                    const d = `M ${a.x + 8} ${a.y - 9} A ${rad} ${rad} 0 1 1 ${a.x + 8} ${a.y + 9}`;
-                    return (
-                      <g key={key} className={cls} onClick={onClick} onContextMenu={onCtx}>
-                        <path d={d} fill="none" stroke={c} strokeWidth={1.4}
-                          strokeDasharray={off ? "3,3" : undefined} markerEnd={`url(#oar-${oe.predicate})`} />
-                        <path d={d} fill="none" stroke="transparent" strokeWidth={10} />
-                        <text x={a.x + rad + 13} y={a.y + 3} fontSize="9" fill={c}>
-                          {EDGE_LABEL[oe.predicate] || oe.predicate}
-                        </text>
-                        <title>{tip}</title>
-                      </g>
-                    );
-                  }
-
-                  /* several relations can join the same pair of types — bend each
-                     one aside so their labels do not sit on top of each other */
-                  const pairKey = [oe.subject, oe.object].sort().join("|");
-                  const para = ontology.edges.filter(
-                    (x) => x.subject !== x.object &&
-                           [x.subject, x.object].sort().join("|") === pairKey,
-                  );
-                  // first one runs straight with its label on the left; the rest
-                  // bend right, into the panel's free space
-                  const off2 = para.indexOf(oe) * 34;
-                  const dx = b.x - a.x, dy = b.y - a.y;
-                  const len = Math.hypot(dx, dy) || 1;
-                  const nx = -dy / len, ny = dx / len;
-                  const mx = (a.x + b.x) / 2 + nx * off2;
-                  const my = (a.y + b.y) / 2 + ny * off2;
-                  const d = `M${a.x},${a.y} Q${(a.x + b.x) / 2 + nx * off2 * 2},${(a.y + b.y) / 2 + ny * off2 * 2} ${b.x},${b.y}`;
-                  return (
-                    <g key={key} className={cls} onClick={onClick} onContextMenu={onCtx}>
-                      <path d={d} fill="none" stroke={c} strokeWidth={1.4}
-                        strokeDasharray={off ? "3,3" : undefined} markerEnd={`url(#oar-${oe.predicate})`} />
-                      <path d={d} fill="none" stroke="transparent" strokeWidth={12} />
-                      <text x={mx} y={my + 3} fontSize="9" fill={c}
-                        textAnchor={off2 > 0 ? "start" : "end"}
-                        dx={off2 > 0 ? 4 : -4}>
-                        {EDGE_LABEL[oe.predicate] || oe.predicate}
-                      </text>
-                      <title>{tip}</title>
-                    </g>
-                  );
-                })}
-
-                {ontology.types.map((t) => {
-                  const p = ontoLayout.pos[t]; if (!p) return null;
-                  const off = hiddenNodeTypes.has(t);
-                  const dim = ontoDim(t);
-                  const n = raw.nodes.filter((x) => x.type === t).length;
-                  return (
-                    <g key={t} className={`kgv-onto-node${off ? " off" : ""}${dim ? " dim" : ""}`}
-                       onClick={() => { if (!off) { setHighlight({ subject: t }); setMenu(null); } }}
-                       onContextMenu={(ev) => {
-                         ev.preventDefault();
-                         const r = (ev.currentTarget as SVGGElement).ownerSVGElement!.getBoundingClientRect();
-                         setMenu({ x: ev.clientX - r.left, y: ev.clientY - r.top, kind: "node", node: t });
-                       }}>
-                      <circle cx={p.x} cy={p.y} r={15} fill={TYPE_COLOR[t] || "#64748b"}
-                        stroke="#fff" strokeWidth={1.5} strokeDasharray={off ? "3,2" : undefined} />
-                      <text x={p.x} y={p.y} dy="0.35em" textAnchor="middle" fontSize="9"
-                        fontWeight="600" fill="#fff" pointerEvents="none">
-                        {TYPE_LABEL[t] || t}
-                      </text>
-                      <text x={p.x} y={p.y + 26} textAnchor="middle" fontSize="8"
-                        fill="var(--muted-foreground,#94a3b8)" pointerEvents="none">{n}</text>
-                      <title>{`${TYPE_LABEL[t] || t} — ${n} node`}</title>
-                    </g>
-                  );
-                })}
-              </svg>
-
-              {menu && (
-                <div className="kgv-ctxmenu" style={{ left: menu.x, top: menu.y + 28 }}
-                     onPointerDown={(e) => e.stopPropagation()}>
-                  {menu.kind === "edge" && menu.edge && (() => {
-                    const oe = menu.edge!;
-                    const isFiltered = tripletKey(filterTriplet) === tripletKey(oe);
-                    const blocked = hiddenEdgeTypes.has(oe.predicate) ||
-                      hiddenNodeTypes.has(oe.subject) || hiddenNodeTypes.has(oe.object);
-                    return (
-                      <>
-                        <button disabled={blocked}
-                          onClick={() => { setFilterTriplet(isFiltered ? null : { ...oe }); setHighlight(null); setMenu(null); }}>
-                          {isFiltered ? "Bỏ lọc triplet" : "Lọc triplet này"}
-                        </button>
-                        <button onClick={() => { toggleEdgeType(oe.predicate); setMenu(null); }}>
-                          {hiddenEdgeTypes.has(oe.predicate) ? "Hiện" : "Ẩn"} quan hệ “{EDGE_LABEL[oe.predicate] || oe.predicate}”
-                        </button>
-                      </>
-                    );
-                  })()}
-                  {menu.kind === "node" && menu.node && (
-                    <>
-                      <button onClick={() => { setFilterTriplet({ subject: menu.node }); setHighlight(null); setMenu(null); }}>
-                        Lọc chỉ “{TYPE_LABEL[menu.node] || menu.node}”
-                      </button>
-                      <button onClick={() => { toggleNodeType(menu.node!); setMenu(null); }}>
-                        {hiddenNodeTypes.has(menu.node) ? "Hiện" : "Ẩn"} type “{TYPE_LABEL[menu.node] || menu.node}”
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
 
           {/* ── collapsible right panels ───────────────────────────────── */}
           {panel && (
             <div className="kgv-side">
+              {panel === "onto" && (
+              <div className="kgv-onto-block" onPointerDown={(e) => e.stopPropagation()}>
+                <div className="kgv-onto-head">
+                  <span className="kgv-onto-title">Bản đồ mối quan hệ</span>
+                  <span className="kgv-onto-hint">click = làm nổi · chuột phải = lọc / ẩn</span>
+                </div>
+  
+                <svg width={ontoLayout.width} height={ontoLayout.height} className="kgv-onto-svg">
+                  <defs>
+                    {Object.entries(EDGE_COLOR).map(([t, c]) => (
+                      <marker key={t} id={`oar-${t}`} markerWidth="6" markerHeight="6"
+                        refX="18" refY="3" orient="auto">
+                        <path d="M0,0 L0,6 L6,3 z" fill={c} />
+                      </marker>
+                    ))}
+                  </defs>
+  
+                  {ontology.edges.map((oe) => {
+                    const a = ontoLayout.pos[oe.subject], b = ontoLayout.pos[oe.object];
+                    if (!a || !b) return null;
+                    const off = hiddenEdgeTypes.has(oe.predicate) ||
+                      hiddenNodeTypes.has(oe.subject) || hiddenNodeTypes.has(oe.object);
+                    const dim = ontoDim(oe.subject, oe.predicate, oe.object);
+                    const c   = EDGE_COLOR[oe.predicate] || "#94a3b8";
+                    const key = `${oe.subject}|${oe.predicate}|${oe.object}`;
+                    const cls = `kgv-onto-edge${off ? " off" : ""}${dim ? " dim" : ""}`;
+                    const tip = `${TYPE_LABEL[oe.subject] || oe.subject} —${EDGE_LABEL[oe.predicate] || oe.predicate}→ ${TYPE_LABEL[oe.object] || oe.object} (${oe.count})`;
+                    const onClick = () => { if (!off) { setHighlight({ ...oe }); setMenu(null); } };
+                    const onCtx = (ev: React.MouseEvent) => {
+                      ev.preventDefault();
+                      const r = (ev.currentTarget as Element).closest(".kgv-onto-block")!.getBoundingClientRect();
+                      setMenu({ x: ev.clientX - r.left, y: ev.clientY - r.top, kind: "edge", edge: oe });
+                    };
+  
+                    /* same-type relation → self loop on the right of the node */
+                    if (oe.subject === oe.object) {
+                      const loops = ontology.edges.filter((x) => x.subject === x.object && x.subject === oe.subject);
+                      const rad = 16 + loops.indexOf(oe) * 9;
+                      const d = `M ${a.x + 13} ${a.y - 14} A ${rad} ${rad} 0 1 1 ${a.x + 13} ${a.y + 14}`;
+                      return (
+                        <g key={key} className={cls} onClick={onClick} onContextMenu={onCtx}>
+                          <path d={d} fill="none" stroke={c} strokeWidth={1.4}
+                            strokeDasharray={off ? "3,3" : undefined} markerEnd={`url(#oar-${oe.predicate})`} />
+                          <path d={d} fill="none" stroke="transparent" strokeWidth={10} />
+                          <text x={a.x + rad * 2 + 16} y={a.y + 3 + loops.indexOf(oe) * 11} fontSize="10" fill={c}>
+                            {EDGE_LABEL[oe.predicate] || oe.predicate}
+                          </text>
+                          <title>{tip}</title>
+                        </g>
+                      );
+                    }
+  
+                    /* several relations can join the same pair of types — bend each
+                       one aside so their labels do not sit on top of each other */
+                    const pairKey = [oe.subject, oe.object].sort().join("|");
+                    const para = ontology.edges.filter(
+                      (x) => x.subject !== x.object &&
+                             [x.subject, x.object].sort().join("|") === pairKey,
+                    );
+                    // first one runs straight with its label on the left; the rest
+                    // bend right, into the panel's free space
+                    const off2 = para.indexOf(oe) * 34;
+                    const dx = b.x - a.x, dy = b.y - a.y;
+                    const len = Math.hypot(dx, dy) || 1;
+                    const nx = -dy / len, ny = dx / len;
+                    const mx = (a.x + b.x) / 2 + nx * off2;
+                    const my = (a.y + b.y) / 2 + ny * off2;
+                    const d = `M${a.x},${a.y} Q${(a.x + b.x) / 2 + nx * off2 * 2},${(a.y + b.y) / 2 + ny * off2 * 2} ${b.x},${b.y}`;
+                    return (
+                      <g key={key} className={cls} onClick={onClick} onContextMenu={onCtx}>
+                        <path d={d} fill="none" stroke={c} strokeWidth={1.4}
+                          strokeDasharray={off ? "3,3" : undefined} markerEnd={`url(#oar-${oe.predicate})`} />
+                        <path d={d} fill="none" stroke="transparent" strokeWidth={12} />
+                        <text x={mx} y={my + 3} fontSize="9" fill={c}
+                          textAnchor={off2 > 0 ? "start" : "end"}
+                          dx={off2 > 0 ? 4 : -4}>
+                          {EDGE_LABEL[oe.predicate] || oe.predicate}
+                        </text>
+                        <title>{tip}</title>
+                      </g>
+                    );
+                  })}
+  
+                  {ontology.types.map((t) => {
+                    const p = ontoLayout.pos[t]; if (!p) return null;
+                    const off = hiddenNodeTypes.has(t);
+                    const dim = ontoDim(t);
+                    const n = raw.nodes.filter((x) => x.type === t).length;
+                    return (
+                      <g key={t} className={`kgv-onto-node${off ? " off" : ""}${dim ? " dim" : ""}`}
+                         onClick={() => { if (!off) { setHighlight({ subject: t }); setMenu(null); } }}
+                         onContextMenu={(ev) => {
+                           ev.preventDefault();
+                           const r = (ev.currentTarget as Element).closest(".kgv-onto-block")!.getBoundingClientRect();
+                           setMenu({ x: ev.clientX - r.left, y: ev.clientY - r.top, kind: "node", node: t });
+                         }}>
+                        <circle cx={p.x} cy={p.y} r={20} fill={TYPE_COLOR[t] || "#64748b"}
+                          stroke="#fff" strokeWidth={1.5} strokeDasharray={off ? "3,2" : undefined} />
+                        <text x={p.x} y={p.y} dy="0.35em" textAnchor="middle" fontSize="10"
+                          fontWeight="600" fill="#fff" pointerEvents="none">
+                          {TYPE_LABEL[t] || t}
+                        </text>
+                        <text x={p.x} y={p.y + 32} textAnchor="middle" fontSize="9"
+                          fill="var(--muted-foreground,#94a3b8)" pointerEvents="none">{n}</text>
+                        <title>{`${TYPE_LABEL[t] || t} — ${n} node`}</title>
+                      </g>
+                    );
+                  })}
+                </svg>
+  
+                {menu && (
+                  <div className="kgv-ctxmenu" style={{ left: Math.min(menu.x, 120), top: menu.y + 6 }}
+                       onPointerDown={(e) => e.stopPropagation()}>
+                    {menu.kind === "edge" && menu.edge && (() => {
+                      const oe = menu.edge!;
+                      const isFiltered = tripletKey(filterTriplet) === tripletKey(oe);
+                      const blocked = hiddenEdgeTypes.has(oe.predicate) ||
+                        hiddenNodeTypes.has(oe.subject) || hiddenNodeTypes.has(oe.object);
+                      return (
+                        <>
+                          <button disabled={blocked}
+                            onClick={() => { setFilterTriplet(isFiltered ? null : { ...oe }); setHighlight(null); setMenu(null); }}>
+                            {isFiltered ? "Bỏ lọc triplet" : "Lọc triplet này"}
+                          </button>
+                          <button onClick={() => { toggleEdgeType(oe.predicate); setMenu(null); }}>
+                            {hiddenEdgeTypes.has(oe.predicate) ? "Hiện" : "Ẩn"} quan hệ “{EDGE_LABEL[oe.predicate] || oe.predicate}”
+                          </button>
+                        </>
+                      );
+                    })()}
+                    {menu.kind === "node" && menu.node && (
+                      <>
+                        <button onClick={() => { setFilterTriplet({ subject: menu.node }); setHighlight(null); setMenu(null); }}>
+                          Lọc chỉ “{TYPE_LABEL[menu.node] || menu.node}”
+                        </button>
+                        <button onClick={() => { toggleNodeType(menu.node!); setMenu(null); }}>
+                          {hiddenNodeTypes.has(menu.node) ? "Hiện" : "Ẩn"} type “{TYPE_LABEL[menu.node] || menu.node}”
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+              )}
               {panel === "detail" && (
                 selected ? (
                   <>
@@ -799,6 +800,7 @@ export default function GraphPage() {
 
           {/* ── vertical tab strip ─────────────────────────────────────── */}
           <div className="kgv-tabs">
+            <button className={panel === "onto" ? "on" : ""} onClick={() => togglePanel("onto")}>Bản đồ mối quan hệ</button>
             <button className={panel === "detail" ? "on" : ""} onClick={() => togglePanel("detail")}>Chi tiết</button>
             <button className={panel === "filter" ? "on" : ""} onClick={() => togglePanel("filter")}>Bộ lọc</button>
             <button className={panel === "help"   ? "on" : ""} onClick={() => togglePanel("help")}>Tương tác</button>

@@ -913,3 +913,15 @@ html, body {
 .kgv-ctx-focus-btn.active {
   background: var(--primary); color: var(--primary-foreground); border-color: var(--primary);
 }
+
+/* ── Bản đồ mối quan hệ, docked inside the right panel ──────────────────── */
+.kgv-onto-block { position: relative; user-select: none; }
+.kgv-onto-block .kgv-onto-head { margin-bottom: 8px; gap: 3px; }
+.kgv-onto-block .kgv-onto-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted-foreground);
+}
+.kgv-onto-block .kgv-onto-svg {
+  display: block; overflow: visible; width: 100%;
+  background: var(--muted); border-radius: var(--radius); padding: 6px 0;
+}
