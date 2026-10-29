@@ -7,6 +7,7 @@ import threading
 import uuid
 from datetime import datetime, UTC
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -21,6 +22,7 @@ from app.graph.builder import build_graph
 from app.llm.router import get_router
 from app.pv.library import LAYERS, load_library
 from app.pv.chat import run_pv_chat
+from app.pv.graph import build_pv_graph
 from app.sse import sse
 
 router = APIRouter()
@@ -237,6 +239,7 @@ class ChatRequest(BaseModel):
     message: str
     thread_id: str | None = None
     history: list[ChatMessage] = []
+    mode: Literal["law", "pv"] = "law"  # "pv": chế độ ẩn, nguồn là bộ câu hỏi phỏng vấn
 
 
 @router.post("/api/chat")
@@ -247,7 +250,7 @@ def chat(req: ChatRequest):
         thread_id = req.thread_id or uuid.uuid4().hex
         yield sse("start", {"thread_id": thread_id})
         try:
-            for event, data in run_chat(req.message, history):
+            for event, data in run_chat(req.message, history, req.mode):
                 yield sse(event, data)
         except Exception as exc:  # noqa: BLE001
             yield sse("error", {"message": str(exc)})
@@ -268,8 +271,13 @@ def list_threads(db: Session = Depends(get_db)):
 
 # ---------- Knowledge Graph ----------
 @router.get("/api/graph")
-def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)):
-    """Knowledge graph quanh kết quả tra cứu. Cách dựng: app/graph/builder.py."""
+def graph_route(
+    query: str = "", top_k: int = 150, mode: Literal["law", "pv"] = "law", db: Session = Depends(get_db),
+):
+    """Knowledge graph quanh kết quả tra cứu. Cách dựng: app/graph/builder.py,
+    chế độ ẩn pv: app/pv/graph.py."""
+    if mode == "pv":
+        return build_pv_graph(db, query, top_k)
     return build_graph(db, query, top_k)
 
 

@@ -35,7 +35,10 @@ def _data_loaded() -> bool:
         db.close()
 
 
-def run_chat(message: str, history: list[dict[str, str]] | None = None) -> Iterator[tuple[str, object]]:
+def run_chat(
+    message: str, history: list[dict[str, str]] | None = None, mode: str = "law",
+) -> Iterator[tuple[str, object]]:
+    """mode="pv": chế độ ẩn, trả lời từ bộ câu hỏi phỏng vấn thay vì kho luật."""
     history = history or []
     router = get_router()
 
@@ -56,6 +59,12 @@ def run_chat(message: str, history: list[dict[str, str]] | None = None) -> Itera
         logger.warning("Chặn câu chèn lệnh: {!r}", message[:200])
         yield ("token", {"text": REDIRECT})
         yield ("done", {"category": "injection"})
+        return
+
+    if mode == "pv":
+        from app.pv.qa import answer_pv
+
+        yield from answer_pv(message, history)
         return
 
     if _data_loaded():
