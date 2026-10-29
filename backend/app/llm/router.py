@@ -51,6 +51,8 @@ _DAHL_MIN_TOKENS = 8192
 _POOL = ThreadPoolExecutor(max_workers=24, thread_name_prefix="llm-race")
 
 _THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL)
+# Chữ Hán / kana / Hangul: model nhỏ đôi khi trả lời bằng tiếng Trung dù prompt tiếng Việt
+_CJK = re.compile(r"[぀-ヿ㐀-䶿一-鿿가-힯＀-￯]")
 
 
 @dataclass
@@ -274,6 +276,9 @@ class LLMRouter:
             text = strip_think(resp.choices[0].message.content or "")
             if not text:
                 raise LLMError("câu trả lời rỗng (hết token khi đang nghĩ?)")
+            if _CJK.search(text):
+                # mọi câu trả lời của ứng dụng đều phải là tiếng Việt: để model khác thắng
+                raise LLMError("trả lời không phải tiếng Việt (có chữ Hán/kana/Hangul)")
             return LLMResult(
                 text=text, provider="dahl", model=model, data=parse(text) if parse else None
             )

@@ -131,3 +131,23 @@ def test_backup_is_not_called_when_dahl_answers_in_time(hedged_router, monkeypat
     assert router.chat([{"role": "user", "content": "x"}]).provider == "dahl"
     time.sleep(0.4)  # quá hạn chờ của dự phòng: nó phải đã tự dừng
     assert backup_calls == []
+
+
+def test_dahl_answer_in_chinese_does_not_win(monkeypatch):
+    """Một model trả lời tiếng Trung (đã gặp thật ở bước đề xuất câu hỏi) phải thua."""
+    class Resp:
+        def __init__(self, text):
+            self.choices = [type("C", (), {"message": type("M", (), {"content": text})()})()]
+
+    class Client:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kw):
+                    return Resp('{"suggested": "在用人单位合并的情况下，劳动者如何主张权利？"}')
+
+    router = r.LLMRouter()
+    router._dahl_keys = ["k"]
+    monkeypatch.setattr(router, "_openai_client", lambda *a: Client)
+    with pytest.raises(r.LLMError, match="tiếng Việt"):
+        router._call_dahl("m", [], 0.2, None, r.parse_json, threading.Event())
