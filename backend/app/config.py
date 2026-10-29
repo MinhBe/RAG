@@ -49,7 +49,7 @@ class Settings(BaseSettings):
 
     # Observability
     langfuse_enabled: bool = False
-    langfuse_host: str = "http://localhost:3001"
+    langfuse_host: str = "http://localhost:3002"
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
 

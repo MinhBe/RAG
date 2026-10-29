@@ -84,7 +84,7 @@ docker compose up -d --build
 
 - **Giao diện**: http://localhost:3000
 - **API + Swagger**: http://localhost:8000/docs
-- **Quan sát (optional)**: `docker compose --profile obs up -d` → http://localhost:3001
+- **Quan sát (optional)**: `docker compose --profile obs up -d` → http://localhost:3002
 
 Dừng: `docker compose down` (thêm `-v` nếu muốn xóa cả dữ liệu DB).
 

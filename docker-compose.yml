@@ -2,9 +2,10 @@
 # Core (mặc định): postgres (pgvector) + api + web.
 # Quan sát (profile "obs"): langfuse. Bật bằng:  docker compose --profile obs up -d
 #
-#   Web UI   : http://localhost:3000
+#   Web UI   : http://localhost:3000   (trợ lý pháp luật lao động)
+#              http://localhost:3001   (cùng giao diện, chế độ ôn phỏng vấn — chọn theo cổng)
 #   API docs : http://localhost:8000/docs
-#   Langfuse : http://localhost:3001   (chỉ khi bật profile obs)
+#   Langfuse : http://localhost:3002   (chỉ khi bật profile obs)
 
 services:
   postgres:
@@ -51,6 +52,8 @@ services:
       WATCHPACK_POLLING: "true"
     ports:
       - "3000:3000"
+      # cùng một Next dev server; frontend/lib/mode.ts đọc cổng để chọn chế độ ôn phỏng vấn
+      - "3001:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -65,12 +68,12 @@ services:
     profiles: ["obs"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-lawvn}:${POSTGRES_PASSWORD:-lawvn-dev}@postgres:5432/langfuse
-      NEXTAUTH_URL: http://localhost:3001
+      NEXTAUTH_URL: http://localhost:3002
       NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-change-me-dev-secret}
       SALT: ${LANGFUSE_SALT:-change-me-dev-salt}
       TELEMETRY_ENABLED: "false"
     ports:
-      - "3001:3000"
+      - "3002:3000"
     depends_on:
       postgres:
         condition: service_healthy
