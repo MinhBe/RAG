@@ -59,6 +59,30 @@ def test_rendered_text_has_the_nd30_skeleton():
     assert text.index("CỘNG HÒA") < text.index("QUYẾT ĐỊNH")
 
 
+@pytest.mark.parametrize(
+    "recipients",
+    [
+        ["Như trên", "Lưu: VT."],        # mặc định: dòng cuối người dùng đã gõ dấu chấm
+        ["Như trên;", "Phòng KT", "Lưu: VT"],
+    ],
+)
+def test_recipients_end_with_semicolon_and_the_last_with_period(recipients):
+    text = render_text(replace(VALID, recipients=recipients))
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip().startswith("- ")]
+    assert lines[-1].endswith("VT.") and not lines[-1].endswith(".;")
+    assert all(ln.endswith(";") and not ln.endswith(";;") for ln in lines[:-1])
+
+
+def test_docx_recipients_match_text():
+    from io import BytesIO
+
+    from docx import Document
+
+    doc = Document(BytesIO(render_docx(VALID)))
+    lines = [p.text for p in doc.paragraphs if p.text.startswith("- ")]
+    assert lines == ["- Như trên;", "- Lưu: VT."]
+
+
 def test_docx_is_a_real_office_file():
     data = render_docx(VALID)
     assert data[:2] == b"PK"          # .docx là file zip

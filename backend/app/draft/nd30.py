@@ -45,6 +45,12 @@ def _today_vn() -> str:
     return f"ngày {d.day:02d} tháng {d.month:02d} năm {d.year}"
 
 
+def _recipient_lines(recipients: list[str]) -> list[str]:
+    """Theo NĐ30: mỗi nơi nhận kết thúc bằng ";", riêng dòng cuối bằng "."."""
+    items = [r.strip().rstrip(";.").strip() for r in recipients if r.strip()]
+    return [f"- {r}{'.' if i == len(items) - 1 else ';'}" for i, r in enumerate(items)]
+
+
 def format_check(d: DraftInput) -> list[str]:
     """Kiểm tra thể thức tối thiểu theo NĐ30. Trả list cảnh báo."""
     issues = []
@@ -94,8 +100,7 @@ def render_text(d: DraftInput) -> str:
     L.append(d.body.strip())
     L.append("")
     L.append(f"{'Nơi nhận:':<40}{d.signer_title}")
-    for r in d.recipients:
-        L.append(f"- {r};")
+    L.extend(_recipient_lines(d.recipients))
     L.append("")
     L.append(f"{'':<40}{d.signer_name}")
     return "\n".join(L)
@@ -154,8 +159,8 @@ def render_docx(d: DraftInput) -> bytes:
 
     # Nơi nhận + chữ ký (hai cột rút gọn)
     p("Nơi nhận:", bold=True, italic=True)
-    for r in d.recipients:
-        p(f"- {r};")
+    for line in _recipient_lines(d.recipients):
+        p(line)
     p("")
     p(d.signer_title, align=center, bold=True)
     p("")
