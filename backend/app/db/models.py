@@ -87,6 +87,20 @@ class NodeSupersession(Base):
     )
 
 
+class NodeReference(Base):
+    """Quan hệ REFERENCES: node dẫn chiếu tới node khác ("khoản 2 Điều 35")."""
+
+    __tablename__ = "node_reference"
+
+    from_id: Mapped[str] = mapped_column(
+        ForeignKey("legal_node.node_id", ondelete="CASCADE"), primary_key=True
+    )
+    to_id: Mapped[str] = mapped_column(
+        ForeignKey("legal_node.node_id", ondelete="CASCADE"), primary_key=True
+    )
+    ref_text: Mapped[str | None] = mapped_column(Text)  # đoạn trích đã khớp
+
+
 class DocumentRelation(Base):
     """Quan hệ cấp văn bản: AMENDS / REPLACES / GUIDES."""
 

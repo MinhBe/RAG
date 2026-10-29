@@ -17,6 +17,7 @@ const DOC_COLOR: Record<string, string> = {
 const EDGE_COLOR: Record<string, string> = {
   contains: "#cbd5e1", sibling: "#e2e8f0", reworded: "#f59e0b",
   tightened: "#ef4444", replaces: "#8b5cf6", superseded_by: "#f59e0b",
+  references: "#06b6d4",
 };
 const TYPE_LABEL: Record<string, string> = {
   document: "Văn bản", chapter: "Chương", article: "Điều",
@@ -25,6 +26,7 @@ const TYPE_LABEL: Record<string, string> = {
 const EDGE_LABEL: Record<string, string> = {
   contains: "chứa", sibling: "kế tiếp", reworded: "sửa lời",
   tightened: "siết chặt", replaces: "thay thế", superseded_by: "thay thế",
+  references: "dẫn chiếu",
 };
 const TYPE_RANK: Record<string, number> = {
   document: 0, chapter: 1, article: 2, clause: 3, point: 4,
@@ -608,13 +610,30 @@ export default function GraphPage() {
                     );
                   }
 
-                  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+                  /* several relations can join the same pair of types — bend each
+                     one aside so their labels do not sit on top of each other */
+                  const pairKey = [oe.subject, oe.object].sort().join("|");
+                  const para = ontology.edges.filter(
+                    (x) => x.subject !== x.object &&
+                           [x.subject, x.object].sort().join("|") === pairKey,
+                  );
+                  // first one runs straight with its label on the left; the rest
+                  // bend right, into the panel's free space
+                  const off2 = para.indexOf(oe) * 34;
+                  const dx = b.x - a.x, dy = b.y - a.y;
+                  const len = Math.hypot(dx, dy) || 1;
+                  const nx = -dy / len, ny = dx / len;
+                  const mx = (a.x + b.x) / 2 + nx * off2;
+                  const my = (a.y + b.y) / 2 + ny * off2;
+                  const d = `M${a.x},${a.y} Q${(a.x + b.x) / 2 + nx * off2 * 2},${(a.y + b.y) / 2 + ny * off2 * 2} ${b.x},${b.y}`;
                   return (
                     <g key={key} className={cls} onClick={onClick} onContextMenu={onCtx}>
-                      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={c} strokeWidth={1.4}
+                      <path d={d} fill="none" stroke={c} strokeWidth={1.4}
                         strokeDasharray={off ? "3,3" : undefined} markerEnd={`url(#oar-${oe.predicate})`} />
-                      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth={12} />
-                      <text x={mx - 7} y={my + 3} fontSize="9" fill={c} textAnchor="end">
+                      <path d={d} fill="none" stroke="transparent" strokeWidth={12} />
+                      <text x={mx} y={my + 3} fontSize="9" fill={c}
+                        textAnchor={off2 > 0 ? "start" : "end"}
+                        dx={off2 > 0 ? 4 : -4}>
                         {EDGE_LABEL[oe.predicate] || oe.predicate}
                       </text>
                       <title>{tip}</title>

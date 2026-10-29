@@ -274,7 +274,7 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
     """
     from app.rag.search import search_nodes, _display
     from app.db.models import (
-        LegalNode, NodeSupersession, LegalDocument, DocumentRelation,
+        LegalNode, NodeSupersession, LegalDocument, DocumentRelation, NodeReference,
     )
     from sqlalchemy import select as sa_select
     from sqlalchemy import text as sa_text
@@ -381,6 +381,25 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
                     nodes.append(_node_dict(obj, ghost=True))
                     id_set.add(nid)
 
+    # ── 3b2. Đích của dẫn chiếu ──────────────────────────────────────────────
+    # Dẫn chiếu là cạnh duy nhất cắt ngang cây, nên gần như luôn trỏ ra ngoài
+    # lát cắt top_k. Không kéo vào thì mạng lưới coi như vô hình.
+    ref_pairs = db.execute(
+        sa_select(NodeReference.from_id, NodeReference.to_id).where(
+            NodeReference.from_id.in_(list(id_set)) |
+            NodeReference.to_id.in_(list(id_set))
+        )
+    ).all()
+    ref_missing = {
+        nid for pair in ref_pairs for nid in pair if nid not in id_set
+    }
+    if ref_missing:
+        for obj in db.execute(
+            sa_select(LegalNode).where(LegalNode.node_id.in_(list(ref_missing)))
+        ).scalars().all():
+            nodes.append(_node_dict(obj, ghost=True))
+            id_set.add(obj.node_id)
+
     # ── 3c. Khép kín cây cha: mọi node đều phải lần được về văn bản ──────────
     for _ in range(4):   # Điểm → Khoản → Điều, thừa một vòng cho chắc
         missing = db.execute(
@@ -421,6 +440,15 @@ def graph_route(query: str = "", top_k: int = 150, db: Session = Depends(get_db)
     # 4b. Supersession — cạnh mang đúng loại thay đổi (reworded/tightened/…)
     for old_id, new_id, change_type in sup_rows:
         add_edge(old_id, new_id, change_type or "superseded_by")
+
+    # 4b2. Dẫn chiếu ("khoản 2 Điều 35") — cạnh duy nhất cắt ngang cây phân cấp
+    ref_rows = db.execute(
+        sa_select(NodeReference.from_id, NodeReference.to_id)
+        .where(NodeReference.from_id.in_(all_ids))
+        .where(NodeReference.to_id.in_(all_ids))
+    ).all()
+    for f_id, t_id in ref_rows:
+        add_edge(f_id, t_id, "references")
 
     # 4c. Siblings: clauses of same article not already connected via parent
     art_children: dict[str, list[str]] = {}
