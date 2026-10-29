@@ -326,6 +326,9 @@ def pv_chat(req: PvChatRequest):
 
 
 # ---------- Human-in-loop: Escalation (câu hỏi không đủ căn cứ) ----------
+# Vòng đầy đủ: người dùng gửi (pending) -> chuyên gia duyệt trên /dashboard, viết câu
+# trả lời hoặc lý do từ chối (approved / denied) -> thẻ trong chat hỏi lại theo id và
+# hiện kết quả.
 _ESC_FILE = Path("/app/data/escalations.json")
 _esc_lock = threading.Lock()
 
@@ -350,7 +353,8 @@ class EscalateRequest(BaseModel):
 
 
 class EscalateUpdate(BaseModel):
-    status: str  # "approved" | "denied"
+    status: Literal["approved", "denied"]
+    reply: str = ""  # câu trả lời của chuyên gia, hoặc lý do từ chối
 
 
 @router.post("/api/escalate")
@@ -377,17 +381,31 @@ def list_escalations():
         return _load_esc()
 
 
+@router.get("/api/escalations/{esc_id}")
+def get_escalation(esc_id: str):
+    """Một yêu cầu: thẻ trong chat hỏi lại để biết chuyên gia đã xử lý chưa."""
+    with _esc_lock:
+        for r in _load_esc():
+            if r["id"] == esc_id:
+                return r
+    raise HTTPException(status_code=404, detail="Không tìm thấy escalation")
+
+
 @router.patch("/api/escalations/{esc_id}")
 def update_escalation(esc_id: str, req: EscalateUpdate):
-    """Cập nhật trạng thái: approved / denied."""
+    """Chuyên gia duyệt (kèm câu trả lời) hoặc từ chối (kèm lý do)."""
+    reply = req.reply.strip()
+    if req.status == "approved" and not reply:
+        raise HTTPException(status_code=422, detail="Duyệt thì phải có câu trả lời của chuyên gia")
     with _esc_lock:
         rows = _load_esc()
         for r in rows:
             if r["id"] == esc_id:
                 r["status"] = req.status
+                r["reply"] = reply
                 r["resolved_at"] = datetime.now(UTC).isoformat()
                 break
         else:
             raise HTTPException(status_code=404, detail="Không tìm thấy escalation")
         _save_esc(rows)
-    return {"id": esc_id, "status": req.status}
+    return r
