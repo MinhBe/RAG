@@ -121,12 +121,13 @@ export function useChat() {
     setBusy(true);
 
     const history = messages.map((m) => ({ role: m.role === "ai" ? "assistant" : "user", content: m.content }));
-    const base: Msg[] = [
-      ...messages,
+    // append to the latest state, not this render's snapshot: a patch made just
+    // before sending (suggest_used on "Dùng câu này") would otherwise be lost
+    setMessages((prev) => [
+      ...prev,
       { role: "user", content: q },
       { role: "ai", content: "", steps_log: [] },
-    ];
-    setMessages(base);
+    ]);
     scrollDown();
 
     // Cập nhật BẤT BIẾN: luôn tạo object mới, không mutate.
