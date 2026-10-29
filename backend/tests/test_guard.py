@@ -132,6 +132,7 @@ def _verdict(cat, suggested=""):
 def test_off_topic_and_injection_get_the_gentle_redirect(monkeypatch, tmp_path, cat):
     events, _ = _run_qa(monkeypatch, tmp_path, _verdict(cat))
     assert ("token", {"text": guard.REDIRECT}) in events
+    assert events[-1][1]["escalate"] is False   # lạc đề / chèn lệnh: không mời chuyên gia
     assert not any(e == "citation" for e, _ in events)
 
 
@@ -140,6 +141,7 @@ def test_out_of_corpus_is_recorded_and_announced(monkeypatch, tmp_path):
     tokens = "".join(d["text"] for e, d in events if e == "token")
     assert "đã ghi nhận" in tokens and "Nghị định 145/2020" in tokens
     assert "câu hỏi" in log.read_text(encoding="utf-8")
+    assert events[-1] == ("done", {"category": guard.OUT_OF_CORPUS, "escalate": True})
 
 
 def test_unclear_wording_suggests_a_legal_question(monkeypatch, tmp_path):

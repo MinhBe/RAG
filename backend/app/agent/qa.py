@@ -97,7 +97,8 @@ def _not_legal(message: str, verdict: dict) -> Iterator[tuple[str, object]]:
         yield ("suggest_rewrite", {
             "original": message, "suggested": verdict["suggested"], "reason": verdict["reason"],
         })
-    yield ("done", {"category": cat})
+    # câu ngoài kho vẫn là câu hỏi lao động thật: mời chuyển chuyên gia như câu từ chối
+    yield ("done", {"category": cat, "escalate": cat == guard.OUT_OF_CORPUS})
 
 
 def _answer_messages(hits: list[dict], convo: str, message: str) -> list[dict[str, str]]:

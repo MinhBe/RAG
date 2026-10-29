@@ -158,7 +158,8 @@ export function useChat(mode: Mode = "law") {
         else if (event === "error") update((ai) => ({ ...ai, content: ai.content + `\n\n⚠️ ${data.message}` }));
         else if (event === "done") {
           update((ai) => {
-            const isRefusal = ai.content.trim().startsWith(REFUSAL.slice(0, 20));
+            // escalate: backend asks for the expert-approval card (questions outside the corpus)
+            const isRefusal = ai.content.trim().startsWith(REFUSAL.slice(0, 20)) || !!data?.escalate;
             return {
               ...ai,
               step: undefined,
