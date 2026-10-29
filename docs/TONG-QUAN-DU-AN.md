@@ -80,7 +80,7 @@ Quyết định kiến trúc: **bỏ Neo4j**, lưu quan hệ sửa đổi trong 
 | `rag/` | `text.py` (tách từ VN), `embeddings.py` (vie-v2 / hashing), `search.py` (hybrid + `search_precedents`) |
 | `llm/router.py` | LLMRouter: chọn model theo task, retry, ép JSON, streaming |
 | `amend/` | `diff.py` (ghép cặp + phân loại thay đổi, thuần Python), `store.py` (ghi Postgres, `law_as_of`, `node_history`) |
-| `agent/` | `pipeline.py` (chọn luồng chat), `qa.py` (hỏi đáp có trích dẫn), `precedent.py` (tổng hợp án lệ) |
+| `agent/` | `pipeline.py` (chọn luồng chat), `guard.py` (chặn chèn lệnh bằng mẫu + phân loại câu hỏi: hỏi luật / dùng từ đời thường / ngoài kho / lạc đề / chèn lệnh), `qa.py` (hỏi đáp có trích dẫn), `precedent.py` (tổng hợp án lệ) |
 | `draft/nd30.py` | Soạn văn bản hành chính NĐ30 + kiểm tra thể thức + xuất DOCX |
 | `report/multi_doc.py` | Báo cáo nhiều văn bản |
 | `graph/builder.py` | Dựng knowledge graph cho `/api/graph`: gom node, rồi cạnh, tầng Chương và Văn bản |

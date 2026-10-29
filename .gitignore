@@ -36,3 +36,7 @@ Thumbs.db
 # Docker volumes (local bind mounts if any)
 pgdata/
 .neon
+
+# Dữ liệu sinh lúc chạy
+data/escalations.json
+data/out_of_scope.jsonl
