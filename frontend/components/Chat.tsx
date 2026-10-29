@@ -4,6 +4,7 @@
    ở lib/chat/useChat.ts. */
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import Composer from "@/components/chat/Composer";
 import { IconGraph, IconMenu, IconMoon, IconSun } from "@/components/chat/icons";
@@ -17,8 +18,14 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // every accepted question clears the composer, whichever button sent it
-  const ask = (q: string) => { if (chat.send(q)) setInput(""); };
+  const router = useRouter();
+
+  // every accepted question clears the composer, whichever button sent it;
+  // "/pv" is not a question: it opens the hidden interview-practice page
+  const ask = (q: string) => {
+    if (q.trim().toLowerCase() === "/pv") { setInput(""); router.push("/pv"); return; }
+    if (chat.send(q)) setInput("");
+  };
 
   return (
     <div className="shell">
