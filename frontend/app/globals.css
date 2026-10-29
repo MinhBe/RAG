@@ -862,3 +862,62 @@ html, body {
 }
 .kgv-side-resize:hover { background: var(--primary); opacity: 0.35; }
 
+
+/* ---------- Trang /pv: luyện phỏng vấn ---------- */
+.pv-shell { min-height: 100vh; background: var(--app-bg); color: var(--foreground); }
+.pv-count { font-size: 12px; color: var(--muted-foreground); }
+.pv-body { max-width: 920px; margin: 0 auto; padding: 16px; }
+.pv-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.pv-search {
+  flex: 1 1 240px; min-width: 0; padding: 8px 12px; font-size: 14px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--background); color: var(--foreground);
+}
+.pv-select {
+  padding: 8px 10px; font-size: 13px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--background); color: var(--foreground);
+}
+.pv-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted-foreground); }
+.pv-btn {
+  padding: 7px 12px; font-size: 13px; font-weight: 500; cursor: pointer;
+  border-radius: var(--radius); border: 1px solid var(--primary);
+  background: var(--primary); color: var(--primary-foreground);
+}
+.pv-btn:disabled { opacity: 0.5; cursor: default; }
+.pv-btn-ghost { background: var(--background); color: var(--foreground); border-color: var(--border); }
+.pv-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.pv-chip {
+  padding: 4px 10px; font-size: 12px; cursor: pointer; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--background); color: var(--muted-foreground);
+}
+.pv-chip.on { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+.pv-chip-n { opacity: 0.7; margin-left: 2px; }
+.pv-list { display: flex; flex-direction: column; gap: 12px; }
+.pv-empty { padding: 24px; text-align: center; color: var(--muted-foreground); font-size: 14px; }
+.pv-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; font-size: 14px; line-height: 1.6;
+}
+.pv-card-head { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+.pv-id { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-foreground); }
+.pv-badge {
+  font-size: 11px; padding: 1px 8px; border-radius: 999px;
+  background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border);
+}
+.pv-badge-new { font-style: italic; }
+.pv-title { font-size: 15px; font-weight: 600; margin: 2px 0 8px; }
+.pv-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--muted-foreground); margin-bottom: 2px;
+}
+.pv-ask, .pv-part { margin-top: 10px; }
+.pv-part { border-top: 1px solid var(--border); padding-top: 10px; }
+.pv-card p { margin: 0 0 6px; }
+.pv-card ul { margin: 0 0 6px; padding-left: 20px; }
+.pv-reveal {
+  margin-top: 10px; padding: 6px 12px; font-size: 13px; cursor: pointer;
+  border-radius: var(--radius); border: 1px dashed var(--border);
+  background: var(--muted); color: var(--foreground);
+}
+.pv-files { margin-top: 10px; font-size: 12px; color: var(--muted-foreground); display: flex; flex-wrap: wrap; gap: 6px; }
+.pv-files code { background: var(--muted); padding: 1px 6px; border-radius: 4px; }
