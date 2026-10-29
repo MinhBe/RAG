@@ -1,8 +1,10 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "env": {
-    "NEXT_PUBLIC_API_BASE_URL": "https://minhbe-lawvn-api.hf.space"
-  }
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://minhbe-lawvn-api.hf.space/api/:path*"
+    }
+  ]
 }
