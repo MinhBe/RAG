@@ -41,3 +41,4 @@ pgdata/
 data/escalations.json
 data/out_of_scope.jsonl
 .dahl.env
+RAG-api/
