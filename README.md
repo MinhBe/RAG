@@ -12,50 +12,49 @@
 **📖 API Docs:** `http://localhost:8000/docs` sau khi chạy cục bộ · **[📋 Tổng quan kỹ thuật](docs/TONG-QUAN-DU-AN.md)**
 
 <p align="center">
-  <img src="docs/images/demo-first-look.gif" alt="Demo: hỏi đáp pháp luật lao động có trích dẫn" width="760">
+  <img src="docs/images/demo_first_look.gif" alt="Demo: hỏi đáp pháp luật lao động có trích dẫn" width="760">
 </p>
 
 ---
 
-## Dự án là gì
+## Tổng quan dự án
 
 Trợ lý AI hỏi đáp **pháp luật lao động Việt Nam**, với RAG có trích dẫn làm lõi và một vài tính năng pháp chế thực tế xoay quanh nó:
 
-| Tính năng | Mô tả |
-|---|---|
-| **Trả lời có trích dẫn** | Mỗi câu trả lời kèm Điều–Khoản–Điểm cụ thể; từ chối khi không đủ căn cứ, không bịa trích dẫn |
-| **Đề xuất câu hỏi chuẩn hơn** | Câu hỏi dùng từ đời thường ("bị đuổi việc") được đề xuất lại bằng đúng thuật ngữ luật, một nút bấm để dùng |
+| Tính năng                       | Mô tả                                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Trả lời có trích dẫn**        | Mỗi câu trả lời kèm Điều–Khoản–Điểm cụ thể; từ chối khi không đủ căn cứ, không bịa trích dẫn                                   |
+| **Đề xuất câu hỏi chuẩn hơn**   | Câu hỏi dùng từ đời thường ("bị đuổi việc") được đề xuất lại bằng đúng thuật ngữ luật, một nút bấm để dùng                     |
 | **Chặn câu lạc đề / chèn lệnh** | Mẫu cố định + phân loại bằng LLM: câu ngoài phạm vi lao động, hoặc cố điều khiển trợ lý, đều bị chặn trước khi tới LLM trả lời |
-| **Phê duyệt có người thật** | Câu hỏi đúng phạm vi nhưng ngoài kho văn bản được chuyển cho chuyên gia duyệt và trả lời trực tiếp (human-in-the-loop) |
-| **Knowledge Graph 2 chiều** | Đồ thị quan hệ Văn bản → Chương → Điều → Khoản → Điểm, kèm bản đồ ontology để lọc theo triplet |
-| **Hiệu lực theo thời gian** | Hỏi "luật năm 2015" → ra BLLĐ 2012; hỏi "hiện tại" → ra BLLĐ 2019 + NĐ145 |
-| **Tác vụ pháp chế thực tế** | Soạn văn bản NĐ30, tổng hợp 150 bản án/án lệ lao động |
+| **Phê duyệt có người thật**     | Câu hỏi đúng phạm vi nhưng ngoài kho văn bản được chuyển cho chuyên gia duyệt và trả lời trực tiếp (human-in-the-loop)         |
+| **Knowledge Graph 2 chiều**     | Đồ thị quan hệ Văn bản → Chương → Điều → Khoản → Điểm, kèm bản đồ ontology để lọc theo triplet                                 |
+| **Hiệu lực theo thời gian**     | Hỏi "luật năm 2015" → ra BLLĐ 2012; hỏi "hiện tại" → ra BLLĐ 2019 + NĐ145                                                      |
+| **Tác vụ pháp chế thực tế**     | Soạn văn bản NĐ30, tổng hợp 150 bản án/án lệ lao động                                                                          |
 
-Dự án tổng hợp ý tưởng từ 3 repo nguồn (agentailor, LexCompanion, LAWGIC) nhưng **backend được viết lại hoàn toàn** — gọn hơn, bỏ Neo4j, dùng PostgreSQL + pgvector.
 
 ---
 
-## Xem trước
+## Các tính năng
 
 ### Đề xuất câu hỏi pháp lý chuẩn hơn
 Người dùng hỏi bằng từ ngữ đời thường — trợ lý nhận ra câu hỏi mơ hồ so với thuật ngữ luật, đề xuất lại đúng cách hỏi, một nút bấm để dùng ngay.
 
 <p align="center">
-  <img src="docs/images/demo-suggest-rewrite.gif" alt="Demo: đề xuất câu hỏi pháp lý chuẩn hơn" width="700">
+  <img src="docs/images/demo_suggest_rewrite.gif" alt="Demo: đề xuất câu hỏi pháp lý chuẩn hơn" width="700">
 </p>
 
 ### Phê duyệt có người thật (human-in-the-loop)
 Câu hỏi đúng phạm vi lao động nhưng cần văn bản chưa có trong kho (ví dụ hỏi về luật của một năm chưa ra) được ghi nhận và chờ chuyên gia duyệt trên trang Dashboard — chuyên gia viết câu trả lời hoặc từ chối kèm lý do, thẻ trong khung chat tự cập nhật kết quả.
 
 <p align="center">
-  <img src="docs/images/demo-approval.gif" alt="Demo: phê duyệt có người thật trên Dashboard" width="700">
+  <img src="docs/images/demo_approval.gif" alt="Demo: phê duyệt có người thật trên Dashboard" width="700">
 </p>
 
 ### Knowledge Graph & bản đồ ontology
 Đồ thị quan hệ xoay quanh kết quả tra cứu (Văn bản — Chương — Điều — Khoản — Điểm), nhóm theo Chương hoặc theo Văn bản, cùng bản đồ ontology bên phải để lọc theo triplet (chủ ngữ – vị ngữ – tân ngữ) và làm nổi phần liên quan.
 
 <p align="center">
-  <img src="docs/images/demo-knowledge-graph.gif" alt="Demo: Knowledge Graph và bản đồ ontology" width="760">
+  <img src="docs/images/demo_knowledge_graph.gif" alt="Demo: Knowledge Graph và bản đồ ontology" width="760">
 </p>
 
 ---
@@ -115,7 +114,6 @@ Browser (Next.js 15)  ──SSE stream──▶  FastAPI  ──▶  PostgreSQL 
 | NĐ 145/2020/NĐ-CP | `nd145_2020` | 115 Điều, ~880 node |
 | Án lệ/bản án lao động | bảng `precedent` | 150 bản án (Hugging Face) |
 
-Mã node: `blld2019-d35-k2-a` = Bộ luật 2019, Điều 35, Khoản 2, Điểm a.
 
 ---
 
@@ -153,10 +151,6 @@ docker run -p 7860:7860 <dockerhub-user>/lawvn-api:1.0
 # Thêm Gemini làm dự phòng (tùy chọn):
 docker run -p 7860:7860 -e GEMINI_API_KEY_1=... <dockerhub-user>/lawvn-api:1.0
 ```
-
-API nằm tại http://localhost:7860 (Swagger tại `/docs`). Giao diện web chạy riêng qua `docker compose` như phần trên.
-
-Để tự đóng gói lại từ mã nguồn: tạo `backend/.dahl.env` (đã gitignore) với `DAHL_TOKEN_1=...`, rồi chạy `docker build -f backend/Dockerfile.demo -t <dockerhub-user>/lawvn-api:1.0 backend`.
 
 ---
 
@@ -207,13 +201,7 @@ RAG/
 
 ## Acknowledgements
 
-- [agentailor/fullstack-langgraph-nextjs-agent](https://github.com/agentailor/fullstack-langgraph-nextjs-agent) (MIT) — mẫu giao diện streaming agent
-- [danialtranz/LexCompanion](https://github.com/danialtranz/LexCompanion) (Apache-2.0) — lõi RAG pháp lý, ý tưởng soạn văn bản
-- [dlxik/LAWGIC--L-GPT6.7--VAIC2026](https://github.com/dlxik/LAWGIC--L-GPT6.7--VAIC2026) — parser Điều–Khoản–Điểm, so sánh phiên bản, hỏi đáp có trích dẫn *(dùng lại code theo sự cho phép của tác giả)*
 - Dữ liệu: HF `th1nhng0/vietnamese-legal-documents` · `tmquan/anle-toaan-gov-vn` (CC-BY 4.0)
 
----
 
-## License
 
-MIT — xem [LICENSE](LICENSE). Phần code port từ LAWGIC giữ thông điệp cho phép của tác giả gốc.
