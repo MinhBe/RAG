@@ -186,12 +186,3 @@ RAG/
 └── docs/
     └── TONG-QUAN-DU-AN.md  # Tài liệu kiến trúc chi tiết
 ```
-
----
-
-## Acknowledgements
-
-- Dữ liệu: HF `th1nhng0/vietnamese-legal-documents` · `tmquan/anle-toaan-gov-vn` (CC-BY 4.0)
-
-
-
