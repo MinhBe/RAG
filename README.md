@@ -12,7 +12,7 @@
 **📖 API Docs:** `http://localhost:8000/docs` sau khi chạy cục bộ · **[📋 Tổng quan kỹ thuật](docs/TONG-QUAN-DU-AN.md)**
 
 <p align="center">
-  <img src="docs/images/demo_first_look.gif" alt="Demo: hỏi đáp pháp luật lao động có trích dẫn" width="760">
+  <img src="docs/images/demo_first_look.gif" alt="Demo: hỏi đáp pháp luật lao động có trích dẫn" width="1200">
 </p>
 
 ---
@@ -40,40 +40,30 @@ Trợ lý AI hỏi đáp **pháp luật lao động Việt Nam**, với RAG có 
 Người dùng hỏi bằng từ ngữ đời thường — trợ lý nhận ra câu hỏi mơ hồ so với thuật ngữ luật, đề xuất lại đúng cách hỏi, một nút bấm để dùng ngay.
 
 <p align="center">
-  <img src="docs/images/demo_suggest_rewrite.gif" alt="Demo: đề xuất câu hỏi pháp lý chuẩn hơn" width="700">
+  <img src="docs/images/demo_suggest_rewrite.gif" alt="Demo: đề xuất câu hỏi pháp lý chuẩn hơn" width="1200">
 </p>
 
 ### Phê duyệt có người thật (human-in-the-loop)
 Câu hỏi đúng phạm vi lao động nhưng cần văn bản chưa có trong kho (ví dụ hỏi về luật của một năm chưa ra) được ghi nhận và chờ chuyên gia duyệt trên trang Dashboard — chuyên gia viết câu trả lời hoặc từ chối kèm lý do, thẻ trong khung chat tự cập nhật kết quả.
 
 <p align="center">
-  <img src="docs/images/demo_approval.gif" alt="Demo: phê duyệt có người thật trên Dashboard" width="700">
+  <img src="docs/images/demo_approval.gif" alt="Demo: phê duyệt có người thật trên Dashboard" width="1200">
 </p>
 
 ### Knowledge Graph & bản đồ ontology
 Đồ thị quan hệ xoay quanh kết quả tra cứu (Văn bản — Chương — Điều — Khoản — Điểm), nhóm theo Chương hoặc theo Văn bản, cùng bản đồ ontology bên phải để lọc theo triplet (chủ ngữ – vị ngữ – tân ngữ) và làm nổi phần liên quan.
 
 <p align="center">
-  <img src="docs/images/demo_knowledge_graph.gif" alt="Demo: Knowledge Graph và bản đồ ontology" width="760">
+  <img src="docs/images/demo_knowledge_graph.gif" alt="Demo: Knowledge Graph và bản đồ ontology" width="1200">
 </p>
 
 ---
 
 ## Kiến trúc kỹ thuật
 
-```
-Browser (Next.js 15)  ──SSE stream──▶  FastAPI  ──▶  PostgreSQL 17 + pgvector
-                                          │
-                          guard.py ◀──────┤   mẫu cố định (chèn lệnh) + phân loại
-                      (lọc trước LLM)     │   bằng LLM (lạc đề / ngoài kho / mơ hồ)
-                                          ▼
-                         LLMRouter: đua song song 3 model Dahl
-                         (DeepSeek-V4 / GLM-5.3 / MiniMax-M2),
-                         Gemini vào cuộc đua nếu Dahl chậm > 15s
-                                          │
-                                          ▼
-                         Vietnamese_Embedding_v2 (self-hosted)
-                         AITeamVN/Vietnamese_Embedding_v2, 1024-dim
+<p align="center">
+  <img src="docs/images/architecture.png" alt="Kiến trúc kĩ thuật" width="1200">
+</p>
 ```
 
 | Tầng | Công nghệ | Ghi chú |
